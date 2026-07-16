@@ -1,0 +1,12 @@
+gymnasium>=0.29
+stable-baselines3>=2.3
+torch>=2.2
+pandas>=2.2
+numpy>=1.26
+xgboost>=2.0
+statsmodels>=0.14
+streamlit>=1.35
+plotly>=5.22
+tensorboard>=2.16
+requests>=2.31
+pytest>=8.2

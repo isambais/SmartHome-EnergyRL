@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Sanal ortam
+venv/
+.venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Deney / model çıktıları
+models/*.zip
+models/*.pt
+runs/
+tensorboard_logs/
+
+# Veri (ham/işlenmiş veri repoya değil, .gitkeep ile klasör yapısı korunur)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Ortam değişkenleri / API anahtarları
+.env
+*.key
+
+# IDE
+.vscode/
+.idea/
+
+# İşletim sistemi
+.DS_Store
+Thumbs.db
