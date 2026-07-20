@@ -9,7 +9,7 @@ dist/
 # Sanal ortam
 venv/
 .venv/
-env/
+/env/
 
 # Jupyter
 .ipynb_checkpoints/
