@@ -125,3 +125,67 @@ def test_reset_is_reproducible_with_same_seed(sample_prices) -> None:
 def test_gymnasium_check_env_passes(sample_prices) -> None:
     env = SmartHomeEnergyEnv(sample_prices, random_day=True)
     check_env(env.unwrapped, skip_render_check=True)
+
+
+def test_wait_action_gives_zero_reward(sample_prices) -> None:
+    env = SmartHomeEnergyEnv(sample_prices, random_day=False)
+    env.reset(seed=0)
+
+    obs, reward, terminated, truncated, info = env.step(
+        np.array([0.0], dtype=np.float32)
+    )
+
+    assert reward == pytest.approx(0.0)
+    assert info["cost_tl"] == pytest.approx(0.0)
+    assert info["revenue_tl"] == pytest.approx(0.0)
+
+
+def test_charge_then_discharge_has_net_loss(sample_prices) -> None:
+    env = SmartHomeEnergyEnv(sample_prices, random_day=False, initial_soc=0.0)
+    env.reset(seed=0)
+
+    # Aynı fiyatta şarj et
+    _, charge_reward, _, _, _ = env.step(np.array([1.0], dtype=np.float32))
+    # Aynı fiyatta deşarj et
+    _, discharge_reward, _, _, _ = env.step(np.array([-1.0], dtype=np.float32))
+
+    net = charge_reward + discharge_reward
+    assert net < 0.0  # verimlilik kaybı nedeniyle net kayıp olmalı
+
+
+def test_higher_price_gives_higher_discharge_reward(sample_prices) -> None:
+    prices_low = np.full(24, 1000.0, dtype=np.float32)
+    prices_high = np.full(24, 3000.0, dtype=np.float32)
+
+    env_low = SmartHomeEnergyEnv(
+        prices_low, random_day=False, initial_soc=1.0, price_unit="tl_per_mwh"
+    )
+    env_high = SmartHomeEnergyEnv(
+        prices_high, random_day=False, initial_soc=1.0, price_unit="tl_per_mwh"
+    )
+
+    env_high.reset(seed=0)
+    env_low.reset(seed=0)
+
+    _, reward_low, _, _, _ = env_low.step(np.array([-1.0], dtype=np.float32))
+    _, reward_high, _, _, _ = env_high.step(np.array([-1.0], dtype=np.float32))
+
+    assert reward_high > reward_low
+
+
+def test_episode_info_contains_totals(sample_prices) -> None:
+    env = SmartHomeEnergyEnv(
+        sample_prices,
+        random_day=False,
+    )
+    env.reset(seed=0)
+
+    terminated = False
+    info = {}
+    while not terminated:
+        _, _, terminated, _, info = env.step(np.array([0.0], dtype=np.float32))
+
+    assert "episode" in info
+    assert "total_reward" in info["episode"]
+    assert "total_cost" in info["episode"]
+    assert "total_revenue" in info["episode"]
