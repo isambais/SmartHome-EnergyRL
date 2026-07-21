@@ -76,6 +76,9 @@ class SmartHomeEnergyEnv(gym.Env):
         self._font_small = None
         self._last_action = 0.0
         self._last_reward = 0.0
+        self._episode_total_reward: float = 0.0
+        self._episode_total_cost: float = 0.0
+        self._episode_total_revenue: float = 0.0
 
         if not 0.0 < round_trip_efficiency <= 1.0:
             raise ValueError("round_trip_efficiency (0, 1] aralığında olmalı.")
@@ -134,6 +137,9 @@ class SmartHomeEnergyEnv(gym.Env):
         self._current_day_prices = self.daily_prices[self._day_idx]
         self.soc = self.initial_soc
         self.t = 0
+        self._episode_total_reward = 0.0
+        self._episode_total_cost = 0.0
+        self._episode_total_revenue = 0.0
 
         observation = self._get_obs()
         info = {"day_idx": self._day_idx}
@@ -174,7 +180,7 @@ class SmartHomeEnergyEnv(gym.Env):
             delivered_kwh = applied_energy_kwh * self.discharge_efficiency
             revenue = price_t * delivered_kwh
 
-        reward = revenue - cost
+        reward = self._compute_reward(cost, revenue)
         self._last_action = a
         self._last_reward = reward
 
@@ -189,6 +195,10 @@ class SmartHomeEnergyEnv(gym.Env):
         else:
             observation = self._get_obs()
 
+        self._episode_total_reward += reward
+        self._episode_total_cost += cost
+        self._episode_total_revenue += revenue
+
         info = {
             "day_idx": self._day_idx,
             "hour": self.t - 1,
@@ -196,11 +206,25 @@ class SmartHomeEnergyEnv(gym.Env):
             "cost_tl": cost,
             "revenue_tl": revenue,
         }
+        if terminated:
+            info["episode"] = {
+                "total_reward": self._episode_total_reward,
+                "total_cost": self._episode_total_cost,
+                "total_revenue": self._episode_total_revenue,
+            }
 
         if self.render_mode == "human":
             self.render()
 
         return observation, reward, terminated, truncated, info
+
+    def _compute_reward(self, cost_tl: float, revenue_tl: float) -> float:
+        """Ödül fonksiyonu — Curriculum Aşama 1: sadece şebeke maliyeti ve deşarj geliri.
+        reward = -(şebekeden çekilen enerji maliyeti) + (deşarjdan elde edilen gelir)
+        Ceza terimleri (ertelenebilir cihaz çalıştırılmama cezası vb.) henüz yok —
+        bunlar Curriculum Aşama 3'te (Gün 13+) eklenecek."""
+
+        return revenue_tl - cost_tl
 
     def render(self) -> None:
         """render_mode='human' ise pygame ile canlı bir pencerede ortamın o anki
