@@ -37,3 +37,7 @@ data/processed/*
 # İşletim sistemi
 .DS_Store
 Thumbs.db
+
+# Eğitim çıktıları
+models/
+logs/

@@ -98,6 +98,21 @@ def hold_policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
     return np.array([0.0], dtype=np.float32)
 
 
+def ppo_policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
+    """Eğitilmiş PPO modeliyle aksiyon seç."""
+    from stable_baselines3 import PPO as _PPO
+
+    model_path = Path("models/ppo_smarthome_final.zip")
+    if not model_path.exists():
+        raise FileNotFoundError(
+            f"Model bulunamadı: {model_path}\n"
+            "Önce 'python scripts/train_ppo.py' çalıştırın."
+        )
+    model = _PPO.load(str(model_path))
+    action, _ = model.predict(obs, deterministic=True)
+    return action
+
+
 # --- Değerlendirme ---
 
 
@@ -143,6 +158,7 @@ def main() -> None:
         ("Bekle (hold)   ", hold_policy),
         ("Rastgele       ", random_policy),
         ("Eşik (threshold)", threshold_policy),
+        ("PPO (egitilmis) ", ppo_policy),
     ]
 
     print(f"\n{'='*55}")
