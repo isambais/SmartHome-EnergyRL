@@ -119,7 +119,8 @@ def main():
 
 
 def _threshold(obs, env):
-    prices = obs[1:]
+    # obs[0]=soc, obs[1]=soh, obs[2:6]=time, obs[6]=grid, obs[7]=dr, obs[8:32]=prices
+    prices = obs[8:32]
     low = np.percentile(prices, 30)
     high = np.percentile(prices, 70)
     cur = float(env._current_day_prices[env.t])
