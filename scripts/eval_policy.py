@@ -19,6 +19,7 @@ from src.env.energy_env import SmartHomeEnergyEnv  # noqa: E402
 Policy = Callable[[np.ndarray, SmartHomeEnergyEnv], np.ndarray]
 
 DATA_PATH = Path("data/epias_2024.csv")
+PHASE2_DATA_PATH = Path("data/processed/aligned_dataset.csv")
 
 FALLBACK_PRICES = np.array(
     [3230,3155,2910,2919,2783,2932,2843,1399,1599,1599,
@@ -36,6 +37,170 @@ def load_prices() -> np.ndarray:
     print("UYARI: epias_2024.csv bulunamadi, fallback kullaniliyor.")
     return FALLBACK_PRICES
 
+def load_phase2_data() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    import pandas as pd
+    df = pd.read_csv(PHASE2_DATA_PATH)
+    print(f"Aşama 2 verisi: {len(df)} saat")
+    return (
+        df["price_tl_mwh"].values.astype(np.float32),
+        df["solar_kw"].values.astype(np.float32),
+        df["demand_kw"].values.astype(np.float32),
+    )
+
+
+def threshold_policy_phase2(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
+    # obs[0]=soc, obs[1]=soh, obs[2:6]=time, obs[6]=grid, obs[7]=dr, obs[8:32]=prices
+    prices = obs[8:32]
+    low = np.percentile(prices, 30)
+    high = np.percentile(prices, 70)
+    current_price = float(env._current_day_prices[env.t])
+    if current_price <= low:
+        return np.array([1.0], dtype=np.float32)
+    elif current_price >= high:
+        return np.array([-1.0], dtype=np.float32)
+    return np.array([0.0], dtype=np.float32)
+
+
+def make_a2c_phase2_policy() -> Policy:
+    from stable_baselines3 import A2C as _A2C
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+    model_path = Path("models/a2c_phase2_final.zip")
+    stats_path = Path("models/a2c_phase2_vecnormalize.pkl")
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model bulunamadi: {model_path}")
+
+    model = _A2C.load(str(model_path))
+    _venv = None
+    if stats_path.exists():
+        price, solar, demand = load_phase2_data()
+        dummy = DummyVecEnv([lambda: SmartHomeEnergyEnv(
+            price_data=price, solar_data=solar, demand_data=demand,
+            price_unit="tl_per_mwh",
+        )])
+        _venv = VecNormalize.load(str(stats_path), dummy)
+        _venv.training = False
+        _venv.norm_reward = False
+
+    def _policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
+        obs_norm = _venv.normalize_obs(obs[np.newaxis])[0] if _venv else obs
+        action, _ = model.predict(obs_norm, deterministic=True)
+        return action
+    return _policy
+
+
+def make_sac_phase2_policy() -> Policy:
+    from stable_baselines3 import SAC as _SAC
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+    model_path = Path("models/sac_phase2_final.zip")
+    stats_path = Path("models/sac_phase2_vecnormalize.pkl")
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model bulunamadi: {model_path}")
+
+    model = _SAC.load(str(model_path))
+    _venv = None
+    if stats_path.exists():
+        price, solar, demand = load_phase2_data()
+        dummy = DummyVecEnv([lambda: SmartHomeEnergyEnv(
+            price_data=price, solar_data=solar, demand_data=demand,
+            price_unit="tl_per_mwh",
+        )])
+        _venv = VecNormalize.load(str(stats_path), dummy)
+        _venv.training = False
+        _venv.norm_reward = False
+
+    def _policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
+        obs_norm = _venv.normalize_obs(obs[np.newaxis])[0] if _venv else obs
+        action, _ = model.predict(obs_norm, deterministic=True)
+        return action
+    return _policy
+
+
+def make_td3_phase2_policy() -> Policy:
+    from stable_baselines3 import TD3 as _TD3
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+    model_path = Path("models/td3_phase2_final.zip")
+    stats_path = Path("models/td3_phase2_vecnormalize.pkl")
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model bulunamadi: {model_path}")
+
+    model = _TD3.load(str(model_path))
+    _venv = None
+    if stats_path.exists():
+        price, solar, demand = load_phase2_data()
+        dummy = DummyVecEnv([lambda: SmartHomeEnergyEnv(
+            price_data=price, solar_data=solar, demand_data=demand,
+            price_unit="tl_per_mwh",
+        )])
+        _venv = VecNormalize.load(str(stats_path), dummy)
+        _venv.training = False
+        _venv.norm_reward = False
+
+    def _policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
+        obs_norm = _venv.normalize_obs(obs[np.newaxis])[0] if _venv else obs
+        action, _ = model.predict(obs_norm, deterministic=True)
+        return action
+    return _policy
+
+
+def make_ppo_phase2_policy() -> Policy:
+    from stable_baselines3 import PPO as _PPO
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+    model_path = Path("models/ppo_phase2_final.zip")
+    stats_path = Path("models/ppo_phase2_vecnormalize.pkl")
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model bulunamadi: {model_path}")
+
+    model = _PPO.load(str(model_path))
+    _venv = None
+    if stats_path.exists():
+        price, solar, demand = load_phase2_data()
+        dummy = DummyVecEnv([lambda: SmartHomeEnergyEnv(
+            price_data=price, solar_data=solar, demand_data=demand,
+            price_unit="tl_per_mwh",
+        )])
+        _venv = VecNormalize.load(str(stats_path), dummy)
+        _venv.training = False
+        _venv.norm_reward = False
+
+    def _policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
+        obs_norm = _venv.normalize_obs(obs[np.newaxis])[0] if _venv else obs
+        action, _ = model.predict(obs_norm, deterministic=True)
+        return action
+    return _policy
+
+
+def evaluate_phase2(
+    policy: Policy,
+    prices: np.ndarray,
+    solar: np.ndarray,
+    demand: np.ndarray,
+    n_days: int = 30,
+    seed: int = 42,
+) -> dict[str, float]:
+    env = SmartHomeEnergyEnv(
+        price_data=prices, solar_data=solar, demand_data=demand,
+        random_day=True, price_unit="tl_per_mwh",
+    )
+    rewards = []
+    for i in range(n_days):
+        obs, _ = env.reset(seed=seed + i)
+        terminated = False
+        ep_r = 0.0
+        while not terminated:
+            action = policy(obs, env)
+            obs, reward, terminated, _, _ = env.step(action)
+            ep_r += reward
+        rewards.append(ep_r)
+    return {
+        "mean": float(np.mean(rewards)),
+        "std": float(np.std(rewards)),
+        "min": float(np.min(rewards)),
+        "max": float(np.max(rewards)),
+    }
 
 # --- Politikalar ---
 
@@ -48,7 +213,8 @@ def random_policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
 
 
 def threshold_policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
-    prices = obs[1:]
+    # obs[0]=soc, obs[1]=soh, obs[2:6]=time, obs[6]=grid, obs[7]=dr, obs[8:32]=prices
+    prices = obs[8:32]
     low = np.percentile(prices, 30)
     high = np.percentile(prices, 70)
     current_price = float(env._current_day_prices[env.t])
@@ -193,6 +359,31 @@ def main() -> None:
         )
 
     print(f"{'='*58}\n")
+    
+    # ── Aşama 2 karşılaştırması ──
+    if PHASE2_DATA_PATH.exists():
+        p2_price, p2_solar, p2_demand = load_phase2_data()
+        phase2_policies: list[tuple[str, Policy]] = [
+            ("Bekle (hold)    ", hold_policy),
+            ("Rastgele        ", random_policy),
+            ("Esik (threshold)", threshold_policy_phase2),
+            ("PPO Asama2      ", make_ppo_phase2_policy()),
+            ("A2C Asama2      ", make_a2c_phase2_policy()),
+            ("SAC Asama2      ", make_sac_phase2_policy()),
+            ("TD3 Asama2      ", make_td3_phase2_policy()),
+        ]
+        print(f"\n{'='*58}")
+        print(f"  CURRICULUM ASAMA 2 — {n} gun (gunes + talep)")
+        print(f"{'='*58}")
+        print(f"  {'Politika':<22} {'Ort (TL)':>9} {'Std':>7} {'Min':>7} {'Maks':>7}")
+        print(f"  {'-'*53}")
+        for name, policy in phase2_policies:
+            stats = evaluate_phase2(policy, p2_price, p2_solar, p2_demand, n_days=n)
+            print(
+                f"  {name:<22} {stats['mean']:>+9.2f} {stats['std']:>7.2f} "
+                f"{stats['min']:>+7.2f} {stats['max']:>+7.2f}"
+            )
+        print(f"{'='*58}\n")
 
 
 if __name__ == "__main__":
