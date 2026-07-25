@@ -37,7 +37,7 @@ def test_reset_returns_valid_observation(sample_prices) -> None:
     env = SmartHomeEnergyEnv(sample_prices, random_day=False)
     obs, info = env.reset(seed=0)
 
-    assert obs.shape == (25,)
+    assert obs.shape == (56,)
     assert obs[0] == pytest.approx(0.5)  # initial_soc varsayılanı
     assert env.observation_space.contains(obs)
     assert "day_idx" in info

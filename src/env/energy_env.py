@@ -198,8 +198,8 @@ class SmartHomeEnergyEnv(gym.Env):
         _n_phase2 = hours_per_episode * 2 if self._phase2 else 0
         _obs_dim = _n_base + _n_prices + _n_phase2
 
-        price_low = float(self.daily_prices.min())
-        price_high = float(self.daily_prices.max())
+        price_low = 0.0
+        price_high = float(self.daily_prices.max()) * 1.30  # gürültü marjı
 
         if self._phase2:
             solar_high = float(self.daily_solar.max()) + 0.1
