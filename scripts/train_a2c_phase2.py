@@ -41,8 +41,15 @@ def main() -> None:
             price_unit="tl_per_mwh",
         )
 
+    # ── Optuna Aşama 2 en iyi parametreler (Trial #2, -6.94 TL) ─────
+    LEARNING_RATE = 0.00040912205744437856
+    N_STEPS       = 128
+    GAMMA         = 0.9777324201779083
+    ENT_COEF      = 0.009983689107917987
+    NET_ARCH_SIZE = 256
+
     train_env = make_vec_env(make_env_fn, n_envs=4, seed=42)
-    train_env = VecNormalize(train_env, norm_obs=True, norm_reward=True, gamma=0.99)
+    train_env = VecNormalize(train_env, norm_obs=True, norm_reward=True, gamma=GAMMA)
 
     eval_vec = DummyVecEnv([make_env_fn])
     eval_env = VecNormalize(eval_vec, norm_obs=True, norm_reward=False, training=False)
@@ -60,12 +67,13 @@ def main() -> None:
     model = A2C(
         "MlpPolicy",
         train_env,
-        learning_rate=7e-4,
-        n_steps=32,
-        gamma=0.99,
-        ent_coef=0.01,
-        policy_kwargs=dict(net_arch=[256, 256]),
+        learning_rate=LEARNING_RATE,
+        n_steps=N_STEPS,
+        gamma=GAMMA,
+        ent_coef=ENT_COEF,
+        policy_kwargs=dict(net_arch=[NET_ARCH_SIZE, NET_ARCH_SIZE]),
         verbose=1,
+        device="auto",
         tensorboard_log=str(LOG_DIR),
         seed=42,
     )
