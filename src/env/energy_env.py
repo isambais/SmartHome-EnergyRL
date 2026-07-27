@@ -100,6 +100,9 @@ class SmartHomeEnergyEnv(gym.Env):
         dr_signal_prob: float = 0.05,      # saat başı DR sinyal olasılığı
         dr_reward_coef: float = 0.30,      # DR sırasında net ihracat başına TL bonus
 
+        # ── Öz-Tüketim (Aşama 2) ───────────────────────────────────
+        self_consumption_coef: float = 0.10,  # TL/kWh — güneşin ev talebini karşıladığı her kWh için bonus
+
         # ── Belirsizlik ────────────────────────────────────────────
         stochastic_solar: bool = True,
         stochastic_demand: bool = True,
@@ -181,6 +184,7 @@ class SmartHomeEnergyEnv(gym.Env):
         self.outage_unmet_penalty = float(outage_unmet_penalty)
         self.dr_signal_prob = float(dr_signal_prob)
         self.dr_reward_coef = float(dr_reward_coef)
+        self.self_consumption_coef = float(self_consumption_coef)
         self.stochastic_solar = stochastic_solar
         self.stochastic_demand = stochastic_demand
         self.solar_noise_std = float(solar_noise_std)
@@ -439,8 +443,13 @@ class SmartHomeEnergyEnv(gym.Env):
         # ── Döngü cezası ───────────────────────────────────────
         cycle_penalty = self.cycle_penalty_coef * energy_cycled
 
+        # ── Öz-tüketim bonusu (yalnızca Aşama 2) ──────────────
+        # Güneşin ev talebini doğrudan karşıladığı kWh miktarı:
+        # şebekeden alım veya satış yapmak yerine güneşi önce evde kullanmayı teşvik eder.
+        sc_bonus = self.self_consumption_coef * min(solar_t, demand_t)
+
         # ── Ödül ───────────────────────────────────────────────
-        reward = revenue - cost - unmet_penalty - cycle_penalty + dr_bonus
+        reward = revenue - cost - unmet_penalty - cycle_penalty + dr_bonus + sc_bonus
 
         self._last_action = a
         self._last_reward = reward
@@ -464,6 +473,7 @@ class SmartHomeEnergyEnv(gym.Env):
             "unmet_penalty_tl": unmet_penalty,
             "cycle_penalty_tl": cycle_penalty,
             "dr_bonus_tl": dr_bonus,
+            "sc_bonus_tl": sc_bonus,
             "charge_eff": charge_eff,
             "discharge_eff": discharge_eff,
             "soh": self.soh,

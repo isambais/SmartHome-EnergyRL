@@ -41,8 +41,15 @@ def main() -> None:
             price_unit="tl_per_mwh",
         )
 
+    LEARNING_RATE = 3.25e-4
+    N_STEPS       = 256
+    BATCH_SIZE    = 128
+    GAMMA         = 0.953
+    N_EPOCHS      = 10
+    NET_ARCH_SIZE = 256
+
     train_env = make_vec_env(make_env_fn, n_envs=4, seed=42)
-    train_env = VecNormalize(train_env, norm_obs=True, norm_reward=True, gamma=0.953)
+    train_env = VecNormalize(train_env, norm_obs=True, norm_reward=True, gamma=GAMMA)
 
     eval_vec = DummyVecEnv([make_env_fn])
     eval_env = VecNormalize(eval_vec, norm_obs=True, norm_reward=False, training=False)
@@ -60,13 +67,14 @@ def main() -> None:
     model = PPO(
         "MlpPolicy",
         train_env,
-        learning_rate=3.25e-4,
-        n_steps=256,
-        batch_size=128,
-        n_epochs=10,
-        gamma=0.953,
-        policy_kwargs=dict(net_arch=[256, 256]),
+        learning_rate=LEARNING_RATE,
+        n_steps=N_STEPS,
+        batch_size=BATCH_SIZE,
+        n_epochs=N_EPOCHS,
+        gamma=GAMMA,
+        policy_kwargs=dict(net_arch=[NET_ARCH_SIZE, NET_ARCH_SIZE]),
         verbose=1,
+        device="auto",
         tensorboard_log=str(LOG_DIR),
         seed=42,
     )
