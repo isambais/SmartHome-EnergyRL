@@ -348,6 +348,32 @@ def make_sac_policy() -> Policy:
         return action
     return _policy
 
+
+def make_td3_phase1_policy() -> Policy:
+    """TD3 Phase 1 modelini VecNormalize ile yukle."""
+    from stable_baselines3 import TD3 as _TD3
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+    model_path = Path("models/td3_smarthome_final.zip")
+    stats_path = Path("models/td3_vecnormalize.pkl")
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model bulunamadi: {model_path}")
+
+    model = _TD3.load(str(model_path))
+    _venv = None
+    if stats_path.exists():
+        prices = load_prices()
+        dummy = DummyVecEnv([lambda: SmartHomeEnergyEnv(price_data=prices, price_unit="tl_per_mwh")])
+        _venv = VecNormalize.load(str(stats_path), dummy)
+        _venv.training = False
+        _venv.norm_reward = False
+
+    def _policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
+        obs_norm = _venv.normalize_obs(obs[np.newaxis])[0] if _venv else obs
+        action, _ = model.predict(obs_norm, deterministic=True)
+        return action
+    return _policy
+
 # --- Değerlendirme ---
 
 def evaluate(
@@ -390,6 +416,7 @@ def main() -> None:
         ("PPO             ", make_ppo_policy()),
         ("A2C             ", make_a2c_policy()),
         ("SAC             ", make_sac_policy()),
+        ("TD3             ", make_td3_phase1_policy()),
     ]
 
     print(f"\n{'='*58}")
