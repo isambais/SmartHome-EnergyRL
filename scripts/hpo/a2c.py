@@ -1,4 +1,4 @@
-"""Optuna hiperparametre araması — SAC, Curriculum Aşama 2."""
+"""Optuna hiperparametre araması — A2C, Curriculum Aşama 2."""
 
 from __future__ import annotations
 
@@ -6,14 +6,14 @@ import os
 import sys
 from pathlib import Path
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_PROJECT_ROOT))
 os.chdir(_PROJECT_ROOT)
 
 import numpy as np  # noqa: E402
 import optuna  # noqa: E402
 import pandas as pd  # noqa: E402
-from stable_baselines3 import SAC  # noqa: E402
+from stable_baselines3 import A2C  # noqa: E402
 from stable_baselines3.common.env_util import make_vec_env  # noqa: E402
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize  # noqa: E402
 
@@ -36,12 +36,11 @@ def load_data():
 def objective(trial: optuna.Trial) -> float:
     price, solar, demand = load_data()
 
-    lr           = trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True)
-    buffer_size  = trial.suggest_categorical("buffer_size", [50_000, 100_000, 200_000])
-    batch_size   = trial.suggest_categorical("batch_size", [128, 256, 512])
-    gamma        = trial.suggest_float("gamma", 0.90, 0.999)
-    tau          = trial.suggest_float("tau", 0.001, 0.05)
-    net_arch     = trial.suggest_categorical("net_arch_size", [128, 256, 512])
+    lr       = trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True)
+    n_steps  = trial.suggest_categorical("n_steps", [16, 32, 64, 128])
+    gamma    = trial.suggest_float("gamma", 0.90, 0.999)
+    ent_coef = trial.suggest_float("ent_coef", 0.0, 0.05)
+    net_arch = trial.suggest_categorical("net_arch_size", [128, 256, 512])
 
     def make_env_fn():
         return SmartHomeEnergyEnv(
@@ -50,19 +49,18 @@ def objective(trial: optuna.Trial) -> float:
         )
 
     try:
-        train_env = make_vec_env(make_env_fn, n_envs=1, seed=trial.number)
+        train_env = make_vec_env(make_env_fn, n_envs=4, seed=trial.number)
         train_env = VecNormalize(train_env, norm_obs=True, norm_reward=True, gamma=gamma)
 
         eval_vec = DummyVecEnv([make_env_fn])
         eval_env = VecNormalize(eval_vec, norm_obs=True, norm_reward=False, training=False)
 
-        model = SAC(
+        model = A2C(
             "MlpPolicy", train_env,
             learning_rate=lr,
-            buffer_size=buffer_size,
-            batch_size=batch_size,
+            n_steps=n_steps,
             gamma=gamma,
-            tau=tau,
+            ent_coef=ent_coef,
             policy_kwargs=dict(net_arch=[net_arch, net_arch]),
             verbose=0,
             device="auto",
@@ -95,15 +93,15 @@ def objective(trial: optuna.Trial) -> float:
 def main() -> None:
     study = optuna.create_study(
         direction="maximize",
-        study_name="phase2_sac_optuna",
-        storage=f"sqlite:///{_PROJECT_ROOT}/logs/optuna_sac_phase2.db",
+        study_name="phase2_a2c_optuna",
+        storage=f"sqlite:///{_PROJECT_ROOT}/logs/optuna_a2c_phase2.db",
         load_if_exists=True,
         sampler=optuna.samplers.TPESampler(seed=42),
     )
     study.optimize(objective, n_trials=N_TRIALS, show_progress_bar=True)
 
     print(f"\n{'='*50}")
-    print(f"SAC — En iyi trial: #{study.best_trial.number}")
+    print(f"A2C — En iyi trial: #{study.best_trial.number}")
     print(f"En iyi değer: {study.best_value:.2f} TL")
     print("En iyi parametreler:")
     for k, v in study.best_params.items():

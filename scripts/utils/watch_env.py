@@ -36,7 +36,7 @@ import pygame
 # calisma dizinine (os.chdir) ekleyerek hem import'lar hem de goreli veri
 # yollari (data/processed/...) her zaman dogru calissin. Bu satirlar diger
 # import'lardan sonra, src paketinin import'undan once gelmek zorunda.
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_PROJECT_ROOT))
 os.chdir(_PROJECT_ROOT)
 
