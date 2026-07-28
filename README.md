@@ -40,62 +40,57 @@ Türkiye'de elektrik fiyatı saatlik olarak değişiyor (EPİAŞ gün öncesi pi
 
 ## Sistem Akışı
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        VERI KAYNAKLARI                          │
-│                                                                 │
-│   EPİAŞ (Gerçek)          Sentetik Profil                      │
-│   Saatlik fiyat      +    Güneş üretimi (kW)                   │
-│   (TL/MWh)                Ev talebi (kW)                       │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    SmartHomeEnergyEnv                           │
-│                    (Gymnasium Ortamı)                           │
-│                                                                 │
-│  Gözlem (obs):                    Aksiyon:                     │
-│  ┌─────────────────────┐          ┌──────────────────┐         │
-│  │ [0]    SOC           │          │  [-1.0, +1.0]    │         │
-│  │ [1]    SOH           │   ──►   │                  │         │
-│  │ [6]    grid          │          │  -1 = deşarj     │         │
-│  │ [7]    DR sinyali    │          │   0 = bekle      │         │
-│  │ [8:32] bugün fiyat   │          │  +1 = şarj       │         │
-│  │ [32:56] yarın tahmin │          └──────────────────┘         │
-│  │ [56:80] güneş profil │                                       │
-│  │ [80:104] talep profil│         Ödül:                        │
-│  └─────────────────────┘          -(şebeke_maliyeti)           │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-              ┌──────────────┼──────────────┐
-              │              │              │
-              ▼              ▼              ▼
-     ┌─────────────┐ ┌─────────────┐ ┌──────────────┐
-     │  Curriculum │ │   Optuna    │ │  Rule-Based  │
-     │  Training   │ │    HPO      │ │  Baselines   │
-     │             │ │             │ │              │
-     │  Phase 1    │ │ 30-100      │ │  7 Politika  │
-     │  (56 obs)   │ │ trial/algo  │ │  + Optuna    │
-     │             │ │             │ │              │
-     │  Phase 2    │ │ SAC, TD3,   │ │  Hold, ToU,  │
-     │  (104 obs)  │ │ PPO, A2C    │ │  Threshold.. │
-     └──────┬──────┘ └──────┬──────┘ └──────┬───────┘
-            │               │               │
-            └───────────────┼───────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      DEĞERLENDİRME                              │
-│                                                                 │
-│   python scripts/eval/eval_policy.py --days 30                 │
-│                                                                 │
-│   Phase 1 Tablosu          Phase 2 Tablosu                     │
-│   ─────────────────        ─────────────────────               │
-│   Hold    :  0.00 TL       Hold     : -1.74 TL                 │
-│   PPO     : +7.67 TL       SAC+Opt  :  ???  TL                 │
-│   SAC     : +8.98 TL       TD3+Opt  :  ???  TL                 │
-│   TD3     :  ???  TL       ...                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A1[EPİAŞ\nSaatlik Fiyat\nTL/MWh] --> B
+    A2[Güneş Profili\nkW] --> B
+    A3[Talep Profili\nkW] --> B
+
+    B[SmartHomeEnergyEnv\nGymnasium Ortamı]
+
+    B --> C{{Gözlem — obs}}
+    C --> C1["[0] SOC · [1] SOH"]
+    C --> C2["[6] grid · [7] DR sinyali"]
+    C --> C3["[8:32] bugünkü fiyatlar"]
+    C --> C4["[32:56] yarınki tahmin"]
+    C --> C5["[56:80] güneş · [80:104] talep"]
+
+    B --> D{{Aksiyon — continuous}}
+    D --> D1["-1.0 → Deşarj"]
+    D --> D2["0.0 → Bekle"]
+    D --> D3["+1.0 → Şarj"]
+
+    B --> E{{Ödül}}
+    E --> E1["-(şebeke_maliyeti)"]
+
+    B --> F[Curriculum Training]
+    B --> G[Optuna HPO]
+    B --> H[Rule-Based Baselines]
+
+    F --> F1[Phase 1\nSaf Arbitraj\n56 obs]
+    F --> F2[Phase 2\nGüneş + Talep\n104 obs]
+
+    G --> G1[PPO · A2C · SAC · TD3\n50-100 deneme/algoritma]
+
+    H --> H1[7 Politika\nHold · Threshold · ToU\nSelfConsumption · Forecast\nPeakShaving · GridAware]
+    H --> H2[+ Optuna ile\nparametre optimizasyonu]
+
+    F2 --> I[Değerlendirme\neval_policy.py --days 30]
+    G1 --> I
+    H2 --> I
+
+    I --> I1[Phase 1 Tablosu\nPPO · A2C · SAC · TD3]
+    I --> I2[Phase 2 Tablosu\nRL vs Kural Tabanlı]
+
+    classDef env fill:#1e3a5f,stroke:#1e3a5f,color:#fff
+    classDef data fill:#2d6a4f,stroke:#2d6a4f,color:#fff
+    classDef result fill:#6b2d2d,stroke:#6b2d2d,color:#fff
+    classDef obs fill:#4a4a4a,stroke:#4a4a4a,color:#fff
+
+    class B env
+    class A1,A2,A3 data
+    class I,I1,I2 result
+    class C,D,E obs
 ```
 
 ---
