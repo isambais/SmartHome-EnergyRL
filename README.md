@@ -17,14 +17,15 @@
 
 - [Proje Amacı](#proje-amacı)
 - [Sistem Akışı](#sistem-akışı)
+- [Sonuçlar](#sonuçlar)
 - [Curriculum Yapısı](#curriculum-yapısı)
 - [Kural Tabanlı Baseline Politikalar](#kural-tabanlı-baseline-politikalar)
+- [Ortam Parametreleri](#ortam-parametreleri)
 - [Teknoloji Yığını](#teknoloji-yığını)
 - [Proje Yapısı](#proje-yapısı)
 - [Kurulum](#kurulum)
 - [Kullanım](#kullanım)
 - [Testler](#testler)
-- [GitHub Disiplini](#github-disiplini)
 
 ---
 
@@ -95,33 +96,44 @@ flowchart TD
 
 ---
 
+## Sonuçlar
+
+30 günlük simülasyon — `python scripts/eval/eval_policy.py --days 30`
+
+### Phase 1 — Saf Batarya Arbitrajı (56 obs)
+
+| Model | 30 Günlük Net Kazanç (TL) |
+|---|---|
+| SAC | +8.98 |
+| PPO | +7.67 |
+| TD3 | *(eğitim sürüyor)* |
+| A2C | +3.19 |
+| HoldPolicy (baseline) | 0.00 |
+
+### Phase 2 — Kural Tabanlı Baseline (Optuna Sonrası)
+
+| Politika | Varsayılan | Optuna Optimizasyonu |
+|---|---|---|
+| ThresholdPolicy | -2.57 TL | **+2.53 TL** |
+| ForecastAwarePolicy | — | +1.66 TL |
+| GridAwarePolicy | — | +1.35 TL |
+| SelfConsumptionPolicy | — | *(negatif)* |
+
+> Phase 2 RL karşılaştırması TD3 eğitimi tamamlandığında eklenecek.
+
+---
+
 ## Curriculum Yapısı
 
-RL'de en büyük risk yakınsama (convergence) sorunudur. Bunu önlemek için ortam tek seferde tam karmaşıklığıyla kurulmadı; iki aşamada inşa edildi.
+RL'de en büyük risk yakınsama sorunudur. Ortam tek seferde tam karmaşıklığıyla kurulmadı; iki aşamada inşa edildi.
 
-```
-PHASE 1 — Saf Batarya Arbitrajı
-────────────────────────────────
-Obs: [SOC | SOH | zaman | grid | DR | fiyat(24) | yarın(24)]
-                                                    ↑ 56 boyut
-
-Beklenti: Ajan gece ucuzken şarj edip akşam
-          pahalıyken deşarj etmeyi öğrenmeli.
-          
-          ✓ Doğrulandı → Phase 2'ye geç
-
-
-PHASE 2 — Güneş + Talep + Gerçek Dünya
-────────────────────────────────────────
-Obs: Phase 1 + [güneş_profil(24) | talep_profil(24)]
-                                          ↑ 104 boyut
-
-Yeni zorluklar:
-  • Güneş fazlasını bataryada depola
-  • Şebeke kesintisinde rezerv tut (obs[6]=0)
-  • DR sinyalinde deşarj yap (obs[7]=1)
-  • Yarınki fiyat tahminiyle (obs[32:56]) strateji kur
-```
+| | Phase 1 | Phase 2 |
+|---|---|---|
+| Amaç | Saf batarya arbitrajı | Güneş + talep entegrasyonu |
+| Gözlem boyutu | 56 | 104 |
+| Ekstra girdiler | — | Güneş profili (24h) + talep profili (24h) |
+| Yeni zorluklar | — | Öz-tüketim, şebeke kesintisi, DR sinyali |
+| Durum | Doğrulandı | Aktif |
 
 ---
 
@@ -140,6 +152,26 @@ Tüm politikalar Optuna ile de optimize edildi (`scripts/hpo/rule_based_optuna.p
 | `ForecastAwarePolicy` | Yarın pahalıysa bugün agresif şarj | Tesla Powerwall, SMA Sunny Home Manager |
 | `PeakShavingPolicy` | Net çekiş > eşik → bataryadan karşıla | Ticari bina talep bedeli yönetimi |
 | `GridAwarePolicy` | grid=0 → rezerv koru, DR=1 → deşarj | Kesintili şebeke, akıllı şebeke entegrasyonu |
+
+---
+
+## Ortam Parametreleri
+
+`SmartHomeEnergyEnv` — `src/env/energy_env.py`
+
+| Parametre | Değer | Açıklama |
+|---|---|---|
+| Batarya kapasitesi | 10 kWh | `battery_capacity_kwh` |
+| Maks şarj/deşarj gücü | 5 kW | `max_power_kw` |
+| Şarj verimliliği | %88–98 | C-rate'e bağlı değişken |
+| Öz-deşarj | %0.05/saat | `self_discharge_per_hour` |
+| Min SoC rezervi | %10 | Acil durum alt sınırı |
+| SoH aralığı | 0.70–1.00 | Episode başında rastgele |
+| Satış fiyatı | Alış × 0.60 | Geri besleme tarifesi |
+| Şebeke kesinti olasılığı | %0.2/saat | `grid_outage_prob` |
+| Episode uzunluğu | 24 saat | |
+| Aksiyon uzayı | [-1.0, +1.0] | -1=deşarj, 0=bekle, +1=şarj |
+| Gözlem boyutu | 56 (P1) / 104 (P2) | |
 
 ---
 
@@ -302,15 +334,8 @@ tests/test_rule_based.py::TestToUPolicy::test_discharge_during_peak  PASSED
 
 ---
 
-## GitHub Disiplini
+## Katkı ve İlerleme
 
-- **Branch Stratejisi:** Her özellik için ayrı `feature/` ya da `feat/` branch, `main`'e yalnızca PR ile birleşim
-- **Commit Standardı:** Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`)
-- **Pull Request:** Her PR ne yapıldığını, neden yapıldığını ve sonuçları açıklar
+Aktif geliştirme — staj kapsamı, 20 iş günü. Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`), her özellik ayrı branch, `main`'e yalnızca PR ile birleşim.
 
----
-
-## Durum
-
-Aktif geliştirme — staj kapsamı, 20 iş günü.  
-Güncel ilerleme için commit geçmişine ve [implementation_plan.md](./implementation_plan.md) dosyasına bakılabilir.
+Güncel ilerleme: [implementation_plan.md](./implementation_plan.md)
