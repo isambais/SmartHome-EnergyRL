@@ -10,11 +10,20 @@ from typing import Callable
 
 import numpy as np
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_PROJECT_ROOT))
 os.chdir(_PROJECT_ROOT)
 
 from src.env.energy_env import SmartHomeEnergyEnv  # noqa: E402
+from src.baselines.rule_based import (  # noqa: E402
+    HoldPolicy,
+    ThresholdPolicy,
+    SelfConsumptionPolicy,
+    ToUPolicy,
+    ForecastAwarePolicy,
+    PeakShavingPolicy,
+    GridAwarePolicy,
+)
 
 Policy = Callable[[np.ndarray, SmartHomeEnergyEnv], np.ndarray]
 
@@ -48,23 +57,50 @@ def load_phase2_data() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     )
 
 
-def threshold_policy_phase2(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
-    # obs[0]=soc, obs[1]=soh, obs[2:6]=time, obs[6]=grid, obs[7]=dr, obs[8:32]=prices
-    prices = obs[8:32]
-    low = np.percentile(prices, 30)
-    high = np.percentile(prices, 70)
-    current_price = float(env._current_day_prices[env.t])
-    if current_price <= low:
-        return np.array([1.0], dtype=np.float32)
-    elif current_price >= high:
-        return np.array([-1.0], dtype=np.float32)
-    return np.array([0.0], dtype=np.float32)
+# ── Kural tabanlı politikalar (src.baselines.rule_based'den) ─────────────────
+hold_policy              = HoldPolicy()
+threshold_policy         = ThresholdPolicy(low_pct=30, high_pct=70)
+threshold_policy_phase2  = ThresholdPolicy(low_pct=30, high_pct=70)
+self_consumption_policy  = SelfConsumptionPolicy()
+tou_policy               = ToUPolicy()
+forecast_aware_policy    = ForecastAwarePolicy()
+peak_shaving_policy      = PeakShavingPolicy()
+grid_aware_policy        = GridAwarePolicy()
+
+
+def make_a2c_phase2_default_policy() -> Policy:
+    from stable_baselines3 import A2C as _A2C
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+    model_path = Path("models/a2c_phase2_default_final.zip")
+    stats_path = Path("models/a2c_phase2_default_vecnormalize.pkl")
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model bulunamadi: {model_path}")
+
+    model = _A2C.load(str(model_path))
+    _venv = None
+    if stats_path.exists():
+        price, solar, demand = load_phase2_data()
+        dummy = DummyVecEnv([lambda: SmartHomeEnergyEnv(
+            price_data=price, solar_data=solar, demand_data=demand,
+            price_unit="tl_per_mwh",
+        )])
+        _venv = VecNormalize.load(str(stats_path), dummy)
+        _venv.training = False
+        _venv.norm_reward = False
+
+    def _policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
+        obs_norm = _venv.normalize_obs(obs[np.newaxis])[0] if _venv else obs
+        action, _ = model.predict(obs_norm, deterministic=True)
+        return action
+    return _policy
 
 
 def make_a2c_phase2_policy() -> Policy:
     from stable_baselines3 import A2C as _A2C
     from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
+    # Optuna parametreli model (Trial #2)
     model_path = Path("models/a2c_phase2_final.zip")
     stats_path = Path("models/a2c_phase2_vecnormalize.pkl")
     if not model_path.exists():
@@ -145,6 +181,34 @@ def make_td3_phase2_policy() -> Policy:
     return _policy
 
 
+def make_ppo_phase2_optuna_policy() -> Policy:
+    from stable_baselines3 import PPO as _PPO
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+    model_path = Path("models/ppo_phase2_optuna_final.zip")
+    stats_path = Path("models/ppo_phase2_optuna_vecnormalize.pkl")
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model bulunamadi: {model_path}")
+
+    model = _PPO.load(str(model_path))
+    _venv = None
+    if stats_path.exists():
+        price, solar, demand = load_phase2_data()
+        dummy = DummyVecEnv([lambda: SmartHomeEnergyEnv(
+            price_data=price, solar_data=solar, demand_data=demand,
+            price_unit="tl_per_mwh",
+        )])
+        _venv = VecNormalize.load(str(stats_path), dummy)
+        _venv.training = False
+        _venv.norm_reward = False
+
+    def _policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
+        obs_norm = _venv.normalize_obs(obs[np.newaxis])[0] if _venv else obs
+        action, _ = model.predict(obs_norm, deterministic=True)
+        return action
+    return _policy
+
+
 def make_ppo_phase2_policy() -> Policy:
     from stable_baselines3 import PPO as _PPO
     from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
@@ -204,25 +268,8 @@ def evaluate_phase2(
 
 # --- Politikalar ---
 
-def hold_policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
-    return np.array([0.0], dtype=np.float32)
-
-
 def random_policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
     return env.action_space.sample()
-
-
-def threshold_policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
-    # obs[0]=soc, obs[1]=soh, obs[2:6]=time, obs[6]=grid, obs[7]=dr, obs[8:32]=prices
-    prices = obs[8:32]
-    low = np.percentile(prices, 30)
-    high = np.percentile(prices, 70)
-    current_price = float(env._current_day_prices[env.t])
-    if current_price <= low:
-        return np.array([1.0], dtype=np.float32)
-    elif current_price >= high:
-        return np.array([-1.0], dtype=np.float32)
-    return np.array([0.0], dtype=np.float32)
 
 
 def make_ppo_policy() -> Policy:
@@ -301,6 +348,32 @@ def make_sac_policy() -> Policy:
         return action
     return _policy
 
+
+def make_td3_phase1_policy() -> Policy:
+    """TD3 Phase 1 modelini VecNormalize ile yukle."""
+    from stable_baselines3 import TD3 as _TD3
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+    model_path = Path("models/td3_smarthome_final.zip")
+    stats_path = Path("models/td3_vecnormalize.pkl")
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model bulunamadi: {model_path}")
+
+    model = _TD3.load(str(model_path))
+    _venv = None
+    if stats_path.exists():
+        prices = load_prices()
+        dummy = DummyVecEnv([lambda: SmartHomeEnergyEnv(price_data=prices, price_unit="tl_per_mwh")])
+        _venv = VecNormalize.load(str(stats_path), dummy)
+        _venv.training = False
+        _venv.norm_reward = False
+
+    def _policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
+        obs_norm = _venv.normalize_obs(obs[np.newaxis])[0] if _venv else obs
+        action, _ = model.predict(obs_norm, deterministic=True)
+        return action
+    return _policy
+
 # --- Değerlendirme ---
 
 def evaluate(
@@ -343,6 +416,7 @@ def main() -> None:
         ("PPO             ", make_ppo_policy()),
         ("A2C             ", make_a2c_policy()),
         ("SAC             ", make_sac_policy()),
+        ("TD3             ", make_td3_phase1_policy()),
     ]
 
     print(f"\n{'='*58}")
@@ -366,11 +440,16 @@ def main() -> None:
         phase2_policies: list[tuple[str, Policy]] = [
             ("Bekle (hold)    ", hold_policy),
             ("Rastgele        ", random_policy),
-            ("Esik (threshold)", threshold_policy_phase2),
-            ("PPO Asama2      ", make_ppo_phase2_policy()),
-            ("A2C Asama2      ", make_a2c_phase2_policy()),
-            ("SAC Asama2      ", make_sac_phase2_policy()),
-            ("TD3 Asama2      ", make_td3_phase2_policy()),
+            ("Eşik (threshold)", threshold_policy_phase2),
+            ("Öz-tüketim      ", self_consumption_policy),
+            ("ToU (saat blok) ", tou_policy),
+            ("Tahmin kullanır ", forecast_aware_policy),
+            ("Tepe kesme      ", peak_shaving_policy),
+            ("Şebeke bilinçli ", grid_aware_policy),
+            ("PPO   ", make_ppo_phase2_policy()),
+            ("A2C   ", make_a2c_phase2_default_policy()),
+            ("SAC    ", make_sac_phase2_policy()),
+            ("TD3   ", make_td3_phase2_policy()),
         ]
         print(f"\n{'='*58}")
         print(f"  CURRICULUM ASAMA 2 — {n} gun (gunes + talep)")

@@ -1,0 +1,1 @@
+"""SmartHome enerji ortamı paketi."""
