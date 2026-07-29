@@ -1,31 +1,29 @@
 """Kural tabanlı (rule-based) baseline politikalar.
 
-Üç politika tek bir modülde, aynı Gymnasium arayüzüyle çalışır:
+Tüm politikalar aynı Gymnasium arayüzüyle çalışır:
 
   HoldPolicy              — her zaman bekle (aksiyon = 0).
-                            "Batarya yok" senaryosunun davranışsal karşılığı:
-                            ortam fizik modelinden bağımsız olarak hiçbir
-                            şarj/deşarj eylemi gerçekleşmez.
-
-  ThresholdPolicy         — Aşama 1 (saf arbitraj):
-                            Fiyat 30. persantil altındaysa şarj (aksiyon = +1),
-                            70. persantil üstündeyse deşarj (aksiyon = −1),
-                            arada bekle.
-
-  SelfConsumptionPolicy   — Aşama 2 (güneş + talep):
-                            Güneş fazlası varsa önce bataryayı şarj et,
-                            akşam/gece fiyat yüksekken deşarj et.
-                            "Önce öz-tüketim, sonra arbitraj" hiyerarşisi.
+  ThresholdPolicy         — Aşama 1 (saf arbitraj): fiyat persantil eşiğine göre karar.
+  SelfConsumptionPolicy   — Aşama 2 (güneş + talep): öz-tüketim öncelikli.
+  ToUPolicy               — Saate göre sabit blok kararı (TEDAŞ T2 tarifesi modeli).
+  ForecastAwarePolicy     — Yarınki tahmin fiyatını kullanan ileri görüşlü politika.
+  PeakShavingPolicy       — Net şebeke çekişini bataryayla baskılayan tepe kesici.
+  GridAwarePolicy         — Kesinti ve talep yanıtı sinyallerini değerlendiren politika.
 
 Kullanım::
 
     from src.baselines.rule_based import ThresholdPolicy
 
     policy = ThresholdPolicy()
-    action = policy(obs, env)          # np.ndarray, shape (1,)
+    action = policy(obs, env)   # Aşama 1/2: shape (1,) | Aşama 3: shape (2,)
 
     # Tüm politikalar aynı imzayı paylaşır:
     #   __call__(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray
+
+Aşama 3 uyumluluğu:
+    env.enable_deferrable=True olduğunda tüm politikalar otomatik olarak
+    (2,) aksiyon döndürür. action[1] > 0 → cihazı çalıştır sinyali.
+    Her politikanın _deferrable_signal() metodu kendi stratejisini uygular.
 
 Gözlem indeksleri (energy_env.py'den):
     [0]     soc              Şarj durumu [0, 1]
@@ -37,6 +35,7 @@ Gözlem indeksleri (energy_env.py'den):
     [32:56] yarınki fiyat tahmini (24 saat)
     [56:80] güneş profili    (Aşama 2, yoksa sıfır)
     [80:104] talep profili   (Aşama 2, yoksa sıfır)
+    [-1]    device_used_today (Aşama 3, enable_deferrable=True)
 """
 
 from __future__ import annotations
@@ -46,15 +45,38 @@ import numpy as np
 Policy = "Callable[[np.ndarray, Any], np.ndarray]"
 
 
+def _make_action(battery: float, env, deferrable: float = -1.0) -> np.ndarray:
+    """Ortama göre doğru boyutlu aksiyon dizisi üret.
+
+    Parameters
+    ----------
+    battery:
+        Batarya aksiyonu [-1, 1].
+    env:
+        SmartHomeEnergyEnv örneği.
+    deferrable:
+        Ertelenebilir yük sinyali (>0 = çalıştır, ≤0 = çalıştırma).
+        Yalnızca env.enable_deferrable=True olduğunda kullanılır.
+    """
+    if getattr(env, "enable_deferrable", False):
+        return np.array([battery, deferrable], dtype=np.float32)
+    return np.array([battery], dtype=np.float32)
+
+
 class HoldPolicy:
     """Her zaman bekle — 'batarya yok' senaryosunun davranışsal eşdeğeri.
 
     Batarya kapasitesi sıfır olarak ayarlanmış bir ortamla aynı sonucu
     üretir; ancak tek bir kod yolunda çalışır (ayrı ortam gerektirmez).
+
+    Aşama 3: Cihazı hiçbir zaman çalıştırmaz (en kötü kural tabanlı baseline).
     """
 
-    def __call__(self, obs: np.ndarray, env) -> np.ndarray:  # noqa: ARG002
-        return np.array([0.0], dtype=np.float32)
+    def _deferrable_signal(self, obs: np.ndarray, env) -> float:  # noqa: ARG002
+        return -1.0  # hiç çalıştırma
+
+    def __call__(self, obs: np.ndarray, env) -> np.ndarray:
+        return _make_action(0.0, env, self._deferrable_signal(obs, env))
 
     def __repr__(self) -> str:
         return "HoldPolicy(aksiyon=0 — batarya yok senaryosu)"
@@ -71,6 +93,8 @@ class ThresholdPolicy:
     Bu, "gece ucuzu şarj et, akşam pahalısını sat" sezgisel kuralını
     sayısal olarak ifade eder; öğrenme gerektirmez.
 
+    Aşama 3: Fiyat düşükken cihazı çalıştır (ucuz elektrikle çalıştır).
+
     Parameters
     ----------
     low_pct:
@@ -83,19 +107,27 @@ class ThresholdPolicy:
         self.low_pct = low_pct
         self.high_pct = high_pct
 
+    def _deferrable_signal(self, obs: np.ndarray, env) -> float:
+        """Fiyat alt persantildeyse cihazı çalıştır — ucuz elektrik fırsatı."""
+        prices = obs[8:32]
+        low = np.percentile(prices, self.low_pct)
+        current_price = float(env._current_day_prices[env.t])
+        return 1.0 if current_price <= low else -1.0
+
     def __call__(self, obs: np.ndarray, env) -> np.ndarray:
-        # obs[8:32] → bugünkü 24 saatlik fiyatlar
         prices = obs[8:32]
         low = np.percentile(prices, self.low_pct)
         high = np.percentile(prices, self.high_pct)
-
         current_price = float(env._current_day_prices[env.t])
 
         if current_price <= low:
-            return np.array([1.0], dtype=np.float32)   # şarj
-        if current_price >= high:
-            return np.array([-1.0], dtype=np.float32)  # deşarj
-        return np.array([0.0], dtype=np.float32)        # bekle
+            battery = 1.0    # şarj
+        elif current_price >= high:
+            battery = -1.0   # deşarj
+        else:
+            battery = 0.0    # bekle
+
+        return _make_action(battery, env, self._deferrable_signal(obs, env))
 
     def __repr__(self) -> str:
         return (
@@ -113,6 +145,8 @@ class SelfConsumptionPolicy:
       2. Güneş yoksa veya yetersizse + fiyat yüksekse → bataryadan karşıla.
       3. Gece düşük fiyat saatlerinde → şebekeden şarj et (arbitraj fırsatı).
       4. Diğer tüm durumlarda → bekle.
+
+    Aşama 3: Güneş fazlası varken cihazı çalıştır — ücretsiz güneş enerjisi kullan.
 
     Parameters
     ----------
@@ -134,33 +168,36 @@ class SelfConsumptionPolicy:
         self.high_pct = high_pct
         self.solar_surplus_threshold = solar_surplus_threshold
 
+    def _deferrable_signal(self, obs: np.ndarray, env) -> float:
+        """Güneş fazlası varken cihazı çalıştır — kendi ürettiğin enerjiyi kullan."""
+        t = env.t
+        solar_kw = float(obs[56 + t]) if len(obs) > 80 else 0.0
+        demand_kw = float(obs[80 + t]) if len(obs) > 80 else 0.0
+        solar_surplus = solar_kw - demand_kw
+        return 1.0 if solar_surplus > self.solar_surplus_threshold else -1.0
+
     def __call__(self, obs: np.ndarray, env) -> np.ndarray:
         prices = obs[8:32]
         low = np.percentile(prices, self.low_pct)
         high = np.percentile(prices, self.high_pct)
         current_price = float(env._current_day_prices[env.t])
 
-        # Güneş ve talep verisi Aşama 2'de gözlemde (indeks 56-104)
         t = env.t
         solar_kw = float(obs[56 + t]) if len(obs) > 80 else 0.0
         demand_kw = float(obs[80 + t]) if len(obs) > 80 else 0.0
         solar_surplus = solar_kw - demand_kw
-
-        # 1. Anlamlı güneş fazlası → şarj et
-        if solar_surplus > self.solar_surplus_threshold:
-            return np.array([1.0], dtype=np.float32)
-
-        # 2. Fiyat yüksek + bataryada enerji var → deşarj et (öz-tüketim)
         soc = float(obs[0])
-        if current_price >= high and soc > 0.15:
-            return np.array([-1.0], dtype=np.float32)
 
-        # 3. Gece ucuz → şebekeden şarj et (arbitraj fırsatı)
-        if current_price <= low and soc < 0.90:
-            return np.array([1.0], dtype=np.float32)
+        if solar_surplus > self.solar_surplus_threshold:
+            battery = 1.0    # güneş fazlası → şarj
+        elif current_price >= high and soc > 0.15:
+            battery = -1.0   # fiyat yüksek + batarya dolu → deşarj
+        elif current_price <= low and soc < 0.90:
+            battery = 1.0    # gece ucuz → şarj
+        else:
+            battery = 0.0    # bekle
 
-        # 4. Bekle
-        return np.array([0.0], dtype=np.float32)
+        return _make_action(battery, env, self._deferrable_signal(obs, env))
 
     def __repr__(self) -> str:
         return (
@@ -182,9 +219,7 @@ class ToUPolicy:
       Pik    17:00–22:00  → deşarj (−1)  — en pahalı dilim
       Gece   22:00–23:00  → bekle (0)    — geçiş saati
 
-    Bu politikanın önemi: milyonlarca ev zaten bu tarifede, ama
-    manuel olarak veya hiç optimize etmiyor. RL ajanının bu basit
-    saat tabanlı kuraldan ne kadar iyi olduğunu kanıtlamak için kullanılır.
+    Aşama 3: Gündüz saatlerinde (pik dışı) cihazı çalıştır.
 
     Parameters
     ----------
@@ -199,32 +234,39 @@ class ToUPolicy:
         peak_hours: list[tuple[int, int]] | None = None,
         off_peak_hours: list[tuple[int, int]] | None = None,
     ) -> None:
-        # TEDAŞ T2 varsayılan değerleri
         self.peak_hours = peak_hours or [(17, 22)]
         self.off_peak_hours = off_peak_hours or [(23, 24), (0, 7)]
 
     def _current_hour(self, env) -> int:
-        """Ortamdan mevcut saati al."""
         return int(env.t)
 
     def _in_blocks(self, hour: int, blocks: list[tuple[int, int]]) -> bool:
         return any(start <= hour < end for start, end in blocks)
 
-    def __call__(self, obs: np.ndarray, env) -> np.ndarray:  # noqa: ARG002
+    def _deferrable_signal(self, obs: np.ndarray, env) -> float:  # noqa: ARG002
+        """Pik saatler dışında cihazı çalıştır — tepe yükü artırma."""
+        hour = self._current_hour(env)
+        # Pik saatlerde çalıştırma; gündüz orta dilimde çalıştır
+        if self._in_blocks(hour, self.peak_hours):
+            return -1.0   # pik saatte cihazı çalıştırma
+        if self._in_blocks(hour, self.off_peak_hours):
+            return -1.0   # gece şarj var, cihazı karıştırma
+        return 1.0        # gündüz orta dilim → çalıştır
+
+    def __call__(self, obs: np.ndarray, env) -> np.ndarray:
         hour = self._current_hour(env)
 
         if self._in_blocks(hour, self.peak_hours):
-            return np.array([-1.0], dtype=np.float32)   # deşarj — pik tarife
+            battery = -1.0   # deşarj — pik tarife
+        elif self._in_blocks(hour, self.off_peak_hours):
+            battery = 1.0    # şarj — gece tarifesi
+        else:
+            battery = 0.0    # bekle — gündüz
 
-        if self._in_blocks(hour, self.off_peak_hours):
-            return np.array([1.0], dtype=np.float32)    # şarj — gece tarifesi
-
-        return np.array([0.0], dtype=np.float32)         # bekle — gündüz
+        return _make_action(battery, env, self._deferrable_signal(obs, env))
 
     def __repr__(self) -> str:
-        return (
-            f"ToUPolicy(pik={self.peak_hours}, gece={self.off_peak_hours})"
-        )
+        return f"ToUPolicy(pik={self.peak_hours}, gece={self.off_peak_hours})"
 
 
 class ForecastAwarePolicy:
@@ -235,21 +277,16 @@ class ForecastAwarePolicy:
     değerlendirerek daha iyi kararlar alır.
 
     Mantık:
-      - Yarın bugünden belirgin ölçüde pahalıysa (fark > threshold):
-          → Bugün agresif şarj et (yarınki pahalı saatler için hazırlık).
-      - Yarın bugünden belirgin ölçüde ucuzsa:
-          → Bugün şarj etme, yarın şarj et (daha ucuza).
+      - Yarın bugünden belirgin ölçüde pahalıysa → Bugün agresif şarj et.
+      - Yarın bugünden belirgin ölçüde ucuzsa → Bugün şarj etme.
       - Aksi hâlde standart threshold kuralını uygula.
 
-    Tesla Powerwall ve SMA Sunny Home Manager gibi ticari sistemlerin
-    gün öncesi piyasa entegrasyonunu modellemektedir.
+    Aşama 3: Günün en ucuz çeyreğinde cihazı çalıştır.
 
     Parameters
     ----------
-    low_pct:
-        Bugün şarj eşiği persantili.
-    high_pct:
-        Bugün deşarj eşiği persantili.
+    low_pct / high_pct:
+        Şarj / deşarj eşiği persantilleri.
     tomorrow_premium:
         Yarın ortalaması bugünden bu oran kadar yüksekse agresif şarj.
     tomorrow_discount:
@@ -268,6 +305,13 @@ class ForecastAwarePolicy:
         self.tomorrow_premium = tomorrow_premium
         self.tomorrow_discount = tomorrow_discount
 
+    def _deferrable_signal(self, obs: np.ndarray, env) -> float:
+        """Günün en ucuz %25'lik dilimine denk geliyorsa cihazı çalıştır."""
+        prices = obs[8:32]
+        current_price = float(env._current_day_prices[env.t])
+        cheapest_quartile = np.percentile(prices, 25)
+        return 1.0 if current_price <= cheapest_quartile else -1.0
+
     def __call__(self, obs: np.ndarray, env) -> np.ndarray:
         today_prices    = obs[8:32]
         tomorrow_prices = obs[32:56]
@@ -280,23 +324,24 @@ class ForecastAwarePolicy:
         high = np.percentile(today_prices, self.high_pct)
         soc  = float(obs[0])
 
-        # Yarın belirgin pahalıysa → bugün doldurmaya çalış
         if tomorrow_mean > today_mean * (1 + self.tomorrow_premium):
             if current_price <= np.percentile(today_prices, 50) and soc < 0.95:
-                return np.array([1.0], dtype=np.float32)
-
-        # Yarın belirgin ucuzsa → bugün şarj etme, kapasiteyi koru
-        if tomorrow_mean < today_mean * (1 - self.tomorrow_discount):
+                battery = 1.0
+            else:
+                battery = 0.0
+        elif tomorrow_mean < today_mean * (1 - self.tomorrow_discount):
             if current_price >= high:
-                return np.array([-1.0], dtype=np.float32)
-            return np.array([0.0], dtype=np.float32)
+                battery = -1.0
+            else:
+                battery = 0.0
+        elif current_price <= low:
+            battery = 1.0
+        elif current_price >= high:
+            battery = -1.0
+        else:
+            battery = 0.0
 
-        # Standart threshold mantığı
-        if current_price <= low:
-            return np.array([1.0], dtype=np.float32)
-        if current_price >= high:
-            return np.array([-1.0], dtype=np.float32)
-        return np.array([0.0], dtype=np.float32)
+        return _make_action(battery, env, self._deferrable_signal(obs, env))
 
     def __repr__(self) -> str:
         return (
@@ -314,11 +359,9 @@ class PeakShavingPolicy:
     %30-40'ına ulaşabilir.
 
     Bu politika: anlık şebekeden çekiş `peak_threshold_kw` üzerindeyse
-    bataryadan karşılar, tepeyi kesar. Fiyat optimizasyonu değil,
-    güç tepe yönetimidir.
+    bataryadan karşılar, tepeyi kesar.
 
-    Aşama 2 ortamında talep verisi gözlemde (obs[80:104]) mevcuttur.
-    Güneş üretimi de hesaba katılarak net şebeke çekişi hesaplanır.
+    Aşama 3: Tepe riski düşükken (net çekiş eşiğin yarısının altında) cihazı çalıştır.
 
     Parameters
     ----------
@@ -340,29 +383,33 @@ class PeakShavingPolicy:
         self.reserve_soc = reserve_soc
         self.low_pct = low_pct
 
+    def _deferrable_signal(self, obs: np.ndarray, env) -> float:
+        """Net çekiş tepe eşiğinin yarısının altındaysa cihazı çalıştır — güvenli pencere."""
+        t = env.t
+        solar_kw  = float(obs[56 + t]) if len(obs) > 80 else 0.0
+        demand_kw = float(obs[80 + t]) if len(obs) > 80 else 0.0
+        net_grid_kw = max(0.0, demand_kw - solar_kw)
+        # Net çekiş tepe eşiğinin yarısından düşükse cihazı çalıştır
+        safe = net_grid_kw < self.peak_threshold_kw * 0.5
+        return 1.0 if safe else -1.0
+
     def __call__(self, obs: np.ndarray, env) -> np.ndarray:
         t = env.t
         soc = float(obs[0])
 
-        # Aşama 2: güneş ve talep gözlemde var
         solar_kw  = float(obs[56 + t]) if len(obs) > 80 else 0.0
         demand_kw = float(obs[80 + t]) if len(obs) > 80 else 0.0
-
-        # Net şebeke çekişi = talep − güneş üretimi
         net_grid_kw = max(0.0, demand_kw - solar_kw)
 
-        # Tepe aşımı → bataryadan karşıla
         if net_grid_kw > self.peak_threshold_kw and soc > self.reserve_soc:
-            return np.array([-1.0], dtype=np.float32)
+            battery = -1.0   # tepe aşımı → bataryadan karşıla
+        else:
+            prices = obs[8:32]
+            current_price = float(env._current_day_prices[t])
+            low = np.percentile(prices, self.low_pct)
+            battery = 1.0 if current_price <= low and soc < 0.90 else 0.0
 
-        # Gece ucuz → gündüz tepesine hazırlık için şarj et
-        prices = obs[8:32]
-        current_price = float(env._current_day_prices[t])
-        low = np.percentile(prices, self.low_pct)
-        if current_price <= low and soc < 0.90:
-            return np.array([1.0], dtype=np.float32)
-
-        return np.array([0.0], dtype=np.float32)
+        return _make_action(battery, env, self._deferrable_signal(obs, env))
 
     def __repr__(self) -> str:
         return (
@@ -379,9 +426,6 @@ class GridAwarePolicy:
       obs[6] = grid_available  (1=normal, 0=şebeke kesintisi)
       obs[7] = dr_signal       (1=talep yanıtı eventi aktif, 0=normal)
 
-    Mevcut hiçbir baseline bu sinyallere bakmaz; gerçek dünyada ise
-    bu iki durum ciddi finansal ve güvenlik sonuçları doğurur.
-
     Davranış:
       ┌─────────────────┬─────────────────────────────────────────────┐
       │ Durum           │ Eylem                                       │
@@ -394,6 +438,8 @@ class GridAwarePolicy:
       ├─────────────────┼─────────────────────────────────────────────┤
       │ Normal          │ Standart threshold kuralı.                  │
       └─────────────────┴─────────────────────────────────────────────┘
+
+    Aşama 3: Kesinti veya DR aktifken cihazı çalıştırma; normal + ucuzsa çalıştır.
 
     Parameters
     ----------
@@ -413,36 +459,43 @@ class GridAwarePolicy:
         self.low_pct = low_pct
         self.high_pct = high_pct
 
+    def _deferrable_signal(self, obs: np.ndarray, env) -> float:
+        """Kesinti/DR aktifken cihazı çalıştırma; normal + ucuz fiyatta çalıştır."""
+        grid_available = int(obs[6])
+        dr_signal      = int(obs[7])
+
+        # Kesinti veya DR eventinde ek yük oluşturma
+        if grid_available == 0 or dr_signal == 1:
+            return -1.0
+
+        # Normal modda ucuz fiyatta çalıştır
+        prices = obs[8:32]
+        current_price = float(env._current_day_prices[env.t])
+        low = np.percentile(prices, self.low_pct)
+        return 1.0 if current_price <= low else -1.0
+
     def __call__(self, obs: np.ndarray, env) -> np.ndarray:
         grid_available = int(obs[6])
         dr_signal      = int(obs[7])
         soc            = float(obs[0])
 
-        # ── Kesinti modu ────────────────────────────────────────────
         if grid_available == 0:
-            # Rezervin üstündeyse ev yükünü karşılamak için minimal deşarj
-            if soc > self.emergency_reserve:
-                return np.array([-0.3], dtype=np.float32)  # düşük güçte deşarj
-            return np.array([0.0], dtype=np.float32)        # rezervi koru
+            battery = -0.3 if soc > self.emergency_reserve else 0.0
+        elif dr_signal == 1:
+            battery = -1.0 if soc > 0.20 else 0.0
+        else:
+            prices = obs[8:32]
+            current_price = float(env._current_day_prices[env.t])
+            low  = np.percentile(prices, self.low_pct)
+            high = np.percentile(prices, self.high_pct)
+            if current_price <= low:
+                battery = 1.0
+            elif current_price >= high:
+                battery = -1.0
+            else:
+                battery = 0.0
 
-        # ── Talep yanıtı modu ────────────────────────────────────────
-        if dr_signal == 1:
-            # Şebekeden çekme → bataryadan karşıla
-            if soc > 0.20:
-                return np.array([-1.0], dtype=np.float32)
-            return np.array([0.0], dtype=np.float32)
-
-        # ── Normal mod: standart threshold ──────────────────────────
-        prices = obs[8:32]
-        current_price = float(env._current_day_prices[env.t])
-        low  = np.percentile(prices, self.low_pct)
-        high = np.percentile(prices, self.high_pct)
-
-        if current_price <= low:
-            return np.array([1.0], dtype=np.float32)
-        if current_price >= high:
-            return np.array([-1.0], dtype=np.float32)
-        return np.array([0.0], dtype=np.float32)
+        return _make_action(battery, env, self._deferrable_signal(obs, env))
 
     def __repr__(self) -> str:
         return (
