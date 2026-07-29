@@ -1,4 +1,4 @@
-# 🏠 SmartHome Energy RL
+#  SmartHome Energy RL
 
 > Pekiştirmeli Öğrenme ile güneş paneli ve bataryası olan bir evin enerji maliyetini minimize eden akıllı ajan.
 
