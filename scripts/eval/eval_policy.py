@@ -464,6 +464,107 @@ def main() -> None:
             )
         print(f"{'='*58}\n")
 
+    # ── Aşama 3 karşılaştırması ──
+    if PHASE2_DATA_PATH.exists():
+        from stable_baselines3 import PPO, A2C, SAC, TD3
+        p3_price, p3_solar, p3_demand = load_phase2_data()
+
+        phase3_rl = [
+            ("PPO  (phase3)   ", PPO, "models/ppo_phase3_final.zip", "models/ppo_phase3_vecnormalize.pkl"),
+            ("A2C  (phase3)   ", A2C, "models/a2c_phase3_final.zip", "models/a2c_phase3_vecnormalize.pkl"),
+            ("SAC  (phase3)   ", SAC, "models/sac_phase3_final.zip", "models/sac_phase3_vecnormalize.pkl"),
+            ("TD3  (phase3)   ", TD3, "models/td3_phase3_final.zip", "models/td3_phase3_vecnormalize.pkl"),
+        ]
+
+        phase3_policies: list[tuple[str, Policy]] = [
+            ("Bekle (hold)    ", hold_policy),
+            ("Rastgele        ", random_policy),
+            ("Esik (threshold)", threshold_policy),
+        ]
+
+        for name, cls, mp, sp in phase3_rl:
+            if Path(mp).exists():
+                phase3_policies.append(
+                    (name, make_phase3_rl_policy(cls, mp, sp, p3_price, p3_solar, p3_demand))
+                )
+            else:
+                print(f"UYARI: {mp} bulunamadi, atlanıyor.")
+
+        print(f"\n{'='*62}")
+        print(f"  CURRICULUM ASAMA 3 — {n} gun (ertelenebilir cihaz)")
+        print(f"{'='*62}")
+        print(f"  {'Politika':<22} {'Ort (TL)':>9} {'Std':>7} {'Min':>8} {'Maks':>8}")
+        print(f"  {'-'*57}")
+
+        for name, policy in phase3_policies:
+            stats = evaluate_phase3(policy, p3_price, p3_solar, p3_demand, n_days=n)
+            print(
+                f"  {name:<22} {stats['mean']:>+9.2f} {stats['std']:>7.2f} "
+                f"{stats['min']:>+8.2f} {stats['max']:>+8.2f}"
+            )
+        print(f"{'='*62}\n")
+
+
+def make_phase3_env(price, solar, demand):
+    return SmartHomeEnergyEnv(
+        price_data=price,
+        solar_data=solar,
+        demand_data=demand,
+        price_unit="tl_per_mwh",
+        enable_deferrable=True,
+        deferrable_load_power_kw=1.5,
+        deferrable_load_hours=1.0,
+        deferrable_window=(6, 22),
+        deferrable_penalty_coef=2.0,
+        max_activations_per_day=2,
+        random_day=True,
+    )
+
+
+def evaluate_phase3(
+    policy: Policy,
+    prices: np.ndarray,
+    solar: np.ndarray,
+    demand: np.ndarray,
+    n_days: int = 90,
+    seed: int = 42,
+) -> dict[str, float]:
+    env = make_phase3_env(prices, solar, demand)
+    rewards = []
+    for i in range(n_days):
+        obs, _ = env.reset(seed=seed + i)
+        terminated = False
+        ep_r = 0.0
+        while not terminated:
+            action = policy(obs, env)
+            obs, reward, terminated, _, _ = env.step(action)
+            ep_r += reward
+        rewards.append(ep_r)
+    return {
+        "mean": float(np.mean(rewards)),
+        "std":  float(np.std(rewards)),
+        "min":  float(np.min(rewards)),
+        "max":  float(np.max(rewards)),
+    }
+
+
+def make_phase3_rl_policy(algo_cls, model_path: str, stats_path: str,
+                           price, solar, demand) -> Policy:
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+    model = algo_cls.load(model_path)
+    venv = None
+    if Path(stats_path).exists():
+        dummy = DummyVecEnv([lambda: make_phase3_env(price, solar, demand)])
+        venv = VecNormalize.load(stats_path, dummy)
+        venv.training = False
+        venv.norm_reward = False
+
+    def _policy(obs: np.ndarray, env: SmartHomeEnergyEnv) -> np.ndarray:
+        obs_norm = venv.normalize_obs(obs[np.newaxis])[0] if venv else obs
+        action, _ = model.predict(obs_norm, deterministic=True)
+        return action
+    return _policy
+
 
 if __name__ == "__main__":
     main()
