@@ -59,13 +59,13 @@ def main() -> None:
             max_activations_per_day=2,
         )
 
-    # ── Hiperparametreler (Aşama 2 Optuna Trial #23) ────────────────
-    LEARNING_RATE = 0.0008018536065930743
-    BUFFER_SIZE   = 100_000
+    # ── Hiperparametreler (Aşama 3 Optuna Trial #0, -1.59 TL) ───────
+    LEARNING_RATE = 0.00023688639503640813
+    BUFFER_SIZE   = 50_000
     BATCH_SIZE    = 128
-    GAMMA         = 0.9981063075723566
-    TAU           = 0.03186612494385683
-    NET_ARCH_SIZE = 256
+    GAMMA         = 0.9857514384317185
+    TAU           = 0.030454635575417232
+    NET_ARCH_SIZE = 512
 
     # SAC off-policy: n_envs=1
     train_env = make_vec_env(make_env_fn, n_envs=1, seed=42)
