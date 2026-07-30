@@ -122,7 +122,7 @@ class SmartHomeEnergyEnv(gym.Env):
         deferrable_load_power_kw: float = 1.5,  # cihaz çalışma gücü (kW)
         deferrable_load_hours: float = 1.0,    # her aktivasyonda çalışma süresi (saat)
         deferrable_window: tuple[int, int] = (6, 22),  # geçerli aktivasyon saatleri [start, end)
-        deferrable_penalty_coef: float = 5.0,  # gün içi hiç çalıştırılmazsa episode sonu TL cezası
+        deferrable_penalty_coef: float = 2.0,  # gün içi hiç çalıştırılmazsa episode sonu TL cezası
         max_activations_per_day: int = 2,      # günde maksimum aktivasyon sayısı (çamaşır makinesi 1-2 kez)
 
         # ── Belirsizlik ────────────────────────────────────────────

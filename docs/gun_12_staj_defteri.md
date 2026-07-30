@@ -57,7 +57,7 @@ if device_steps_remaining > 0:
 
 ### 5. Reward Hacking Cezası ve Aktivasyon Limiti
 
-**Episode sonu cezası:** Cihaz gün boyunca hiç çalıştırılmazsa `-5.0 TL` ceza.
+**Episode sonu cezası:** Cihaz gün boyunca hiç çalıştırılmazsa `-2.0 TL` ceza.
 
 **Günlük aktivasyon limiti (`max_activations_per_day=2`):** Ajan aynı cihazı günde 2'den fazla çalıştıramaz. Cihazı sürekli açıp kapatan politikaları engeller.
 
