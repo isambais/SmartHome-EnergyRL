@@ -204,7 +204,7 @@ def phase3_env(sample_prices) -> SmartHomeEnergyEnv:
         deferrable_load_power_kw=1.5,
         deferrable_load_hours=1.0,
         deferrable_window=(6, 22),
-        deferrable_penalty_coef=5.0,
+        deferrable_penalty_coef=2.0,
     )
 
 
@@ -280,7 +280,7 @@ def test_phase3_penalty_applied_when_device_never_used(phase3_env) -> None:
         )
         total_deferrable_penalty += info.get("deferrable_penalty_tl", 0.0)
 
-    assert total_deferrable_penalty == pytest.approx(5.0)
+    assert total_deferrable_penalty == pytest.approx(2.0)
     assert info["episode"]["device_activation_count"] == 0
     assert info["episode"]["device_activation_rate"] == pytest.approx(0.0)
 
