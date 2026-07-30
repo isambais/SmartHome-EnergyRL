@@ -3,6 +3,7 @@
 Curriculum yapısı:
   Aşama 1 (solar_data=None): Saf batarya arbitrajı
   Aşama 2 (solar_data verildiğinde): Güneş + talep + batarya entegrasyonu
+  Aşama 3 (enable_deferrable=True): Hibrit aksiyon uzayı + ertelenebilir yük yönetimi
 
 Gerçek dünya özellikleri:
   ─ Asimetrik fiyat       : Satış fiyatı = alış × sell_ratio (varsayılan 0.60)
@@ -17,12 +18,15 @@ Gerçek dünya özellikleri:
   ─ Stokastik güneş/talep : Episode başında çarpımsal gürültü (bulutluluk vb.)
   ─ Yarınki fiyat tahmini : 48 saatlik gözlem penceresi (gün-öncesi pazar)
   ─ Zaman özellikleri     : sin/cos(saat, haftanın günü) → döngüsel kodlama
+  ─ Ertelenebilir yük     : Aşama 3'te hibrit aksiyon uzayı; gün içinde en az
+                             bir kez çalıştırılmazsa episode sonu cezası uygulanır
 
 Gözlem boyutları (tüm özellikler açık):
-  Aşama 1 : 8 + 24 + 24 = 56
-  Aşama 2 : 8 + 24 + 24 + 24 + 24 = 104
+  Aşama 1   : 8 + 24 + 24 = 56
+  Aşama 2   : 8 + 24 + 24 + 24 + 24 = 104
+  Aşama 3   : +2 (device_used_today + device_steps_remaining_norm) → 58 / 106
 
-  Detay (8 temel):
+  Detay (8 temel, Aşama 1&2):
     [0]   soc              : Şarj durumu [0,1]
     [1]   soh              : Pil sağlığı [0.5,1.0]
     [2]   sin_hour         : Döngüsel saat kodlaması
@@ -35,6 +39,16 @@ Gözlem boyutları (tüm özellikler açık):
     [32:56] yarınki fiyat tahmini (24 saat, gürültülü)
     [56:80] güneş profili  (Aşama 2)
     [80:104] talep profili (Aşama 2)
+
+  Aşama 3 ekstra (enable_deferrable=True):
+    [-2]  device_used_today            : 0=henüz çalıştırılmadı, 1=bu gün en az bir kez çalıştı
+    [-1]  device_steps_remaining_norm  : kalan çalışma adımı / toplam adım [0,1]
+                                         >0 → cihaz hâlâ çalışıyor, 0 → durdu/hiç başlamadı
+
+Aksiyon uzayı:
+  Aşama 1&2 : Box(shape=(1,)) — action[0]=batarya [-1,1]
+  Aşama 3   : Box(shape=(2,)) — action[0]=batarya [-1,1],
+                                 action[1]=ertelenebilir yük (>0 → çalıştır)
 """
 
 from __future__ import annotations
@@ -102,6 +116,14 @@ class SmartHomeEnergyEnv(gym.Env):
 
         # ── Öz-Tüketim (Aşama 2) ───────────────────────────────────
         self_consumption_coef: float = 0.10,  # TL/kWh — güneşin ev talebini karşıladığı her kWh için bonus
+
+        # ── Ertelenebilir Yük (Aşama 3) ────────────────────────────
+        enable_deferrable: bool = False,       # True → hibrit aksiyon uzayı aktif
+        deferrable_load_power_kw: float = 1.5,  # cihaz çalışma gücü (kW)
+        deferrable_load_hours: float = 1.0,    # her aktivasyonda çalışma süresi (saat)
+        deferrable_window: tuple[int, int] = (6, 22),  # geçerli aktivasyon saatleri [start, end)
+        deferrable_penalty_coef: float = 2.0,  # gün içi hiç çalıştırılmazsa episode sonu TL cezası
+        max_activations_per_day: int = 2,      # günde maksimum aktivasyon sayısı (çamaşır makinesi 1-2 kez)
 
         # ── Belirsizlik ────────────────────────────────────────────
         stochastic_solar: bool = True,
@@ -185,6 +207,12 @@ class SmartHomeEnergyEnv(gym.Env):
         self.dr_signal_prob = float(dr_signal_prob)
         self.dr_reward_coef = float(dr_reward_coef)
         self.self_consumption_coef = float(self_consumption_coef)
+        self.enable_deferrable = bool(enable_deferrable)
+        self.deferrable_load_power_kw = float(deferrable_load_power_kw)
+        self.deferrable_load_hours = float(deferrable_load_hours)
+        self.deferrable_window = (int(deferrable_window[0]), int(deferrable_window[1]))
+        self.deferrable_penalty_coef = float(deferrable_penalty_coef)
+        self.max_activations_per_day = int(max_activations_per_day)
         self.stochastic_solar = stochastic_solar
         self.stochastic_demand = stochastic_demand
         self.solar_noise_std = float(solar_noise_std)
@@ -197,10 +225,12 @@ class SmartHomeEnergyEnv(gym.Env):
 
         # ── Gözlem uzayı ───────────────────────────────────────────
         # 8 temel + bugün (24) + yarın (24 opsiyonel) + [solar+talep] (48 opsiyonel)
+        # Aşama 3: +1 device_used_today flag
         _n_base = 8  # soc, soh, sin_h, cos_h, sin_dow, cos_dow, grid, dr
         _n_prices = hours_per_episode * (2 if tomorrow_prices else 1)
         _n_phase2 = hours_per_episode * 2 if self._phase2 else 0
-        _obs_dim = _n_base + _n_prices + _n_phase2
+        _n_deferrable = 2 if enable_deferrable else 0
+        _obs_dim = _n_base + _n_prices + _n_phase2 + _n_deferrable
 
         price_low = 0.0
         price_high = float(self.daily_prices.max()) * 1.30  # gürültü marjı
@@ -224,20 +254,29 @@ class SmartHomeEnergyEnv(gym.Env):
             prices_low = price_arr_low
             prices_high = price_arr_high
 
+        # Aşama 3: [device_used_today, device_steps_remaining_norm]
+        deferrable_low  = np.array([0.0, 0.0], dtype=np.float32) if enable_deferrable else np.array([], dtype=np.float32)
+        deferrable_high = np.array([1.0, 1.0], dtype=np.float32) if enable_deferrable else np.array([], dtype=np.float32)
+
         low = np.concatenate([
             [0.0, 0.5, -1.0, -1.0, -1.0, -1.0, 0.0, 0.0],  # 8 temel
             prices_low,
             p2_low,
+            deferrable_low,
         ]).astype(np.float32)
 
         high = np.concatenate([
             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],  # 8 temel
             prices_high,
             p2_high,
+            deferrable_high,
         ]).astype(np.float32)
 
         self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
+
+        # Aksiyon uzayı: Aşama 3'te 2 boyutlu (batarya + ertelenebilir sinyal)
+        _action_dim = 2 if enable_deferrable else 1
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(_action_dim,), dtype=np.float32)
 
         # ── Durum değişkenleri ─────────────────────────────────────
         self.soc: float = self.initial_soc
@@ -250,6 +289,10 @@ class SmartHomeEnergyEnv(gym.Env):
         self._current_day_demand: np.ndarray = self.daily_demand[0]
         self._grid_available: np.ndarray = np.ones(hours_per_episode, dtype=np.float32)
         self._dr_signals: np.ndarray = np.zeros(hours_per_episode, dtype=np.float32)
+        # Aşama 3: ertelenebilir yük durumu
+        self._device_used_today: bool = False
+        self._device_activation_count: int = 0
+        self._device_steps_remaining: int = 0
 
     # ── Verimlilik ────────────────────────────────────────────────
 
@@ -303,6 +346,15 @@ class SmartHomeEnergyEnv(gym.Env):
             parts.append(self._current_day_solar)
             parts.append(self._current_day_demand)
 
+        # Aşama 3: [device_used_today, device_steps_remaining_norm]
+        if self.enable_deferrable:
+            _max_steps = max(1, round(self.deferrable_load_hours))
+            remaining_norm = self._device_steps_remaining / _max_steps
+            parts.append(np.array(
+                [float(self._device_used_today), remaining_norm],
+                dtype=np.float32,
+            ))
+
         return np.concatenate(parts).astype(np.float32)
 
     # ── Reset ────────────────────────────────────────────────────
@@ -353,6 +405,11 @@ class SmartHomeEnergyEnv(gym.Env):
         self._episode_total_cost = 0.0
         self._episode_total_revenue = 0.0
 
+        # Aşama 3: ertelenebilir yük durumunu sıfırla
+        self._device_used_today = False
+        self._device_activation_count = 0
+        self._device_steps_remaining = 0
+
         # Günlük şebeke ve DR sinyalleri (episode başında üret)
         self._grid_available = (
             self.np_random.random(self.hours_per_episode) > self.grid_outage_prob
@@ -370,10 +427,33 @@ class SmartHomeEnergyEnv(gym.Env):
         action = np.asarray(action, dtype=np.float32).reshape(-1)
         a = float(np.clip(action[0], -1.0, 1.0))
 
+        # Aşama 3: ertelenebilir yük — multi-step çalışma modeli
+        deferrable_action = 0
+        deferrable_load_kw = 0.0
+        if self.enable_deferrable:
+            hour = self.t % self.hours_per_episode
+            in_window = self.deferrable_window[0] <= hour < self.deferrable_window[1]
+            under_limit = self._device_activation_count < self.max_activations_per_day
+            not_running = self._device_steps_remaining == 0
+
+            # Yeni aktivasyon: cihaz çalışmıyorsa + pencere içi + limit dolmamışsa
+            if len(action) >= 2 and float(action[1]) > 0.0 and in_window and under_limit and not_running:
+                deferrable_action = 1
+                self._device_used_today = True
+                self._device_activation_count += 1
+                self._device_steps_remaining = max(1, round(self.deferrable_load_hours))
+
+            # Cihaz çalışıyorsa yük uygula ve geri sayımı azalt (durdurulamaz)
+            if self._device_steps_remaining > 0:
+                self._device_steps_remaining -= 1
+                deferrable_load_kw = self.deferrable_load_power_kw
+
         price_buy_t = float(self._current_day_prices[self.t])
         price_sell_t = price_buy_t * self.sell_ratio
         solar_t = float(self._current_day_solar[self.t])
         demand_t = float(self._current_day_demand[self.t])
+        # Ertelenebilir yükü anlık talebe ekle
+        demand_t += deferrable_load_kw
         grid_up = bool(self._grid_available[self.t])
         dr_on = bool(self._dr_signals[self.t])
 
@@ -460,6 +540,14 @@ class SmartHomeEnergyEnv(gym.Env):
         self.t += 1
         terminated = self.t >= self.hours_per_episode
 
+        # Aşama 3: episode sonu reward hacking cezası
+        # Ajan ertelenebilir cihazı hiç çalıştırmadan günü geçirirse ceza uygula
+        deferrable_penalty = 0.0
+        if terminated and self.enable_deferrable and not self._device_used_today:
+            deferrable_penalty = self.deferrable_penalty_coef
+            reward -= deferrable_penalty
+            self._episode_total_reward -= deferrable_penalty
+
         info = {
             "day_idx": self._day_idx,
             "hour": self.t - 1,
@@ -474,6 +562,9 @@ class SmartHomeEnergyEnv(gym.Env):
             "cycle_penalty_tl": cycle_penalty,
             "dr_bonus_tl": dr_bonus,
             "sc_bonus_tl": sc_bonus,
+            "deferrable_action": deferrable_action,
+            "deferrable_load_kw": deferrable_load_kw,
+            "deferrable_penalty_tl": deferrable_penalty,
             "charge_eff": charge_eff,
             "discharge_eff": discharge_eff,
             "soh": self.soh,
@@ -485,6 +576,8 @@ class SmartHomeEnergyEnv(gym.Env):
                 "total_reward": self._episode_total_reward,
                 "total_cost": self._episode_total_cost,
                 "total_revenue": self._episode_total_revenue,
+                "device_activation_count": self._device_activation_count,
+                "device_activation_rate": self._device_activation_count / self.hours_per_episode,
             }
 
         if self.render_mode == "human":

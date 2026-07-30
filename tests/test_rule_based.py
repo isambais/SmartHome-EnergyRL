@@ -310,3 +310,126 @@ class TestGridAwarePolicy:
                        today_prices=CHEAP_PRICES)
         env = DummyEnv(t=5, prices=CHEAP_PRICES)
         assert_action(self.policy(obs, env), 1.0)   # ucuz → şarj
+
+
+# ── Aşama 3: Faz 3 Deferrable Aksiyon Testleri ──────────────────────────────
+
+N_OBS_PHASE3 = 106  # 104 (Aşama 2) + 2 (device_used_today + steps_remaining)
+
+
+class DummyEnvPhase3(DummyEnv):
+    """enable_deferrable=True olan minimum env."""
+
+    def __init__(self, t: int = 10, prices: np.ndarray | None = None) -> None:
+        super().__init__(t=t, prices=prices)
+        self.enable_deferrable = True
+
+    @property
+    def action_space(self):
+        import gymnasium as gym
+        return gym.spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32)
+
+
+def make_obs_phase3(**kwargs) -> np.ndarray:
+    """Aşama 3 gözlemi oluştur (104 + 2 = 106 boyutlu)."""
+    base = make_obs(**kwargs)
+    deferrable = np.zeros(2, dtype=np.float32)  # [device_used_today, steps_remaining_norm]
+    return np.concatenate([base, deferrable])
+
+
+class TestPhase3DeferrableActions:
+    """Tüm politikaların Faz 3 (enable_deferrable=True) ortamda (2,) aksiyon döndürdüğünü doğrula."""
+
+    def setup_method(self):
+        self.env = DummyEnvPhase3(t=10)
+        self.obs = make_obs_phase3()
+        self.obs_cheap = make_obs_phase3(today_prices=CHEAP_PRICES)
+        self.obs_window = make_obs_phase3()  # saat 10 → pencere içi (6-22)
+
+    def _assert_phase3_action(self, action: np.ndarray) -> None:
+        assert action.shape == (2,), f"Faz 3'te shape (2,) beklenir, alınan {action.shape}"
+        assert action.dtype == np.float32
+        assert -1.0 <= float(action[0]) <= 1.0, "Batarya aksiyonu [-1,1] aralığında olmalı"
+        assert -1.0 <= float(action[1]) <= 1.0, "Deferrable sinyal [-1,1] aralığında olmalı"
+
+    def test_hold_policy_returns_2d(self):
+        action = HoldPolicy()(self.obs, self.env)
+        self._assert_phase3_action(action)
+        assert float(action[0]) == pytest.approx(0.0)   # batarya: bekle
+        assert float(action[1]) < 0.0                   # cihaz: çalıştırma
+
+    def test_threshold_policy_returns_2d(self):
+        action = ThresholdPolicy()(self.obs, self.env)
+        self._assert_phase3_action(action)
+
+    def test_threshold_activates_on_cheap_price(self):
+        """ThresholdPolicy ucuz fiyatta cihaz sinyali > 0 vermeli."""
+        env_cheap = DummyEnvPhase3(t=5, prices=np.array([500.0] * 24, dtype=np.float32))
+        obs_cheap = make_obs_phase3(today_prices=np.array([500.0] * 24, dtype=np.float32))
+        action = ThresholdPolicy()(obs_cheap, env_cheap)
+        self._assert_phase3_action(action)
+        assert float(action[1]) > 0.0, "Ucuz fiyatta deferrable sinyali pozitif olmalı"
+
+    def test_self_consumption_policy_returns_2d(self):
+        action = SelfConsumptionPolicy()(self.obs, self.env)
+        self._assert_phase3_action(action)
+
+    def test_self_consumption_activates_on_solar_surplus(self):
+        """SelfConsumptionPolicy güneş fazlasında cihaz sinyali > 0 vermeli."""
+        obs = make_obs_phase3(solar_kw=5.0, demand_kw=1.0)  # 4 kW fazla
+        action = SelfConsumptionPolicy(solar_surplus_threshold=0.1)(obs, self.env)
+        self._assert_phase3_action(action)
+        assert float(action[1]) > 0.0, "Güneş fazlasında deferrable sinyali pozitif olmalı"
+
+    def test_tou_policy_returns_2d(self):
+        action = ToUPolicy()(self.obs, self.env)
+        self._assert_phase3_action(action)
+
+    def test_tou_no_deferrable_during_peak(self):
+        """ToUPolicy pik saatinde cihaz sinyali < 0 vermeli."""
+        env_peak = DummyEnvPhase3(t=18)  # saat 18 → pik
+        action = ToUPolicy(peak_hours=[(17, 22)])(self.obs, env_peak)
+        self._assert_phase3_action(action)
+        assert float(action[1]) < 0.0, "Pik saatinde deferrable sinyali negatif olmalı"
+
+    def test_forecast_aware_policy_returns_2d(self):
+        action = ForecastAwarePolicy()(self.obs, self.env)
+        self._assert_phase3_action(action)
+
+    def test_peak_shaving_policy_returns_2d(self):
+        action = PeakShavingPolicy()(self.obs, self.env)
+        self._assert_phase3_action(action)
+
+    def test_peak_shaving_no_deferrable_during_peak_demand(self):
+        """PeakShavingPolicy yüksek talep saatinde cihaz sinyali < 0 vermeli."""
+        obs = make_obs_phase3(solar_kw=0.0, demand_kw=5.0)  # net=5kW > eşik(2kW)
+        action = PeakShavingPolicy(peak_threshold_kw=2.0)(obs, self.env)
+        self._assert_phase3_action(action)
+        assert float(action[1]) < 0.0, "Yüksek net çekişte deferrable sinyali negatif olmalı"
+
+    def test_grid_aware_policy_returns_2d(self):
+        action = GridAwarePolicy()(self.obs, self.env)
+        self._assert_phase3_action(action)
+
+    def test_grid_aware_no_deferrable_during_outage(self):
+        """GridAwarePolicy kesintide cihaz sinyali < 0 vermeli."""
+        obs = make_obs_phase3(grid=0, dr=0)
+        action = GridAwarePolicy()(obs, self.env)
+        self._assert_phase3_action(action)
+        assert float(action[1]) < 0.0, "Kesintide deferrable sinyali negatif olmalı"
+
+    def test_grid_aware_no_deferrable_during_dr(self):
+        """GridAwarePolicy DR eventinde cihaz sinyali < 0 vermeli."""
+        obs = make_obs_phase3(grid=1, dr=1)
+        action = GridAwarePolicy()(obs, self.env)
+        self._assert_phase3_action(action)
+        assert float(action[1]) < 0.0, "DR eventinde deferrable sinyali negatif olmalı"
+
+    def test_phase1_env_still_returns_1d(self):
+        """enable_deferrable=False ortamda tüm politikalar hâlâ (1,) döndürmeli."""
+        env_p1 = DummyEnv(t=10)  # enable_deferrable yok
+        obs_p1 = make_obs()
+        for PolicyClass in [HoldPolicy, ThresholdPolicy, SelfConsumptionPolicy,
+                            ToUPolicy, ForecastAwarePolicy, PeakShavingPolicy, GridAwarePolicy]:
+            action = PolicyClass()(obs_p1, env_p1)
+            assert action.shape == (1,), f"{PolicyClass.__name__} Faz 1'de (1,) döndürmeli"
