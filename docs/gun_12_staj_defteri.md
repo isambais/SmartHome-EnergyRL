@@ -96,7 +96,19 @@ if device_steps_remaining > 0:
 
 **Sonuç:** `pytest tests/test_energy_env.py tests/test_rule_based.py -v` → **65/65 geçti.**
 
-### 10. Git Commits (Gün 12)
+### 10. PR Review — Feedback ve Düzeltme
+
+PR açıldıktan sonra iki teknik yorum geldi:
+
+**Aksiyon uzayı tasarımı:** `spaces.Box` ile ayrık sinyal gömmek SB3 uyumluluğu açısından doğru tercih. İleride SB3 `MultiInputPolicy` desteği olgunlaşırsa `gymnasium.spaces.Tuple((Box(-1,1), Discrete(2)))` yapısına geçiş değerlendirilebilir — şimdilik aksiyon alınmadı.
+
+**Reward scaling — `deferrable_penalty_coef` düzeltmesi:** Başlangıçta ceza katsayısı `5.0 TL` olarak belirlenmişti. Ancak cihazın çalışma maliyeti hesaplandığında (`1.5 kW × 1 h × ort. 2 TL/kWh ≈ 3 TL`) cezanın elektrik maliyetinin üzerinde kaldığı görüldü. Bu durumda ajan fiyat sinyalini görmezden gelip her sabah 06:00'da refleks aktivasyon yapan "hyper-cautious" bir politika öğrenebilirdi. Katsayı `5.0 → 2.0 TL`'ye düşürüldü; testler güncellenerek **65/65 geçti**.
+
+```
+fix: reduce deferrable_penalty_coef 5.0->2.0 to prevent hyper-cautious policy
+```
+
+### 11. Git Commits (Gün 12)
 
 ```
 feat(env): add Phase 3 multi-step deferrable load with run-duration model
@@ -104,15 +116,16 @@ feat(env): add max_activations_per_day limit to prevent reward hacking
 feat(baselines): add Phase 3 deferrable support to all rule-based policies
 test(env): add 17 Phase 3 tests (multi-step, steps_remaining, re-activation guard)
 test(baselines): add 15 Phase 3 deferrable action tests (65/65 passing)
+fix: reduce deferrable_penalty_coef 5.0->2.0 to prevent hyper-cautious policy
 ```
 
-### 11. Teknik Öğrenimler
+### 12. Teknik Öğrenimler
 
 **Hibrit aksiyon uzayı tasarımı**, pekiştirmeli öğrenmede sürekli ve ayrık kararların birleştirilmesinde sık karşılaşılan bir sorundur. Gymnasium `Tuple`/`Dict` uzayları teorik olarak doğru yaklaşım olsa da SB3 uyumluluk kısıtları nedeniyle "embedding" yöntemi tercih edildi.
 
 **Multi-step device execution**, tek adım enerji uygulamasından çok daha gerçekçidir. Cihaz başlatılınca `deferrable_load_hours` kadar adım boyunca çalışır ve ajan bu süreçte müdahale edemez. Bu, zamansal planlama yeteneklerini test eden daha zengin bir karar ortamı oluşturur.
 
-**Reward shaping** konusunda önemli bir pratik ders: RL ajanları çok boyutlu ödül fonksiyonlarında kısmi hedefleri optimize edip diğerlerini ihmal edebilir. Episode sonu cezası + günlük aktivasyon limiti birlikte "constraint as penalty" yaklaşımının katmanlı uygulamasını örneklemektedir.
+**Reward shaping** konusunda önemli bir pratik ders: RL ajanları çok boyutlu ödül fonksiyonlarında kısmi hedefleri optimize edip diğerlerini ihmal edebilir. Episode sonu cezası + günlük aktivasyon limiti birlikte "constraint as penalty" yaklaşımının katmanlı uygulamasını örneklemektedir. Ceza katsayısının cihaz elektrik maliyetiyle orantılı tutulması, ajanın fiyat-duyarlı davranış sergilemesini sağlar.
 
 ---
 
