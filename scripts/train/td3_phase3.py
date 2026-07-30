@@ -60,14 +60,14 @@ def main() -> None:
             max_activations_per_day=2,
         )
 
-    # ── Hiperparametreler (Aşama 2 Optuna Trial #22) ────────────────
-    LEARNING_RATE = 0.00028922914898910486
-    BUFFER_SIZE   = 50_000
+    # ── Hiperparametreler (Aşama 3 Optuna Trial #21, +0.46 TL) ──────
+    LEARNING_RATE = 0.0005360438974044464
+    BUFFER_SIZE   = 200_000
     BATCH_SIZE    = 256
-    GAMMA         = 0.997657497320845
-    TAU           = 0.011011220856353018
-    POLICY_DELAY  = 1
-    NOISE_SIGMA   = 0.22524286000415317
+    GAMMA         = 0.9907057855751791
+    TAU           = 0.04365379435989359
+    POLICY_DELAY  = 3
+    NOISE_SIGMA   = 0.05375530290642189
     NET_ARCH_SIZE = 512
 
     # TD3 off-policy: n_envs=1
