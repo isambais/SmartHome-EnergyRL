@@ -166,27 +166,72 @@ Bu değişiklikle maksimum GPU kullanımı 512 × 168 × 256 × 4 byte ≈ 90 MB
 
 ---
 
-### 7. Git Commits (Gün 14)
+### 7. Fiyat Tahmin Modülü — 40.176 Saatlik Veriyle Yeniden Çalıştırma
+
+LSTM OOM hatası giderildikten sonra `python scripts/forecast/price_forecast.py` 40.176 saatlik `epias_combined.csv` verisiyle yeniden çalıştırıldı. Sonuçlar:
 
 ```
+==============================================================
+  EPİAŞ Fiyat Tahmini — Model Karşılaştırması
+==============================================================
+                  Model  sMAPE (%)  MAE%  MAE (TL)  RMSE (TL)  Süre (s)
+        LightGBM+Optuna      29.93 11.94     265.8      398.0      72.2
+               LightGBM      30.43 12.01     267.3      399.9       0.8
+       Ensemble (top-3)      32.10 13.07     290.8      419.1       0.0
+                XGBoost      32.52 13.20     293.8      425.2       0.0
+          Random Forest      35.63 15.32     340.9      482.0       0.0
+     LSTM Bidirectional      37.46 14.36     317.2      477.4     904.8
+                    SVR      45.66 23.85     530.6      715.0       3.4
+           Holt-Winters      62.28 55.78    1241.2     1674.6       8.5
+SARIMA(1,1,1)(1,0,1,24)      71.00 79.02    1758.5     2256.4     147.0
+==============================================================
+```
+
+**Önceki sonuçlarla karşılaştırma (8.784 saat → 40.176 saat):**
+
+| Model | Eski sMAPE | Yeni sMAPE | İyileşme |
+|-------|-----------|-----------|----------|
+| LightGBM+Optuna | 51.90% | **29.93%** | −21.97 puan |
+| LSTM Bidirectional | 55.92% | 37.46% | −18.46 puan |
+| XGBoost | ~52% | 32.52% | ~−20 puan |
+
+4.6 kat daha fazla eğitim verisi tüm modellerde yaklaşık 20 puanlık sMAPE düşüşü sağladı. **%30 altı sMAPE elektrik fiyat tahmini için literatürde kabul gören bir eşik**; LightGBM+Optuna bu eşiği geçti.
+
+**Bulgular:**
+
+Ensemble (32.10%) artık LightGBM+Optuna'yı (29.93%) geride bırakamıyor. RF ve XGBoost ağırlıklı ortalamayı yukarı çekiyor. Gün 15'teki RL entegrasyonunda yalnızca **LightGBM+Optuna** kullanılacak.
+
+SARIMA (71%) ve Holt-Winters (62%) çok yüksek hata üretiyor. Elektrik fiyatlarının ani fiyat sıçramalarını (spike) ve mevsimsel volatilitesini istatistiksel modeller yakalayamıyor. Gradient boosting modelleri lag ve rolling özellikler sayesinde bu örüntüleri öğrenebiliyor.
+
+LSTM (37.46%) ağaç tabanlı modellerin gerisinde kaldı. Sıra tabanlı mimari elektrik fiyatlarında doğrusal olmayan ani değişimlere karşı daha hassas; ancak bu veri setinde özellik mühendisliği yapılmış LightGBM hâlâ üstün.
+
+---
+
+### 8. Git Commits (Gün 14)
+
+```
+851acbd  chore: stage raw EPİAŞ CSVs, Colab notebook, Gün 13 docs, and misc updates
 ebda776  fix(eval): add SAC best to eval_best_vs_final, DATA_PATH → epias_combined, LSTM batch inference
 c0e3355  feat(forecast): add 4.5-year EPİAŞ dataset + merge script
+3ebc502  docs: add Gün 14 staj defteri
 ```
 
 ---
 
-### 8. Teknik Öğrenimler
+### 9. Teknik Öğrenimler
 
 **Off-policy vs on-policy — eğitim adımı etkisi:** TD3 ve SAC'ın 500k adımla elde ettiği kazanım (+0.62 – +0.96 TL/gün), PPO ve A2C'ye kıyasla daha yüksek. Deneyim tamponu tekrar örnekleme sayesinde off-policy algoritmalar her adımdan daha fazla öğreniyor; on-policy algoritmalar ise toplanan veriyi yalnızca bir kez kullanıp atıyor.
 
-**Veri dağılımı kayması (data shift) — değerlendirme tutarlılığı:** Phase 1 değerlendirme sonuçlarının hafif düşmesi, modelin eğitildiği dağılımdan farklı fiyat verisiyle test edilmesinden kaynaklandı. Gerçek dünya dağıtımında bu "distribution shift" kritik bir sorun; modelin çeşitli piyasa rejimlerine karşı test edilmesi sağlamlık açısından değerlidir.
+**Veri dağılımı kayması (data shift):** Phase 1 değerlendirme sonuçlarının hafif düşmesi, modelin eğitildiği dağılımdan farklı fiyat verisiyle test edilmesinden kaynaklandı. Modelin çeşitli piyasa rejimlerine karşı test edilmesi sağlamlık açısından değerlidir.
 
 **Bellek yönetimi — batchli inference:** Derin öğrenme modellerinde eğitim batchli yapılırken inference tek seferde yapılması hatası sıkça görülür. Büyük test setlerinde GPU belleği aşımını önlemek için inference da batchlenmeli; `torch.no_grad()` ile gradyan tampon belleği de serbest bırakılmalı.
 
-**Tekrar üretilebilirlik:** Ham veri işleme adımları `scripts/data/merge_epias.py`'ye taşındı. Böylece yeni yıl verisi ekleneceğinde yalnızca CSV indirilip aynı script çalıştırılacak.
+**Veri miktarının önemi:** 4.6 kat daha fazla veri, model mimarisinde hiçbir değişiklik yapılmadan ~20 puanlık sMAPE iyileştirmesi sağladı. Bu, hiperparametre aramasından çok daha etkili bir kazanım.
+
+**Tekrar üretilebilirlik:** Ham veri işleme adımları `scripts/data/merge_epias.py`'ye taşındı. Yeni yıl verisi ekleneceğinde yalnızca CSV indirilip aynı script çalıştırılacak.
 
 ---
 
 ## Yarın (Gün 15)
 
-Fiyat tahmin modülünün 40.176 saatlik veriyle yeniden çalıştırılması (tüm 9 model + Ensemble) ve sonuçların karşılaştırılması. Ardından Gün 16 planı: LightGBM Optuna tahminini RL ajanına entegre etmek — Oracle / Forecast / Naive karşılaştırması (`scripts/forecast/compare.py`).
+LightGBM+Optuna tahminini RL ajanına entegre etmek — Oracle / Forecast / Naive mod karşılaştırması (`scripts/forecast/compare.py`). Hedef: tahmin kullanmanın kural tabanlı politikalara ve tahmin kullanmayan RL'ye kıyasla ne kadar avantaj sağladığını ölçmek.
