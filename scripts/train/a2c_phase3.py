@@ -58,12 +58,12 @@ def main() -> None:
             max_activations_per_day=2,
         )
 
-    # ── Hiperparametreler (Aşama 2 Optuna Trial #2) ─────────────────
-    LEARNING_RATE = 0.00040912205744437856
-    N_STEPS       = 128
-    GAMMA         = 0.9777324201779083
-    ENT_COEF      = 0.009983689107917987
-    NET_ARCH_SIZE = 256
+    # ── Hiperparametreler (Aşama 3 Optuna Trial #16, -8.38 TL) ──────
+    LEARNING_RATE = 0.0002700374365646364
+    N_STEPS       = 32
+    GAMMA         = 0.9391728594279185
+    ENT_COEF      = 0.033170321430599135
+    NET_ARCH_SIZE = 512
 
     train_env = make_vec_env(make_env_fn, n_envs=4, seed=42)
     train_env = VecNormalize(train_env, norm_obs=True, norm_reward=True, gamma=GAMMA)

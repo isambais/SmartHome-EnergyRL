@@ -58,7 +58,9 @@ def main() -> None:
             max_activations_per_day=2,
         )
 
-    # ── Hiperparametreler (Aşama 2 Optuna değerleri) ────────────────
+    # ── Hiperparametreler (Phase 3 Optuna instabil → Phase 2 değerleri) ──
+    # Not: Phase 3 Optuna (lr=0.0008, n_epochs=15) clip_fraction=0.885,
+    #      approx_kl=6.19 ile politika çöktü. Phase 2 değerleri daha stabil.
     LEARNING_RATE = 3.25e-4
     N_STEPS       = 256
     BATCH_SIZE    = 128
