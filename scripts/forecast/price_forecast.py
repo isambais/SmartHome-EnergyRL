@@ -345,8 +345,14 @@ def run_lstm(series_train, series_test):
         sched.step(ep_loss)
 
     model.eval()
+    # Batchli inference — tüm test setini tek seferde GPU'ya göndermez (OOM önleme)
+    infer_bs = 512
+    preds_list = []
     with torch.no_grad():
-        preds_norm = model(X_te.to(device)).cpu().numpy().flatten()
+        for i in range(0, len(X_te), infer_bs):
+            chunk = X_te[i : i + infer_bs].to(device)
+            preds_list.append(model(chunk).cpu().numpy())
+    preds_norm = np.concatenate(preds_list).flatten()
     preds = preds_norm * sigma + mu
 
     torch.save(model.state_dict(), MODEL_DIR / "lstm_bi_price.pt")
