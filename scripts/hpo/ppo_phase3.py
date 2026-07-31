@@ -1,13 +1,18 @@
-"""Optuna hiperparametre araması — PPO, Curriculum Aşama 3 (ertelenebilir yük).
+"""Optuna hiperparametre araması — PPO, Curriculum Aşama 3 (ertelenebilir yük) v2.
 
-Aşama 3'te obs 106 boyutlu, aksiyon Box(2,) — Phase 2 optimal değerleri
-farklı obs/aksiyon yapısı nedeniyle optimal olmayabilir, bu nedenle yeniden aranır.
+v2 değişiklikleri:
+  - clip_range arama uzayına eklendi (0.1-0.3) — v1'de yoktu, Optuna yüksek
+    clip_fraction'a (0.885) yol açan parametreler seçiyordu, eğitim patladı.
+  - Öğrenme hızı aralığı daraltıldı: 1e-4→1e-3 → 5e-5→5e-4
+  - n_steps büyütüldü: max 512 → max 2048 (Phase 3 daha uzun horizon gerektirir)
+  - ent_coef ve gae_lambda eklendi
+  - Yeni study adı: phase3_ppo_optuna_v2 (eski çökmüş study yüklenmez)
 
 Kullanım:
     python scripts/hpo/ppo_phase3.py
 
 Sonuçlar:
-    logs/optuna_ppo_phase3.db
+    logs/optuna_ppo_phase3_v2.db
 """
 
 from __future__ import annotations
@@ -58,12 +63,15 @@ def make_phase3_env(price, solar, demand):
 def objective(trial: optuna.Trial) -> float:
     price, solar, demand = load_data()
 
-    lr            = trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True)
-    n_steps       = trial.suggest_categorical("n_steps", [128, 256, 512])
+    lr            = trial.suggest_float("learning_rate", 5e-5, 5e-4, log=True)
+    n_steps       = trial.suggest_categorical("n_steps", [256, 512, 1024, 2048])
     batch_size    = trial.suggest_categorical("batch_size", [64, 128, 256])
-    gamma         = trial.suggest_float("gamma", 0.90, 0.999)
+    gamma         = trial.suggest_float("gamma", 0.95, 0.999)
     n_epochs      = trial.suggest_int("n_epochs", 5, 15)
-    net_arch_size = trial.suggest_categorical("net_arch_size", [128, 256, 512])
+    clip_range    = trial.suggest_categorical("clip_range", [0.1, 0.2, 0.3])
+    ent_coef      = trial.suggest_float("ent_coef", 0.0, 0.01)
+    gae_lambda    = trial.suggest_float("gae_lambda", 0.90, 0.99)
+    net_arch_size = trial.suggest_categorical("net_arch_size", [256, 512])
 
     if batch_size > n_steps * 4:
         return float("-inf")
@@ -86,6 +94,9 @@ def objective(trial: optuna.Trial) -> float:
             batch_size=batch_size,
             n_epochs=n_epochs,
             gamma=gamma,
+            clip_range=clip_range,
+            ent_coef=ent_coef,
+            gae_lambda=gae_lambda,
             policy_kwargs=dict(net_arch=[net_arch_size, net_arch_size]),
             verbose=0,
             seed=trial.number,
@@ -118,15 +129,15 @@ def objective(trial: optuna.Trial) -> float:
 def main() -> None:
     study = optuna.create_study(
         direction="maximize",
-        study_name="phase3_ppo_optuna",
-        storage=f"sqlite:///{_PROJECT_ROOT}/logs/optuna_ppo_phase3.db",
+        study_name="phase3_ppo_optuna_v2",
+        storage=f"sqlite:///{_PROJECT_ROOT}/logs/optuna_ppo_phase3_v2.db",
         load_if_exists=True,
         sampler=optuna.samplers.TPESampler(seed=42),
     )
     study.optimize(objective, n_trials=N_TRIALS, show_progress_bar=True)
 
     print(f"\n{'='*50}")
-    print(f"PPO Phase 3 — En iyi trial: #{study.best_trial.number}")
+    print(f"PPO Phase 3 v2 — En iyi trial: #{study.best_trial.number}")
     print(f"En iyi değer: {study.best_value:.2f} TL")
     print("En iyi parametreler:")
     for k, v in study.best_params.items():

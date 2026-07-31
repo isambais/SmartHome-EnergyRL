@@ -114,9 +114,9 @@ def main() -> None:
         seed=42,
     )
 
-    print("TD3 Aşama 3 eğitimi başlıyor (300.000 adım)...")
+    print("TD3 Aşama 3 eğitimi başlıyor (500.000 adım)...")
     model.learn(
-        total_timesteps=300_000,
+        total_timesteps=500_000,
         callback=[eval_callback, phase3_cb],
         progress_bar=True,
     )
