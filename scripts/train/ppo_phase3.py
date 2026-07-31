@@ -58,14 +58,17 @@ def main() -> None:
             max_activations_per_day=2,
         )
 
-    # ── Hiperparametreler (Phase 3 Optuna instabil → Phase 2 değerleri) ──
-    # Not: Phase 3 Optuna (lr=0.0008, n_epochs=15) clip_fraction=0.885,
-    #      approx_kl=6.19 ile politika çöktü. Phase 2 değerleri daha stabil.
-    LEARNING_RATE = 3.25e-4
-    N_STEPS       = 256
-    BATCH_SIZE    = 128
-    GAMMA         = 0.953
-    N_EPOCHS      = 10
+    # ── Hiperparametreler (Phase 3 Optuna v2 Trial #17, -6.41 TL) ───────
+    # v1 Optuna'da clip_range yoktu → clip_fraction=0.885, approx_kl=6.19
+    # ile politika çöktü. v2'de clip_range=0.2 arama uzayına eklendi.
+    LEARNING_RATE = 0.00023374424552512926
+    N_STEPS       = 512
+    BATCH_SIZE    = 256
+    GAMMA         = 0.9836694385195369
+    N_EPOCHS      = 8
+    CLIP_RANGE    = 0.2
+    ENT_COEF      = 0.0016405553597722993
+    GAE_LAMBDA    = 0.9684854960997874
     NET_ARCH_SIZE = 256
 
     train_env = make_vec_env(make_env_fn, n_envs=4, seed=42)
@@ -93,6 +96,9 @@ def main() -> None:
         batch_size=BATCH_SIZE,
         n_epochs=N_EPOCHS,
         gamma=GAMMA,
+        clip_range=CLIP_RANGE,
+        ent_coef=ENT_COEF,
+        gae_lambda=GAE_LAMBDA,
         policy_kwargs=dict(net_arch=[NET_ARCH_SIZE, NET_ARCH_SIZE]),
         verbose=1,
         device="auto",
@@ -100,9 +106,9 @@ def main() -> None:
         seed=42,
     )
 
-    print("PPO Aşama 3 eğitimi başlıyor (300.000 adım)...")
+    print("PPO Aşama 3 eğitimi başlıyor (500.000 adım)...")
     model.learn(
-        total_timesteps=300_000,
+        total_timesteps=500_000,
         callback=[eval_callback, phase3_cb],
         progress_bar=True,
     )

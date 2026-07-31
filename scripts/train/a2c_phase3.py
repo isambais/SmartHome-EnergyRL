@@ -58,11 +58,13 @@ def main() -> None:
             max_activations_per_day=2,
         )
 
-    # ── Hiperparametreler (Aşama 3 Optuna Trial #16, -8.38 TL) ──────
-    LEARNING_RATE = 0.0002700374365646364
-    N_STEPS       = 32
-    GAMMA         = 0.9391728594279185
-    ENT_COEF      = 0.033170321430599135
+    # ── Hiperparametreler (Aşama 3 Optuna v2 Trial #16, -8.39 TL) ───
+    LEARNING_RATE = 0.00027716698415490186
+    N_STEPS       = 64
+    GAMMA         = 0.9489500338522303
+    ENT_COEF      = 0.014961362157269377
+    GAE_LAMBDA    = 0.9896616746089069
+    VF_COEF       = 0.6473226820560445
     NET_ARCH_SIZE = 512
 
     train_env = make_vec_env(make_env_fn, n_envs=4, seed=42)
@@ -89,6 +91,8 @@ def main() -> None:
         n_steps=N_STEPS,
         gamma=GAMMA,
         ent_coef=ENT_COEF,
+        gae_lambda=GAE_LAMBDA,
+        vf_coef=VF_COEF,
         policy_kwargs=dict(net_arch=[NET_ARCH_SIZE, NET_ARCH_SIZE]),
         verbose=1,
         device="auto",
@@ -96,9 +100,9 @@ def main() -> None:
         seed=42,
     )
 
-    print("A2C Aşama 3 eğitimi başlıyor (300.000 adım)...")
+    print("A2C Aşama 3 eğitimi başlıyor (500.000 adım)...")
     model.learn(
-        total_timesteps=300_000,
+        total_timesteps=500_000,
         callback=[eval_callback, phase3_cb],
         progress_bar=True,
     )
