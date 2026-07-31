@@ -1,10 +1,18 @@
-"""Optuna hiperparametre araması — A2C, Curriculum Aşama 3 (ertelenebilir yük).
+"""Optuna hiperparametre araması — A2C, Curriculum Aşama 3 (ertelenebilir yük) v2.
+
+v2 değişiklikleri:
+  - n_steps aralığı genişletildi: max 128 → max 512 (küçük n_steps Phase 3'ün
+    uzun horizon'unu kapsamıyordu; v1'de Trial #16 n_steps=32 seçti, yetersiz)
+  - gae_lambda eklendi (0.90-0.99)
+  - vf_coef eklendi (0.25-0.75)
+  - ent_coef üst sınırı 0.05 → 0.1 (daha fazla keşif)
+  - Yeni study adı: phase3_a2c_optuna_v2
 
 Kullanım:
     python scripts/hpo/a2c_phase3.py
 
 Sonuçlar:
-    logs/optuna_a2c_phase3.db
+    logs/optuna_a2c_phase3_v2.db
 """
 
 from __future__ import annotations
@@ -55,11 +63,13 @@ def make_phase3_env(price, solar, demand):
 def objective(trial: optuna.Trial) -> float:
     price, solar, demand = load_data()
 
-    lr       = trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True)
-    n_steps  = trial.suggest_categorical("n_steps", [16, 32, 64, 128])
-    gamma    = trial.suggest_float("gamma", 0.90, 0.999)
-    ent_coef = trial.suggest_float("ent_coef", 0.0, 0.05)
-    net_arch = trial.suggest_categorical("net_arch_size", [128, 256, 512])
+    lr         = trial.suggest_float("learning_rate", 5e-5, 5e-4, log=True)
+    n_steps    = trial.suggest_categorical("n_steps", [64, 128, 256, 512])
+    gamma      = trial.suggest_float("gamma", 0.90, 0.999)
+    ent_coef   = trial.suggest_float("ent_coef", 0.0, 0.1)
+    gae_lambda = trial.suggest_float("gae_lambda", 0.90, 0.99)
+    vf_coef    = trial.suggest_float("vf_coef", 0.25, 0.75)
+    net_arch   = trial.suggest_categorical("net_arch_size", [256, 512])
 
     def make_env_fn():
         return make_phase3_env(price, solar, demand)
@@ -78,6 +88,8 @@ def objective(trial: optuna.Trial) -> float:
             n_steps=n_steps,
             gamma=gamma,
             ent_coef=ent_coef,
+            gae_lambda=gae_lambda,
+            vf_coef=vf_coef,
             policy_kwargs=dict(net_arch=[net_arch, net_arch]),
             verbose=0,
             seed=trial.number,
@@ -109,15 +121,15 @@ def objective(trial: optuna.Trial) -> float:
 def main() -> None:
     study = optuna.create_study(
         direction="maximize",
-        study_name="phase3_a2c_optuna",
-        storage=f"sqlite:///{_PROJECT_ROOT}/logs/optuna_a2c_phase3.db",
+        study_name="phase3_a2c_optuna_v2",
+        storage=f"sqlite:///{_PROJECT_ROOT}/logs/optuna_a2c_phase3_v2.db",
         load_if_exists=True,
         sampler=optuna.samplers.TPESampler(seed=42),
     )
     study.optimize(objective, n_trials=N_TRIALS, show_progress_bar=True)
 
     print(f"\n{'='*50}")
-    print(f"A2C Phase 3 — En iyi trial: #{study.best_trial.number}")
+    print(f"A2C Phase 3 v2 — En iyi trial: #{study.best_trial.number}")
     print(f"En iyi değer: {study.best_value:.2f} TL")
     print("En iyi parametreler:")
     for k, v in study.best_params.items():
