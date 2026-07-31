@@ -209,11 +209,15 @@ LSTM (37.46%) ağaç tabanlı modellerin gerisinde kaldı. Sıra tabanlı mimari
 
 ### 8. Git Commits (Gün 14)
 
+**PR #31:** [feat: Gün 14 — 500k retrain, EPİAŞ 4.5yr dataset, price forecasting 9 models](https://github.com/isambais/SmartHome-EnergyRL/pull/31)
+
 ```
-851acbd  chore: stage raw EPİAŞ CSVs, Colab notebook, Gün 13 docs, and misc updates
-ebda776  fix(eval): add SAC best to eval_best_vs_final, DATA_PATH → epias_combined, LSTM batch inference
+8fd9341  fix(data): add add_noise/seed params to align_to_dates, fix DataFrame lookup
 c0e3355  feat(forecast): add 4.5-year EPİAŞ dataset + merge script
+ebda776  fix(eval): add SAC best to eval_best_vs_final, DATA_PATH → epias_combined, LSTM batch inference
 3ebc502  docs: add Gün 14 staj defteri
+851acbd  chore: stage raw EPİAŞ CSVs, Colab notebook, Gün 13 docs, and misc updates
+fbf9987  docs: update Gün 14 with forecast results (LightGBM+Optuna 29.93% sMAPE)
 ```
 
 ---
