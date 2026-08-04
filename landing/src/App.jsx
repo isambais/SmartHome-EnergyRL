@@ -1233,10 +1233,15 @@ function Footer() {
               <span className="logo-mark"><Bolt size={17} /></span> SmartHome Energy RL
             </div>
             <p className="sub" style={{ fontSize: 14.5, maxWidth: 260 }}>
-              EPİAŞ verisiyle eğitilmiş RL ajanı tabanlı bina enerji yönetim sistemi.
-            </p>
-            <a href="mailto:isambais18@gmail.com" style={{ marginTop: 10, fontWeight: 600, color: "var(--ink)" }}>isambais18@gmail.com</a>
-          </div>
+  EPİAŞ verisiyle eğitilmiş RL ajanı tabanlı bina enerji yönetim sistemi.
+</p>
+<a
+  href="mailto:isambais18@gmail.com"
+  style={{ marginTop: 10, fontWeight: 600, color: "var(--ink)" }}
+>
+  isambais18@gmail.com
+</a>
+</div>
           <div>
             <h4>Dashboard</h4>
             <a href="http://localhost:8501">Bina Simülasyonu</a>
@@ -1286,3 +1291,4 @@ export default function App() {
     </>
   );
 }
+
