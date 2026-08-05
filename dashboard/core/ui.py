@@ -31,7 +31,7 @@ def sidebar_konfigurator() -> BinaConfig:
     """Sol sidebar — bina konfigüratörü. Yeni BinaConfig döndürür ve saklar."""
     cfg: BinaConfig = st.session_state.cfg
     with st.sidebar:
-        st.header("🏗️ Bina Konfigüratörü")
+        st.header("Bina Konfigüratörü")
         tip = st.selectbox("Bina tipi", list(BINA_TIPLERI), index=list(BINA_TIPLERI).index(cfg.bina_tipi))
         if tip != cfg.bina_tipi:
             cfg = BinaConfig.from_tip(tip)
@@ -47,18 +47,17 @@ def sidebar_konfigurator() -> BinaConfig:
         st.subheader("Sistemler")
         c1, c2 = st.columns(2)
         with c1:
-            asansor = st.checkbox("🛗 Asansör", cfg.asansor)
-            hvac = st.checkbox("❄️ HVAC", cfg.hvac)
-            pompa = st.checkbox("💧 Su Pompası", cfg.su_pompasi)
-            ev = st.checkbox("🚗 EV Şarj", cfg.ev_sarj)
+            asansor = st.checkbox("Asansör", cfg.asansor)
+            hvac = st.checkbox("HVAC", cfg.hvac)
+            pompa = st.checkbox("Su Pompası", cfg.su_pompasi)
+            ev = st.checkbox("EV Şarj", cfg.ev_sarj)
         with c2:
-            kamera = st.checkbox("📷 Kamera", cfg.kamera)
-            isitici = st.checkbox("☀️ Güneş Isıtıcı", cfg.gunes_isitici)
-            jen = st.checkbox("⛽ Jeneratör", cfg.jenerator)
+            kamera = st.checkbox("Kamera", cfg.kamera)
+            isitici = st.checkbox("Güneş Isıtıcı", cfg.gunes_isitici)
+            jen = st.checkbox("Jeneratör", cfg.jenerator)
 
         st.divider()
-        st.session_state.saat = st.slider("🕐 Saat", 0, 23, st.session_state.saat)
-        st.session_state.uzman_modu = st.toggle("📊 Uzman modu", st.session_state.uzman_modu)
+        st.session_state.uzman_modu = st.toggle("Uzman modu", st.session_state.uzman_modu)
 
     yeni = BinaConfig(bina_tipi=tip, kat=kat, daire_per_kat=dpk, aktif_daire=aktif,
                       oda=oda, cati_alani=cati, asansor=asansor, hvac=hvac,
