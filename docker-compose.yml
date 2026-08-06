@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: smarthome-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: smarthome
+    ports:
+      - "5432:5432"
+    volumes:
+      - smarthome_pgdata:/var/lib/postgresql/data
+
+volumes:
+  smarthome_pgdata:

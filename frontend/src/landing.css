@@ -1,0 +1,243 @@
+/* ────────────────────────────────────────────────────────────────
+   LANDING — tek tasarım sistemi (index.css :root ile ortak, saf siyah).
+   .landing kendi eski değişken adlarını dark tokenlara bağlar.
+   ──────────────────────────────────────────────────────────────── */
+.landing {
+  --bg: #000000;
+  --bg-2: #08080a;
+  --card: rgba(255,255,255,0.04);
+  --card-2: rgba(255,255,255,0.07);
+  --ink: #f4f4f5;
+  --muted: #a1a1aa;
+  --faint: #71717a;
+  --line: rgba(255,255,255,0.10);
+  --line-strong: rgba(255,255,255,0.16);
+  --blue: #60a5fa;
+  --blue-soft: #3b82f6;
+  --green: #34d399;
+  --red: #f87171;
+  --amber: #fbbf24;
+  --r-lg: 24px;
+  --r-md: 16px;
+}
+
+* { box-sizing: border-box; margin: 0; }
+.landing-noop { scroll-behavior: smooth; }
+
+.landing {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
+  line-height: 1.55;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+.landing a { color: inherit; text-decoration: none; }
+.landing button { font-family: inherit; }
+.landing img { max-width: 100%; display: block; }
+
+.landing .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+.landing section { padding: 96px 0; }
+
+.landing h1 { font-size: clamp(46px, 7vw, 88px); line-height: 1.02; font-weight: 600; letter-spacing: -0.045em; color: #fff; }
+.landing h2 { font-size: clamp(32px, 4.4vw, 52px); line-height: 1.08; font-weight: 600; letter-spacing: -0.035em; color: #fff; }
+.landing h3 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: #fff; }
+
+.landing .sub { color: var(--muted); font-size: 18px; }
+
+/* Eyebrow pill */
+.landing .eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  backdrop-filter: blur(8px);
+}
+
+/* ── Floating pill nav ────────────────────────────────────────── */
+.landing .nav { position: fixed; top: 12px; left: 0; right: 0; z-index: 100; }
+.landing .nav-pill {
+  max-width: 1160px; margin: 0 auto;
+  background: rgba(10,10,12,0.72);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px -12px #000000cc;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 12px 9px 16px;
+  gap: 12px;
+}
+.landing .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: -0.02em; color: #fff; white-space: nowrap; }
+.landing .logo-mark {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: linear-gradient(135deg, #34d399, #10b981); color: #04120c;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 18px -2px #34d39988;
+}
+.landing .nav-links { display: flex; gap: 4px; font-size: 14.5px; font-weight: 500; }
+.landing .nav-links a { color: var(--muted); padding: 8px 14px; border-radius: 10px; transition: color .15s, background .15s; }
+.landing .nav-links a:hover { color: #fff; background: var(--hover, rgba(255,255,255,0.06)); }
+
+/* Hamburger button — sadece mobilde görünür */
+.landing .nav-burger {
+  display: none;
+  width: 40px; height: 40px; border-radius: 11px;
+  border: 1px solid var(--line); background: var(--card); color: #fff;
+  align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+}
+.landing .nav-burger span, .landing .nav-burger span::before, .landing .nav-burger span::after {
+  content: ""; display: block; width: 17px; height: 2px; background: #fff; border-radius: 2px;
+  transition: transform .25s, opacity .2s;
+}
+.landing .nav-burger span { position: relative; }
+.landing .nav-burger span::before { position: absolute; top: -6px; }
+.landing .nav-burger span::after  { position: absolute; top: 6px; }
+.landing .nav-burger.open span { background: transparent; }
+.landing .nav-burger.open span::before { transform: translateY(6px) rotate(45deg); }
+.landing .nav-burger.open span::after  { transform: translateY(-6px) rotate(-45deg); }
+
+/* Mobil çekmece menü */
+.landing .nav-drawer {
+  overflow: hidden;
+  max-width: 1160px; margin: 8px auto 0;
+  background: rgba(10,10,12,0.92);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+.landing .nav-drawer .inner { display: flex; flex-direction: column; padding: 10px; gap: 2px; }
+.landing .nav-drawer a, .landing .nav-drawer button.drawer-link {
+  text-align: left; background: none; border: none; cursor: pointer;
+  color: var(--ink); font-size: 16px; font-weight: 500; font-family: inherit;
+  padding: 13px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between;
+}
+.landing .nav-drawer a:hover, .landing .nav-drawer button.drawer-link:hover { background: rgba(255,255,255,0.06); }
+.landing .nav-drawer .drawer-cta { margin-top: 6px; }
+
+@media (max-width: 900px) {
+  .landing .nav-links { display: none; }
+  .landing .nav-cta-desktop { display: none; }
+  .landing .nav-burger { display: inline-flex; }
+}
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.landing .btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  border-radius: 999px;
+  padding: 14px 24px;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.15s, box-shadow 0.2s, background 0.2s, border-color .2s;
+}
+.landing .btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.landing .btn:hover { transform: translateY(-1px); }
+/* Birincil = beyaz (Framer) */
+.landing .btn-blue, .landing .btn-primary {
+  background: #fff; color: #000;
+  box-shadow: 0 8px 28px -8px #ffffff40;
+}
+.landing .btn-blue:hover, .landing .btn-primary:hover { box-shadow: 0 10px 34px -8px #ffffff66; }
+/* İkincil = camsı */
+.landing .btn-dark, .landing .btn-white, .landing .btn-ghost {
+  background: rgba(255,255,255,0.06);
+  color: #fff; border-color: var(--line);
+  backdrop-filter: blur(8px);
+}
+.landing .btn-dark:hover, .landing .btn-white:hover, .landing .btn-ghost:hover {
+  background: rgba(255,255,255,0.12); border-color: var(--line-strong);
+}
+.landing .btn .arr {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #00000018;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.landing .btn-dark .arr, .landing .btn-white .arr, .landing .btn-ghost .arr { background: #ffffff1f; }
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.landing .card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 28px;
+  backdrop-filter: blur(6px);
+}
+.landing .photo-card {
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+
+.landing .grid { display: grid; gap: 18px; }
+.landing .grid-2 { grid-template-columns: 1fr 1fr; }
+.landing .grid-3 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) { .landing .grid-2, .landing .grid-3 { grid-template-columns: 1fr; } }
+
+/* Chips */
+.landing .chip { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; color: var(--muted); }
+.landing .tick { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 15.5px; }
+.landing .tick .c { color: var(--green); display: flex; }
+
+/* Marquee */
+.landing .marquee { overflow: hidden; position: relative; }
+.landing .marquee-track { display: flex; gap: 64px; width: max-content; animation: scroll 28s linear infinite; align-items: center; }
+@keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.landing .brand { font-size: 22px; font-weight: 700; color: var(--faint); white-space: nowrap; }
+
+/* FAQ */
+.landing .faq-item { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); margin-bottom: 12px; overflow: hidden; }
+.landing .faq-q {
+  width: 100%; text-align: left; background: none; border: none;
+  color: #fff; font-size: 17px; font-weight: 600;
+  padding: 20px 22px; cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+}
+.landing .faq-q:focus-visible { outline: 2px solid var(--blue); outline-offset: -3px; }
+.landing .faq-a { padding: 0 22px 20px; color: var(--muted); font-size: 15.5px; }
+
+/* Stats rows */
+.landing .stat-row { border-radius: var(--r-lg); border: 1px solid var(--line); padding: 26px 30px; position: relative; margin-bottom: 16px; }
+.landing .stat-row .num { font-size: clamp(34px, 4vw, 46px); font-weight: 800; letter-spacing: -0.02em; }
+.landing .stat-icon {
+  position: absolute; top: 22px; right: 24px;
+  width: 46px; height: 46px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Footer */
+.landing footer { padding: 70px 0 40px; font-size: 15px; border-top: 1px solid var(--line); background: var(--bg-2); }
+.landing footer h4 { font-size: 15px; margin-bottom: 14px; color: #fff; }
+.landing footer a { color: var(--muted); display: block; padding: 5px 0; }
+.landing footer a:hover { color: #fff; }
+.landing .social {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid var(--line);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--muted); margin-right: 10px;
+}
+
+/* ── Responsive: mobil düzen ─────────────────────────────────── */
+@media (max-width: 720px) {
+  .landing .hero-mock { flex-direction: column; }
+  .landing .hero-mock .hero-mock-side { display: none; }
+}
+@media (max-width: 900px) {
+  .landing .showcase-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+  .landing .showcase-grid .showcase-sticky { position: static !important; }
+}
+@media (max-width: 720px) { .landing .foot-grid { grid-template-columns: 1fr 1fr !important; gap: 24px !important; } }
+@media (max-width: 460px) { .landing .foot-grid { grid-template-columns: 1fr !important; } }
+@media (max-width: 600px) { .landing section { padding: 64px 0; } }
