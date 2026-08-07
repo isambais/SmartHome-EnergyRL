@@ -29,7 +29,7 @@ from dashboard.core.agent import get_agent, load_algo  # noqa: E402
 from dashboard.core.config import (  # noqa: E402
     BINA_TIPLERI, BinaConfig, saatlik_gunes_kw, saatlik_talep_kw,
 )
-from dashboard.core.simulate import SICAKLIK_VERIM, VERIM, oneriler, simulate_day  # noqa: E402
+from dashboard.core.simulate import SICAKLIK_VERIM, VERIM, oneriler_kodlu, simulate_day  # noqa: E402
 from dashboard.core.threejs import building_html  # noqa: E402
 
 from fastapi import Depends  # noqa: E402
@@ -124,6 +124,11 @@ class BuildingIn(BaseModel):
     gunes_kw: float = 0.0
     kesinti: bool = False
     height: int = 500
+    dil: str = "tr"
+
+
+# 3D HUD'daki "daire" etiketi — dile göre
+_UNIT_LABEL = {"tr": "daire", "en": "flats", "ar": "وحدة"}
 
 
 # ── Auth / profil istek modelleri ────────────────────────────────
@@ -214,7 +219,7 @@ def simulate(inp: SimIn):
         "batarya_verim_pct": round(VERIM * SICAKLIK_VERIM[tarih.month - 1] * 100, 1),
         "derived": _derived(cfg),
         "rows": df.round(4).to_dict(orient="records"),
-        "oneriler": [oneriler(df, h) for h in range(24)],
+        "oneriler": [oneriler_kodlu(df, h) for h in range(24)],
         "ozet": {
             "tasarruf_tl": round(float(df["tasarruf_tl"].sum()), 1),
             "taban_maliyet_tl": round(float(df["taban_maliyet_tl"].sum()), 1),
@@ -230,7 +235,8 @@ def simulate(inp: SimIn):
 @app.post("/api/building-html", response_class=HTMLResponse)
 def building(inp: BuildingIn):
     return building_html(inp.config.to_cfg(), inp.saat, inp.soc, inp.gunes_kw,
-                         outage=inp.kesinti, height=inp.height)
+                         outage=inp.kesinti, height=inp.height,
+                         unit_label=_UNIT_LABEL.get(inp.dil, _UNIT_LABEL["tr"]))
 
 
 @app.post("/api/yatirim")
