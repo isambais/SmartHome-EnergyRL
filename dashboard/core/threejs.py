@@ -999,7 +999,7 @@ hud.innerHTML = [
   `<span class="hud-chip">🕐 ${String(hour).padStart(2,'0')}:00</span>`,
   `<span class="hud-chip">🔋 <span style="color:${socColor};font-weight:700">%${socPct}</span></span>`,
   `<span class="hud-chip">☀️ ${CFG.solar_kw.toFixed(1)} kW</span>`,
-  `<span class="hud-chip">🏠 ${CFG.active_units}/${CFG.total_units} daire</span>`,
+  `<span class="hud-chip">🏠 ${CFG.active_units}/${CFG.total_units} ${CFG.unit_label}</span>`,
 ].join('');
 
 /* ── Kamera ──────────────────────────────────────────────── */
@@ -1086,9 +1086,11 @@ window.addEventListener('resize', () => {
 
 
 def building_html(cfg: BinaConfig, hour: int, soc: float,
-                  solar_kw: float, outage: bool = False, height: int = 520) -> str:
+                  solar_kw: float, outage: bool = False, height: int = 520,
+                  unit_label: str = "daire") -> str:
     solar_max = max(cfg.panel_kw * 0.80, 0.1)
     params = dict(
+        unit_label=str(unit_label),
         floors=int(cfg.kat),
         units_per_floor=int(cfg.daire_per_kat),
         active_units=int(min(cfg.aktif_daire, cfg.toplam_daire)),
