@@ -46,3 +46,10 @@ node_modules/
 dist/
 .vite/
 
+.env
+
+# SQLite veritabanı (geliştirme)
+smarthome.db
+
+# Backend pycache
+backend/__pycache__/
