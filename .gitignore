@@ -41,3 +41,8 @@ Thumbs.db
 # Eğitim çıktıları
 models/
 logs/
+# Node
+node_modules/
+dist/
+.vite/
+

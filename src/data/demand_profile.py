@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 
@@ -72,16 +73,31 @@ class DemandProfileGenerator:
         return frame.groupby(["weekday", "hour"])["demand_kw"].mean()
 
     def align_to_dates(
-        self, typical_profile: pd.Series, target_dates: pd.DatetimeIndex
+        self,
+        typical_profile: pd.Series,
+        target_dates: pd.DatetimeIndex,
+        add_noise: bool = False,
+        seed: int | None = None,
     ) -> pd.DataFrame:
         """Tipik hafta profilini (haftanın günü + saat eşlemesiyle) hedef
         tarihlere hizalar — ör. EpiasLoader'dan gelen gerçek fiyat tarihleriyle
         aynı takvimde kullanılabilmesi için.
+
+        add_noise=True ise her saate ±%5 Gaussian gürültü eklenir (seed ile
+        tekrarlanabilir); talep profilini gerçekçi kılmak için kullanılır.
         """
+        rng = np.random.default_rng(seed) if add_noise else None
         rows = []
         for ts in target_dates:
             key = (ts.weekday(), ts.hour)
-            demand_kw = float(typical_profile.loc[key]) if key in typical_profile.index else 0.0
+            if key not in typical_profile.index:
+                demand_kw = 0.0
+            elif isinstance(typical_profile, pd.DataFrame):
+                demand_kw = float(typical_profile.loc[key, "mean_kw"])
+            else:
+                demand_kw = float(typical_profile.loc[key])
+            if add_noise and rng is not None:
+                demand_kw = max(0.0, demand_kw * (1.0 + rng.normal(0, 0.05)))
             rows.append({"timestamp": ts, "demand_kw": demand_kw})
         return pd.DataFrame(rows)
 

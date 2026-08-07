@@ -27,7 +27,7 @@ from src.baselines.rule_based import (  # noqa: E402
 
 Policy = Callable[[np.ndarray, SmartHomeEnergyEnv], np.ndarray]
 
-DATA_PATH = Path("data/epias_2024.csv")
+DATA_PATH = Path("data/epias_combined.csv")  # ham 2024.csv üzerine yazıldı, combined kullan
 PHASE2_DATA_PATH = Path("data/processed/aligned_dataset.csv")
 
 FALLBACK_PRICES = np.array(
@@ -471,7 +471,7 @@ def main() -> None:
 
         phase3_rl = [
             ("PPO  (phase3)   ", PPO, "models/ppo_phase3_final.zip", "models/ppo_phase3_vecnormalize.pkl"),
-            ("A2C  (phase3)   ", A2C, "models/a2c_phase3_final.zip", "models/a2c_phase3_vecnormalize.pkl"),
+            ("A2C  (phase3)   ", A2C, "models/a2c_phase3_best/best_model.zip", "models/a2c_phase3_vecnormalize.pkl"),
             ("SAC  (phase3)   ", SAC, "models/sac_phase3_final.zip", "models/sac_phase3_vecnormalize.pkl"),
             ("TD3  (phase3)   ", TD3, "models/td3_phase3_final.zip", "models/td3_phase3_vecnormalize.pkl"),
         ]
@@ -480,6 +480,11 @@ def main() -> None:
             ("Bekle (hold)    ", hold_policy),
             ("Rastgele        ", random_policy),
             ("Esik (threshold)", threshold_policy),
+            ("Oz-tuketim      ", self_consumption_policy),
+            ("ToU (saat blok) ", tou_policy),
+            ("Tahmin kullanir ", forecast_aware_policy),
+            ("Tepe kesme      ", peak_shaving_policy),
+            ("Sebeke bilincli ", grid_aware_policy),
         ]
 
         for name, cls, mp, sp in phase3_rl:
