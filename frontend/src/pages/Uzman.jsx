@@ -7,10 +7,10 @@ import {
 import { api } from "../api.js";
 import { Loading, PageWrap } from "../components/ui.jsx";
 import { useApp } from "../state.jsx";
+import { AYLAR_KISA, useI18n } from "../i18n.jsx";
 
 const RENK = { SAC: "#22c55e", TD3: "#3b82f6", PPO: "#f59e0b", A2C: "#f97316" };
 const AY_RENK = (m) => ([12, 1, 2].includes(m) ? "#3b82f6" : [3, 4, 5].includes(m) ? "#22c55e" : [6, 7, 8].includes(m) ? "#f59e0b" : "#f97316");
-const AY_KISA = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
 
 const fadeUp = {
   initial: { opacity: 0, y: 18 },
@@ -18,16 +18,10 @@ const fadeUp = {
   transition: { duration: 0.4, ease: "easeOut" },
 };
 
-const TABS = [
-  { id: "algo", ad: "Algoritma Karşılaştırması" },
-  { id: "mod", ad: "Fiyat Bilgisi Etkisi" },
-  { id: "mevsim", ad: "Mevsimsel Analiz" },
-];
-
-function Tabs({ active, onChange }) {
+function Tabs({ tabs, active, onChange }) {
   return (
     <div style={{ display: "flex", gap: 2, borderBottom: "1px solid var(--border)", marginBottom: 20 }}>
-      {TABS.map((t) => (
+      {tabs.map((t) => (
         <button key={t.id} onClick={() => onChange(t.id)}
           style={{
             background: "none", border: "none", cursor: "pointer", position: "relative",
@@ -45,7 +39,6 @@ function Tabs({ active, onChange }) {
   );
 }
 
-/* Kart başlığı — küçük renkli aksan + başlık + açıklama */
 function CardHead({ renk, baslik, alt }) {
   return (
     <div style={{ marginBottom: 14 }}>
@@ -60,9 +53,11 @@ function CardHead({ renk, baslik, alt }) {
 
 export default function Uzman() {
   const { uzman, setUzman } = useApp();
+  const { t, dil } = useI18n();
   const [tab, setTab] = useState("algo");
   const [cmp, setCmp] = useState(null);
   const [mev, setMev] = useState(null);
+  const aylarKisa = AYLAR_KISA[dil] || AYLAR_KISA.tr;
 
   useEffect(() => {
     api.karsilastirma().then(setCmp).catch(() => setCmp({ algoritmalar: [], forecast: [], pivot: [] }));
@@ -71,42 +66,40 @@ export default function Uzman() {
 
   const oracle = cmp ? cmp.algoritmalar.filter((r) => r.Mod === "Oracle") : [];
   const enIyi = oracle.length ? oracle.reduce((a, b) => (b.mean > a.mean ? b : a)) : null;
+  const TABS = [
+    { id: "algo", ad: t("expert.tab.algo") },
+    { id: "mod", ad: t("expert.tab.mode") },
+    { id: "mevsim", ad: t("expert.tab.season") },
+  ];
 
   return (
     <PageWrap>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1 style={{ marginBottom: 4 }}>Uzman Modu</h1>
-          <p className="caption" style={{ maxWidth: 460 }}>
-            İşin tekniğini merak edenler için: yapay zekâ yöntemlerinin karşılaştırması,
-            tahmin kalitesinin etkisi ve mevsimsel analizler.
-          </p>
+          <h1 style={{ marginBottom: 4 }}>{t("expert.title")}</h1>
+          <p className="caption" style={{ maxWidth: 460 }}>{t("expert.sub")}</p>
         </div>
         <label className="toggle-switch">
           <input type="checkbox" checked={uzman} onChange={(e) => setUzman(e.target.checked)} />
           <span className="track"><span className="thumb" /></span>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Teknik detaylar</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>{t("expert.toggle")}</span>
         </label>
       </div>
 
       {!uzman ? (
-        <motion.div {...fadeUp} className="card"
-          style={{ marginTop: 20, textAlign: "center", padding: "48px 32px" }}>
-          <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>Bu bölüm teknik detaylar içerir</div>
-          <p className="caption" style={{ maxWidth: 380, margin: "0 auto 20px" }}>
-            Algoritma karşılaştırmaları ve model analizleri burada. Görmek için teknik detayları açın.
-          </p>
+        <motion.div {...fadeUp} className="card" style={{ marginTop: 20, textAlign: "center", padding: "48px 32px" }}>
+          <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>{t("expert.gateTitle")}</div>
+          <p className="caption" style={{ maxWidth: 380, margin: "0 auto 20px" }}>{t("expert.gateSub")}</p>
           <button onClick={() => setUzman(true)} className="btn-app" style={{ padding: "12px 26px", fontSize: 15 }}>
-            Teknik detayları aç
+            {t("expert.gateBtn")}
           </button>
         </motion.div>
       ) : !cmp ? (
-        <Loading text="Analizler yükleniyor…" />
+        <Loading text={t("load.analysis")} />
       ) : (
         <div style={{ marginTop: 18 }}>
-          <Tabs active={tab} onChange={setTab} />
+          <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
-          {/* ── Algoritma Karşılaştırması ── */}
           {tab === "algo" && (
             <motion.div key="algo" {...fadeUp}>
               {enIyi && (
@@ -119,28 +112,26 @@ export default function Uzman() {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <b style={{ fontSize: 15 }}>{r.Politika}</b>
                         {r.Politika === enIyi.Politika && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: "#34d399", background: "rgba(52,211,153,0.15)", borderRadius: 999, padding: "2px 8px" }}>en iyi</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "#34d399", background: "rgba(52,211,153,0.15)", borderRadius: 999, padding: "2px 8px" }}>{t("expert.best")}</span>
                         )}
                       </div>
                       <div style={{ fontSize: 26, fontWeight: 800, color: RENK[r.Politika], marginTop: 6 }}>
                         {r.mean > 0 ? "+" : ""}{r.mean} TL
                       </div>
-                      <div className="caption">günlük ort. ± {r.std}</div>
+                      <div className="caption">{t("expert.dailyAvg")} {r.std}</div>
                     </motion.div>
                   ))}
                 </div>
               )}
 
               <div className="card">
-                <CardHead renk="#22c55e" baslik="Günlük performans (Oracle fiyat bilgisiyle)"
-                  alt="Her algoritmanın bir günde sağladığı ortalama net kazanç; çubuk üstü çizgi değişkenliği (±) gösterir." />
+                <CardHead renk="#22c55e" baslik={t("expert.perfTitle")} alt={t("expert.perfAlt")} />
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={oracle}>
                     <XAxis dataKey="Politika" stroke="#8a8a8a" />
-                    <YAxis stroke="#8a8a8a" label={{ value: "TL / gün", angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
-                    <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }}
-                      cursor={{ fill: "#00000008" }} />
-                    <Bar dataKey="mean" name="Günlük ödül" radius={[6, 6, 0, 0]} isAnimationActive>
+                    <YAxis stroke="#8a8a8a" label={{ value: "TL / " + t("unit.year"), angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
+                    <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }} cursor={{ fill: "#00000008" }} />
+                    <Bar dataKey="mean" name={t("expert.dailyReward")} radius={[6, 6, 0, 0]} isAnimationActive>
                       {oracle.map((r) => <Cell key={r.Politika} fill={RENK[r.Politika] || "#8a8a8a"} />)}
                       <ErrorBar dataKey="std" stroke="var(--fg)" strokeWidth={1.2} width={5} />
                     </Bar>
@@ -150,8 +141,7 @@ export default function Uzman() {
 
               {cmp.forecast.length > 0 && (
                 <div className="card" style={{ marginTop: 16, overflowX: "auto" }}>
-                  <CardHead renk="#f59e0b" baslik="Fiyat tahmin modelleri"
-                    alt="Yarının elektrik fiyatını tahmin eden modellerin doğruluk karşılaştırması." />
+                  <CardHead renk="#f59e0b" baslik={t("expert.forecastTitle")} alt={t("expert.forecastAlt")} />
                   <table className="tbl">
                     <thead><tr>{Object.keys(cmp.forecast[0]).map((k) => <th key={k}>{k}</th>)}</tr></thead>
                     <tbody>{cmp.forecast.map((r, i) => (
@@ -163,14 +153,12 @@ export default function Uzman() {
             </motion.div>
           )}
 
-          {/* ── Fiyat Bilgisi Etkisi (pivot) ── */}
           {tab === "mod" && (
             <motion.div key="mod" {...fadeUp} className="card" style={{ overflowX: "auto" }}>
-              <CardHead renk="#3b82f6" baslik="Tahmin kalitesi kararı ne kadar etkiliyor?"
-                alt="Ajan yarının fiyatını ne kadar iyi bildikçe günlük kazanç nasıl değişiyor (TL/gün)." />
+              <CardHead renk="#3b82f6" baslik={t("expert.modeTitle")} alt={t("expert.modeAlt")} />
               <table className="tbl" style={{ marginTop: 6 }}>
                 <thead><tr>
-                  <th>Algoritma</th>
+                  <th>{t("expert.policy")}</th>
                   {["Oracle", "Forecast", "Naive"].filter((m) => cmp.pivot[0] && m in cmp.pivot[0]).map((m) => <th key={m}>{m}</th>)}
                 </tr></thead>
                 <tbody>
@@ -181,8 +169,8 @@ export default function Uzman() {
                       <tr key={r.Politika}>
                         <td><b>{r.Politika}</b></td>
                         {["Oracle", "Forecast", "Naive"].filter((m) => m in r).map((m) => {
-                          const t = max > min ? (r[m] - min) / (max - min) : 0.5;
-                          const bg = `rgba(${Math.round(248 - t * 185)}, ${Math.round(81 + t * 104)}, ${Math.round(73 + t * 7)}, 0.26)`;
+                          const tt = max > min ? (r[m] - min) / (max - min) : 0.5;
+                          const bg = `rgba(${Math.round(248 - tt * 185)}, ${Math.round(81 + tt * 104)}, ${Math.round(73 + tt * 7)}, 0.26)`;
                           return <td key={m} style={{ background: bg, fontWeight: 600 }}>{r[m]}</td>;
                         })}
                       </tr>
@@ -191,35 +179,29 @@ export default function Uzman() {
                 </tbody>
               </table>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginTop: 16 }}>
-                {[["Oracle", "Yarının gerçek fiyatını bilir (ideal üst sınır)", "#22c55e"],
-                  ["Forecast", "LightGBM tahmini kullanır (gerçekçi senaryo)", "#3b82f6"],
-                  ["Naive", "Bugünün fiyatını yarın sayar (en basit)", "#f59e0b"]].map(([b, a, c]) => (
+                {[["Oracle", t("expert.oracleDesc"), "#22c55e"],
+                  ["Forecast", t("expert.forecastDesc"), "#3b82f6"],
+                  ["Naive", t("expert.naiveDesc"), "#f59e0b"]].map(([b, a, c]) => (
                   <div key={b} style={{ borderLeft: `3px solid ${c}`, paddingLeft: 12 }}>
                     <b style={{ fontSize: 14 }}>{b}</b>
                     <div className="caption">{a}</div>
                   </div>
                 ))}
               </div>
-              <div className="oneri" style={{ marginTop: 16 }}>
-                Ajan, yarının fiyatını tam bilmese bile (Naive) Oracle'a çok yakın kazanç sağlıyor —
-                yani tahmine bağımlı değil, sağlam bir strateji öğrenmiş.
-              </div>
+              <div className="oneri" style={{ marginTop: 16 }}>{t("expert.modeNote")}</div>
             </motion.div>
           )}
 
-          {/* ── Mevsimsel Analiz ── */}
           {tab === "mevsim" && (mev ? (
             <motion.div key="mevsim" {...fadeUp}>
               <div className="card">
-                <CardHead renk="#f97316" baslik={`Aylık ortalama elektrik fiyatı (${mev.yil_araligi[0]}–${mev.yil_araligi[1]})`}
-                  alt="Renkler mevsimi gösterir — kış mavi, ilkbahar yeşil, yaz sarı, sonbahar turuncu." />
+                <CardHead renk="#f97316" baslik={`${t("expert.monthlyPrice")} (${mev.yil_araligi[0]}–${mev.yil_araligi[1]})`} alt={t("expert.monthlyPriceAlt")} />
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={mev.aylik_fiyat.map((v, i) => ({ ay: AY_KISA[i], fiyat: v, m: i + 1 }))}>
+                  <BarChart data={mev.aylik_fiyat.map((v, i) => ({ ay: aylarKisa[i], fiyat: v, m: i + 1 }))}>
                     <XAxis dataKey="ay" stroke="#8a8a8a" />
                     <YAxis stroke="#8a8a8a" label={{ value: "TL/MWh", angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
-                    <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }}
-                      cursor={{ fill: "#00000008" }} />
-                    <Bar dataKey="fiyat" name="Ortalama fiyat" radius={[6, 6, 0, 0]} isAnimationActive>
+                    <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }} cursor={{ fill: "#00000008" }} />
+                    <Bar dataKey="fiyat" radius={[6, 6, 0, 0]} isAnimationActive>
                       {mev.aylik_fiyat.map((_, i) => <Cell key={i} fill={AY_RENK(i + 1)} />)}
                     </Bar>
                   </BarChart>
@@ -228,40 +210,34 @@ export default function Uzman() {
 
               <div className="grid grid-2" style={{ marginTop: 16 }}>
                 <div className="card">
-                  <CardHead renk="#3b82f6" baslik="Yaz — Kış günlük fiyat profili" />
+                  <CardHead renk="#3b82f6" baslik={t("expert.sumWinPrice")} />
                   <ResponsiveContainer width="100%" height={280}>
                     <LineChart data={mev.saatlik}>
                       <XAxis dataKey="saat" stroke="#8a8a8a" ticks={[0, 4, 8, 12, 16, 20]} />
                       <YAxis stroke="#8a8a8a" />
                       <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }} />
                       <Legend />
-                      <Line dataKey="yaz_fiyat" name="Yaz" stroke="#f59e0b" strokeWidth={3} dot={false} />
-                      <Line dataKey="kis_fiyat" name="Kış" stroke="#3b82f6" strokeWidth={3} dot={false} />
+                      <Line dataKey="yaz_fiyat" name={t("expert.summer")} stroke="#f59e0b" strokeWidth={3} dot={false} />
+                      <Line dataKey="kis_fiyat" name={t("expert.winter")} stroke="#3b82f6" strokeWidth={3} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="card">
-                  <CardHead renk="#22c55e" baslik="Yaz — Kış güneş üretim profili" />
+                  <CardHead renk="#22c55e" baslik={t("expert.sumWinSolar")} />
                   <ResponsiveContainer width="100%" height={280}>
                     <AreaChart data={mev.saatlik}>
                       <XAxis dataKey="saat" stroke="#8a8a8a" ticks={[0, 4, 8, 12, 16, 20]} />
                       <YAxis stroke="#8a8a8a" />
                       <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }} />
                       <Legend />
-                      <Area dataKey="yaz_gunes" name="Yaz" stroke="#f97316" fill="#f9731633" strokeWidth={2} />
-                      <Area dataKey="kis_gunes" name="Kış" stroke="#3b82f6" fill="#3b82f633" strokeWidth={2} />
+                      <Area dataKey="yaz_gunes" name={t("expert.summer")} stroke="#f97316" fill="#f9731633" strokeWidth={2} />
+                      <Area dataKey="kis_gunes" name={t("expert.winter")} stroke="#3b82f6" fill="#3b82f633" strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </div>
-
-              <div className="oneri" style={{ marginTop: 16 }}>
-                Yazın fiyat tepesi öğleden sonraya (klima yükü), kışın akşama kayar. Yaz güneş üretimi
-                kışın yaklaşık <b>{mev.gunes_orani} katı</b> — ajan yazın öz-tüketim, kışın fiyat farkı
-                ağırlıklı çalışır.
-              </div>
             </motion.div>
-          ) : <Loading text="Mevsimsel veriler yükleniyor…" />)}
+          ) : <Loading text={t("load.analysis")} />)}
         </div>
       )}
     </PageWrap>
