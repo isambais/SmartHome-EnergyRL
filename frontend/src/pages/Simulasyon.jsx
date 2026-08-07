@@ -9,50 +9,48 @@ import Building from "../components/Building.jsx";
 import ConfigPanel from "../components/ConfigPanel.jsx";
 import { Loading, Metric, Oneriler, PageWrap, useDebounced } from "../components/ui.jsx";
 import { useApp } from "../state.jsx";
+import { AYLAR_FULL, useI18n } from "../i18n.jsx";
 
-const stripEmoji = (s) =>
-  s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, "").trim();
+/* Backend artık yapısal öneri döndürüyor: {code, ...params}.
+   Eski sürümle uyum için düz metin de gelirse olduğu gibi gösterilir. */
+const formatOneri = (o, t) => {
+  if (typeof o === "string")
+    return o.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, "").trim();
+  if (!o || !o.code) return "";
+  let s = t("rec." + o.code);
+  for (const [k, v] of Object.entries(o)) {
+    if (k === "code") continue;
+    s = s.replaceAll("{" + k + "}", String(v));
+  }
+  return s;
+};
 
 /* Ajanın o saatteki kararı — sayfanın en görünür ögesi */
-function KararBanner({ karar, saat, fiyat, soc }) {
+function KararBanner({ karar, saat, fiyat, soc, t }) {
   const stil = {
-    "şarj": {
-      bg: "rgba(52,211,153,0.12)", border: "#34d399", renk: "#6ee7b7", etiket: "DEPOLUYOR",
-      aciklama: `Elektrik şu an ucuz (${fiyat.toFixed(0)} TL/MWh) — batarya dolduruluyor`,
-    },
-    "deşarj": {
-      bg: "rgba(248,113,113,0.12)", border: "#f87171", renk: "#fca5a5", etiket: "KULLANIYOR",
-      aciklama: `Elektrik şu an pahalı (${fiyat.toFixed(0)} TL/MWh) — depodaki ucuz elektrik devrede`,
-    },
-    bekle: {
-      bg: "rgba(255,255,255,0.05)", border: "rgba(255,255,255,0.18)", renk: "#a1a1aa", etiket: "BEKLEMEDE",
-      aciklama: "Fiyat nötr bölgede — batarya doluluğu korunuyor",
-    },
+    "şarj": { bg: "rgba(52,211,153,0.12)", border: "#34d399", renk: "#6ee7b7", etiket: t("sim.store"), aciklama: t("sim.storeDesc") },
+    "deşarj": { bg: "rgba(248,113,113,0.12)", border: "#f87171", renk: "#fca5a5", etiket: t("sim.use"), aciklama: t("sim.useDesc") },
+    bekle: { bg: "rgba(255,255,255,0.05)", border: "rgba(255,255,255,0.18)", renk: "#a1a1aa", etiket: t("sim.wait"), aciklama: t("sim.waitDesc") },
   }[karar];
 
   return (
-    <motion.div
-      key={karar + saat}
+    <motion.div key={karar + saat}
       initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-      style={{
-        background: stil.bg, border: `2px solid ${stil.border}`, borderRadius: 16,
-        padding: "16px 24px", marginBottom: 16,
-        display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
-      }}>
+      style={{ background: stil.bg, border: `2px solid ${stil.border}`, borderRadius: 16,
+               padding: "16px 24px", marginBottom: 16, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <motion.span
-          animate={{ opacity: [1, 0.45, 1] }} transition={{ repeat: Infinity, duration: 1.6 }}
+        <motion.span animate={{ opacity: [1, 0.45, 1] }} transition={{ repeat: Infinity, duration: 1.6 }}
           style={{ width: 14, height: 14, borderRadius: "50%", background: stil.border, boxShadow: `0 0 12px ${stil.border}` }} />
         <span style={{ fontSize: 15, color: stil.renk, fontWeight: 600 }}>
-          Saat {String(saat).padStart(2, "0")}:00 — ajan şu an
+          {String(saat).padStart(2, "0")}:00 — {t("sim.now")}
         </span>
-        <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "0.01em", color: stil.renk }}>
-          {stil.etiket}
-        </span>
+        <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "0.01em", color: stil.renk }}>{stil.etiket}</span>
       </div>
-      <span style={{ fontSize: 14.5, color: stil.renk, opacity: 0.9 }}>{stil.aciklama}</span>
+      <span style={{ fontSize: 14.5, color: stil.renk, opacity: 0.9 }}>
+        {stil.aciklama} {karar !== "bekle" ? `(${fiyat.toFixed(0)} TL/MWh)` : ""}
+      </span>
       <span style={{ marginLeft: "auto", fontSize: 14, fontWeight: 700, color: stil.renk }}>
-        Batarya %{Math.round(soc * 100)}
+        {t("sim.chargePct")} %{Math.round(soc * 100)}
       </span>
     </motion.div>
   );
@@ -60,9 +58,11 @@ function KararBanner({ karar, saat, fiyat, soc }) {
 
 export default function Simulasyon() {
   const { cfg, saat, setSaat, ay } = useApp();
+  const { t, dil } = useI18n();
   const dCfg = useDebounced(cfg, 450);
   const [sim, setSim] = useState(null);
   const [err, setErr] = useState(null);
+  const locale = dil === "ar" ? "ar" : dil === "en" ? "en-US" : "tr-TR";
 
   const tarih = `${new Date().getFullYear()}-${String(ay).padStart(2, "0")}-15`;
 
@@ -74,8 +74,8 @@ export default function Simulasyon() {
     return () => { ok = false; };
   }, [JSON.stringify(dCfg), tarih]);
 
-  if (err) return <PageWrap><h1>Bina Simülasyonu</h1><div className="kesinti-uyari">API'ye ulaşılamadı ({err}) — backend çalışıyor mu?</div></PageWrap>;
-  if (!sim) return <PageWrap><h1>Bina Simülasyonu</h1><Loading /></PageWrap>;
+  if (err) return <PageWrap><h1>{t("sim.title")}</h1><div className="kesinti-uyari">{t("common.apidown")} ({err})</div></PageWrap>;
+  if (!sim) return <PageWrap><h1>{t("sim.title")}</h1><Loading text={t("load.sim")} /></PageWrap>;
 
   const df = sim.rows;
   const r = df[saat];
@@ -86,127 +86,102 @@ export default function Simulasyon() {
     sarj_f: x.karar === "şarj" ? x.fiyat_tl_mwh : null,
     desarj_f: x.karar === "deşarj" ? x.fiyat_tl_mwh : null,
   }));
-  const kararTxt = {
-    "şarj": "ucuz elektrik depolanıyor",
-    "deşarj": "depodaki elektrik kullanılıyor",
-    bekle: "hazırda — doluluk korunuyor",
-  };
+  const kararTxt = { "şarj": t("sim.storeDesc"), "deşarj": t("sim.useDesc"), bekle: t("sim.waitDesc") };
   const tasarrufPct = Math.round(100 * sim.ozet.tasarruf_tl / Math.max(sim.ozet.taban_maliyet_tl, 0.01));
+  const ayAdi = AYLAR_FULL[dil]?.[ay - 1] || "";
 
   return (
     <PageWrap>
-      <h1>Bina Simülasyonu</h1>
+      <h1>{t("sim.title")}</h1>
 
-      {/* Kullanım rehberi */}
       <div className="oneri" style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
-        <span><b>1.</b> Soldan binanızı tarif edin</span>
-        <span><b>2.</b> Binanın altındaki saat çubuğuyla günü gezin</span>
-        <span><b>3.</b> Sonuçlar anında güncellenir</span>
+        <span><b>1.</b> {t("sim.step1")}</span>
+        <span><b>2.</b> {t("sim.step2")}</span>
+        <span><b>3.</b> {t("sim.step3")}</span>
         <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, color: "#34d399", fontWeight: 700 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e" }} />
-          Otomatik hesaplanıyor — başlat butonuna gerek yok
+          {t("sim.auto")}
         </span>
       </div>
 
-      {/* Ajanın kararı — büyük ve net */}
-      <KararBanner karar={r.karar} saat={saat} fiyat={r.fiyat_tl_mwh} soc={r.soc} />
+      <KararBanner karar={r.karar} saat={saat} fiyat={r.fiyat_tl_mwh} soc={r.soc} t={t} />
 
-      {/* Sol: konfigüratör · Sağ: 3D bina + saat çubuğu */}
       <div className="split cfg">
         <div className="card"><ConfigPanel showSaat={false} /></div>
 
         <div>
-          <Building cfg={cfg} saat={saat} soc={r.soc} gunesKw={r.gunes_kw} height={440} />
+          <Building cfg={cfg} saat={saat} soc={r.soc} gunesKw={r.gunes_kw} height={440} dil={dil} />
 
-          {/* BÜYÜK saat kaydırıcısı — ana kontrol */}
           <div className="card" style={{ marginTop: 12, padding: "18px 26px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-              <b style={{ fontSize: 16 }}>Günün saati</b>
+              <b style={{ fontSize: 16 }}>{t("sim.hour")}</b>
               <span style={{ fontSize: 30, fontWeight: 800, color: "var(--blue)", fontVariantNumeric: "tabular-nums" }}>
                 {String(saat).padStart(2, "0")}:00
               </span>
             </div>
-            <input
-              type="range" min="0" max="23" value={saat}
+            <input type="range" min="0" max="23" value={saat}
               onChange={(e) => setSaat(+e.target.value)}
-              style={{ width: "100%", height: 34, accentColor: "var(--blue)", cursor: "pointer" }}
-              aria-label="Günün saati" />
+              style={{ width: "100%", height: 34, accentColor: "var(--blue)", cursor: "pointer" }} aria-label={t("sim.hour")} />
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
               <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
             </div>
           </div>
 
           <div className="caption" style={{ marginTop: 8 }}>
-            Sürükle: döndür · Tekerlek: yakınlaştır — Panel: <b>{d.panel_sayisi} adet ({d.panel_kw} kW)</b> ·
-            Batarya: <b>{d.batarya_kwh} kWh</b> · Günlük tüketim: <b>{d.gunluk_tuketim_kwh} kWh</b> ·
-            Veri: {sim.kaynak} · Ajan: {sim.ajan}
+            Panel: <b>{d.panel_sayisi} · {d.panel_kw} kW</b> · {t("sim.chargePct")}: <b>{d.batarya_kwh} kWh</b> ·
+            {t("m.consumption")}: <b>{d.gunluk_tuketim_kwh} kWh</b> · {t("epias.data")}: {sim.kaynak}
           </div>
         </div>
       </div>
 
-      {/* Metrikler — tam genişlik */}
       <div className="grid grid-4" style={{ marginTop: 16 }}>
-        <Metric i={0} label="Bugünkü tasarruf" value={sim.ozet.tasarruf_tl} suffix=" TL"
-          delta={tasarrufPct >= 100
-            ? "bugünkü fatura sıfırlandı, üstüne kazanç var"
-            : `faturanın %${Math.max(tasarrufPct, 0)}'i kadar tasarruf`} />
-        <Metric i={1} label="Batarya seviyesi" value={r.soc * 100} suffix="%" delta={kararTxt[r.karar]} />
-        <Metric i={2} label="Güneş üretimi" value={r.gunes_kw} decimals={1} suffix=" kW"
-          delta={`gün toplamı ${sim.ozet.gunes_kwh} kWh`} />
-        <Metric i={3} label="Toplam tüketim" value={sim.ozet.talep_kwh} suffix=" kWh"
-          delta={`şu an ${r.talep_kw.toFixed(1)} kW`} />
+        <Metric i={0} label={t("m.dailySaving")} value={sim.ozet.tasarruf_tl} suffix=" TL"
+          delta={tasarrufPct >= 100 ? t("sim.billZeroed") : t("sim.billPct").replace("{x}", Math.max(tasarrufPct, 0))} />
+        <Metric i={1} label={t("m.battery")} value={r.soc * 100} suffix="%" delta={kararTxt[r.karar]} />
+        <Metric i={2} label={t("m.solar")} value={r.gunes_kw} decimals={1} suffix=" kW"
+          delta={`${sim.ozet.gunes_kwh} kWh`} />
+        <Metric i={3} label={t("m.consumption")} value={sim.ozet.talep_kwh} suffix=" kWh"
+          delta={`${r.talep_kw.toFixed(1)} kW`} />
       </div>
 
-      {/* Fatura karşılaştırması + batarya verimi */}
       <div className="split wide-l" style={{ marginTop: 16 }}>
         <div className="card">
-          <b>Bugünkü fatura karşılaştırması</b>
+          <b>{t("sim.billCompare")}</b>
           <div style={{ display: "flex", gap: 14, marginTop: 14, alignItems: "flex-end" }}>
             <div style={{ flex: 1 }}>
-              <div className="caption">Sistem olmadan</div>
+              <div className="caption">{t("sim.without")}</div>
               <div style={{ fontSize: 24, fontWeight: 800, color: "#fca5a5" }}>{Math.round(sim.ozet.taban_maliyet_tl)} TL</div>
               <div style={{ height: 10, background: "rgba(248,113,113,0.15)", borderRadius: 999, marginTop: 6 }}>
                 <div style={{ width: "100%", height: "100%", background: "#ef4444", borderRadius: 999 }} />
               </div>
             </div>
             <div style={{ flex: 1 }}>
-              <div className="caption">Akıllı sistemle</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#34d399" }}>
-                {Math.round(sim.ozet.net_maliyet_tl)} TL
-              </div>
+              <div className="caption">{t("sim.with")}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#34d399" }}>{Math.round(sim.ozet.net_maliyet_tl)} TL</div>
               <div style={{ height: 10, background: "rgba(52,211,153,0.15)", borderRadius: 999, marginTop: 6 }}>
-                <div style={{
-                  width: `${Math.max(0, Math.min(100, 100 * sim.ozet.net_maliyet_tl / Math.max(sim.ozet.taban_maliyet_tl, 0.01)))}%`,
-                  height: "100%", background: "#22c55e", borderRadius: 999,
-                }} />
+                <div style={{ width: `${Math.max(0, Math.min(100, 100 * sim.ozet.net_maliyet_tl / Math.max(sim.ozet.taban_maliyet_tl, 0.01)))}%`,
+                              height: "100%", background: "#22c55e", borderRadius: 999 }} />
               </div>
             </div>
           </div>
           <div className="oneri" style={{ marginTop: 14 }}>
             {sim.ozet.net_maliyet_tl < 0
-              ? <>Bu gün fatura yerine <b>{Math.abs(Math.round(sim.ozet.net_maliyet_tl))} TL kazanç</b> — güneş fazlası şebekeye satıldı.</>
-              : <>Bu gün cebinizde kalan: <b>{Math.round(sim.ozet.tasarruf_tl)} TL</b> (yılda ~{Math.round(sim.ozet.tasarruf_tl * 365).toLocaleString("tr-TR")} TL)</>}
+              ? <><b>+{Math.abs(Math.round(sim.ozet.net_maliyet_tl))} TL</b> {t("sim.gainToday")}</>
+              : <><b>{Math.round(sim.ozet.tasarruf_tl)} TL</b> · ~{Math.round(sim.ozet.tasarruf_tl * 365).toLocaleString(locale)} TL/{t("unit.year")}</>}
           </div>
         </div>
 
         <div className="card">
-          <b>Batarya verimi — {sim.tarih ? new Date(sim.tarih).toLocaleDateString("tr-TR", { month: "long" }) : ""}</b>
-          <div style={{ fontSize: 40, fontWeight: 800, color: "#3b82f6", marginTop: 8 }}>
-            %{sim.batarya_verim_pct}
-          </div>
-          <div className="caption" style={{ marginTop: 4 }}>
-            Lityum batarya soğukta enerjinin bir kısmını kaybeder. Kışın verim düşer,
-            yazın tam kapasiteye çıkar — sol menüden ayı değiştirip farkı görebilirsiniz.
-          </div>
+          <b>{t("sim.batteryEff")} — {ayAdi}</b>
+          <div style={{ fontSize: 40, fontWeight: 800, color: "#3b82f6", marginTop: 8 }}>%{sim.batarya_verim_pct}</div>
           <div style={{ height: 8, background: "rgba(96,165,250,0.15)", borderRadius: 999, marginTop: 12 }}>
             <div style={{ width: `${sim.batarya_verim_pct}%`, height: "100%", background: "#3b82f6", borderRadius: 999 }} />
           </div>
         </div>
       </div>
 
-      {/* Grafik — tam genişlik, geniş alan */}
       <div className="card" style={{ marginTop: 16 }}>
-        <b>24 saatlik plan — fiyat, batarya ve ajan kararları</b>
+        <b>{t("sim.chart")}</b>
         <ResponsiveContainer width="100%" height={400}>
           <ComposedChart data={chart}>
             <XAxis dataKey="saat" stroke="#8a8a8a" ticks={[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]} interval={0} />
@@ -214,18 +189,18 @@ export default function Simulasyon() {
             <YAxis yAxisId="pct" orientation="right" stroke="#8a8a8a" />
             <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }} />
             <Legend />
-            <Area yAxisId="pct" dataKey="gunes_kw" name="Güneş (kW)" fill="#f9731640" stroke="#f97316" />
-            <Line yAxisId="tl" dataKey="fiyat_tl_mwh" name="Elektrik fiyatı (TL/MWh)" stroke="#f59e0b" strokeWidth={2.5} dot={false} />
-            <Line yAxisId="pct" dataKey="soc_pct" name="Batarya doluluğu (%)" stroke="#22c55e" strokeWidth={2.5} dot={false} />
-            <Scatter yAxisId="tl" dataKey="sarj_f" name="Depolama kararı" fill="#3b82f6" shape="triangle" />
-            <Scatter yAxisId="tl" dataKey="desarj_f" name="Kullanma kararı" fill="#ef4444" shape="triangle" />
+            <Area yAxisId="pct" dataKey="gunes_kw" name={t("sim.solarLine")} fill="#f9731640" stroke="#f97316" />
+            <Line yAxisId="tl" dataKey="fiyat_tl_mwh" name={t("sim.price")} stroke="#f59e0b" strokeWidth={2.5} dot={false} />
+            <Line yAxisId="pct" dataKey="soc_pct" name={t("sim.batteryLine")} stroke="#22c55e" strokeWidth={2.5} dot={false} />
+            <Scatter yAxisId="tl" dataKey="sarj_f" name={t("sim.storeDecision")} fill="#3b82f6" shape="triangle" />
+            <Scatter yAxisId="tl" dataKey="desarj_f" name={t("sim.useDecision")} fill="#ef4444" shape="triangle" />
             <ReferenceLine yAxisId="tl" x={saat} stroke="#8a8a8a" strokeDasharray="4 4" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
-      <h2>Şu anki öneriler</h2>
-      <Oneriler items={(sim.oneriler[saat] || []).map(stripEmoji)} />
+      <h2>{t("sim.recos")}</h2>
+      <Oneriler items={(sim.oneriler[saat] || []).map((o) => formatOneri(o, t))} />
     </PageWrap>
   );
 }

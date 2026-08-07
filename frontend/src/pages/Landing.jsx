@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import Footer from "../components/Footer.jsx";
 import { Link } from "react-router-dom";
 import TopNav from "../components/TopNav.jsx";
 import { useState, useEffect, useRef } from "react";
@@ -6,6 +7,7 @@ import {
   Alert, Arrow, Battery, Bolt, Brain, Chart, Check, Chevron,
   Coins, Cube, Gauge, Home, Shield, Star, Sun, X,
 } from "../icons.jsx";
+import { useT } from "../i18n.jsx";
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -16,11 +18,12 @@ const fadeUp = {
 
 /* ── Mockup: gerçekçi BMS dashboard önizlemesi ───────────────── */
 function Mockup() {
+  const t = useT();
   const navItems = [
-    { label: "Bina Simülasyonu", Icon: Home, active: true },
-    { label: "Canlı EPİAŞ", Icon: Bolt, active: false },
-    { label: "Yatırım & Çevre", Icon: Coins, active: false },
-    { label: "Uzman Modu", Icon: Chart, active: false },
+    { label: t("nav.sim"), Icon: Home, active: true },
+    { label: t("nav.epias"), Icon: Bolt, active: false },
+    { label: t("nav.invest"), Icon: Coins, active: false },
+    { label: t("nav.expert"), Icon: Chart, active: false },
   ];
 
   const prices = [2100,1900,1750,1680,1820,2400,3200,3800,3500,3100,2900,2700,
@@ -104,8 +107,8 @@ function Mockup() {
         ))}
 
         <div style={{ marginTop: "auto", borderTop: "1px solid #1e293b", paddingTop: 12 }}>
-          <div style={{ fontSize: 11, color: "#475569", marginBottom: 6, padding: "0 10px" }}>Bina Konfigürasyonu</div>
-          {[["Bina tipi", "Apartman"], ["Kat", "5"], ["Aktif daire", "12 / 15"], ["Batarya", "24.4 kWh"]].map(([k, v]) => (
+          <div style={{ fontSize: 11, color: "#475569", marginBottom: 6, padding: "0 10px" }}>{t("mock.config")}</div>
+          {[[t("mock.cfgType"), t("mock.cfgTypeVal")], [t("mock.cfgFloor"), "5"], [t("mock.cfgFlats"), "12 / 15"], [t("mock.cfgBatt"), "24.4 kWh"]].map(([k, v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "3px 10px", fontSize: 11, color: "#a1a1aa" }}>
               <span>{k}</span><span style={{ color: "#94a3b8", fontWeight: 600 }}>{v}</span>
             </div>
@@ -118,8 +121,8 @@ function Mockup() {
         {/* Başlık satırı */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: "#f4f4f5" }}>Bina Simülasyonu</div>
-            <div style={{ fontSize: 11.5, color: "#a1a1aa" }}>5 katlı apartman · 12 daire · bugünün elektrik fiyatları</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: "#f4f4f5" }}>{t("mock.title")}</div>
+            <div style={{ fontSize: 11.5, color: "#a1a1aa" }}>{t("mock.sub")}</div>
           </div>
           <div style={{
             background: "rgba(52,211,153,0.15)", color: "#15803d", borderRadius: 999,
@@ -127,17 +130,17 @@ function Mockup() {
             display: "inline-flex", alignItems: "center", gap: 6,
           }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
-            Asistan çalışıyor
+            {t("mock.running")}
           </div>
         </div>
 
         {/* Metrik kartlar */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, margin: "14px 0" }}>
           {[
-            [Coins, "Bugünkü tasarruf", "+312 TL", "#15803d"],
-            [Battery, "Batarya doluluğu", "%68", "#1d4ed8"],
-            [Sun, "Güneş üretimi", "18.4 kWh", "#b45309"],
-            [Bolt, "Şu an ne yapıyor?", "Bataryadan kullanıyor", "#b91c1c"],
+            [Coins, t("mock.save"), "+312 TL", "#15803d"],
+            [Battery, t("mock.soc"), "%68", "#1d4ed8"],
+            [Sun, t("mock.solar"), "18.4 kWh", "#b45309"],
+            [Bolt, t("mock.now"), t("mock.discharging"), "#b91c1c"],
           ].map(([Icon, label, val, fg]) => (
             <div key={label} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 14px", border: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "#a1a1aa", marginBottom: 4 }}>
@@ -153,22 +156,22 @@ function Mockup() {
           {/* Mini bina + batarya göstergesi */}
           <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, border: "1px solid #e2e8f0", padding: "10px 8px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
             <Building />
-            <div style={{ fontSize: 10, color: "#a1a1aa", textAlign: "center" }}>Panel: 37 adet<br/>8.0 kW kurulu</div>
+            <div style={{ fontSize: 10, color: "#a1a1aa", textAlign: "center" }}>{t("mock.panels")}<br/>{t("mock.installed")}</div>
             <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.10)", borderRadius: 999 }}>
               <div style={{ width: "68%", height: "100%", background: "#22c55e", borderRadius: 999 }}/>
             </div>
-            <div style={{ fontSize: 10, color: "#15803d", fontWeight: 700 }}>Batarya %68</div>
+            <div style={{ fontSize: 10, color: "#15803d", fontWeight: 700 }}>{t("mock.batt")} %68</div>
           </div>
 
           {/* Fiyat + SOC grafiği */}
           <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, border: "1px solid #e2e8f0", padding: "12px 14px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#f4f4f5" }}>Elektrik fiyatı & batarya — bugün</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#f4f4f5" }}>{t("mock.chartTitle")}</div>
               <div style={{ display: "flex", gap: 10, fontSize: 10 }}>
-                <span style={{ color: "#f59e0b" }}>— Elektrik fiyatı</span>
-                <span style={{ color: "#22c55e" }}>— Batarya doluluğu</span>
-                <span style={{ color: "#3b82f6" }}>▲ depoluyor</span>
-                <span style={{ color: "#ef4444" }}>▼ kullanıyor</span>
+                <span style={{ color: "#f59e0b" }}>— {t("mock.legPrice")}</span>
+                <span style={{ color: "#22c55e" }}>— {t("mock.legSoc")}</span>
+                <span style={{ color: "#3b82f6" }}>▲ {t("mock.legCharge")}</span>
+                <span style={{ color: "#ef4444" }}>▼ {t("mock.legDischarge")}</span>
               </div>
             </div>
             <svg viewBox={`0 0 ${W} ${H+10}`} style={{ width: "100%" }} role="img" aria-label="Fiyat ve SOC grafiği">
@@ -396,6 +399,7 @@ function HeroScene() {
 }
 
 function Hero() {
+  const t = useT();
   return (
     <section id="top" style={{
       position: "relative",
@@ -412,44 +416,41 @@ function Hero() {
         <motion.div initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <span className="eyebrow">
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#34d399", boxShadow: "0 0 8px #34d399" }} />
-            Güneş paneliniz ve bataryanız varsa, tanışın
+            {t("lp.hero.badge")}
           </span>
           <h1 style={{ textShadow: "0 4px 40px rgba(52,211,153,0.15)" }}>
-            Elektrik faturanızı{" "}
             <span style={{
-              display: "inline-flex", verticalAlign: "middle",
-              width: "0.95em", height: "0.95em", borderRadius: "22%",
+              display: "inline-flex",
+              width: "0.9em", height: "0.9em", borderRadius: "22%",
               background: "linear-gradient(135deg,#f59e0b,#22c55e)",
               color: "#fff", alignItems: "center", justifyContent: "center",
-              fontSize: "0.5em", fontWeight: 800, margin: "0 0.08em",
-              boxShadow: "0 4px 20px #22c55e44",
-            }}>AI</span>{" "}
-            düşürsün
+              fontSize: "0.5em", fontWeight: 800, marginInlineEnd: "0.22em",
+              boxShadow: "0 4px 20px #22c55e44", verticalAlign: "0.12em",
+            }}>AI</span>
+            {t("lp.hero.titleFull")}
           </h1>
         </motion.div>
         <motion.p className="sub" style={{ margin: "22px auto 30px", maxWidth: 560 }}
           initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
-          Akıllı asistanınız elektriğin ucuz olduğu saatlerde bataryanızı doldurur,
-          pahalı saatlerde depoladığı enerjiyi kullanır. Siz hiçbir şey yapmazsınız —
-          fatura kendiliğinden düşer.
+          {t("lp.hero.sub")}
         </motion.p>
         <motion.div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}
           initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
           <Link className="btn btn-blue" to="/simulasyon">
-            Ücretsiz Dene <span className="arr"><Arrow size={14} /></span>
+            {t("lp.hero.cta")} <span className="arr"><Arrow size={14} /></span>
           </Link>
-          <a className="btn btn-white" href="#features">Nasıl Çalışır</a>
+          <a className="btn btn-white" href="#features">{t("lp.hero.how")}</a>
         </motion.div>
         <motion.div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "26px 0 50px" }}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
           <span className="chip" style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: "8px 16px", backdropFilter: "blur(8px)" }}>
-            <span style={{ color: "var(--amber)", display: "flex" }}><Star size={17} /></span> Günde ~14 TL cebinizde kalır
+            <span style={{ color: "var(--amber)", display: "flex" }}><Star size={17} /></span> {t("lp.hero.chip1")}
           </span>
           <span className="chip" style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: "8px 16px", backdropFilter: "blur(8px)" }}>
-            <span style={{ color: "var(--green)", display: "flex" }}><Shield size={17} /></span> Tamamen otomatik
+            <span style={{ color: "var(--green)", display: "flex" }}><Shield size={17} /></span> {t("lp.hero.chip2")}
           </span>
           <span className="chip" style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: "8px 16px", backdropFilter: "blur(8px)" }}>
-            <span style={{ color: "var(--blue)", display: "flex" }}><Bolt size={17} /></span> Kesintide de sizi korur
+            <span style={{ color: "var(--blue)", display: "flex" }}><Bolt size={17} /></span> {t("lp.hero.chip3")}
           </span>
         </motion.div>
       </div>
@@ -585,52 +586,53 @@ function OfisSvg({ hovered }) {
 }
 
 function BinaTipleri() {
+  const tt = useT();
   const [hov, setHov] = useState(null);
 
   const tipler = [
     {
-      id: "mustak", isim: "Müstakil Ev", color: "#22c55e", bg: "#f0fdf4",
+      id: "mustak", isim: tt("btype.Müstakil Ev"), color: "#22c55e",
       svg: (h) => <MustakilSvg hovered={h}/>,
       specs: [
-        { label: "Kat", value: "1–2 kat" },
-        { label: "Oda", value: "3–7 oda" },
-        { label: "Çatı", value: "60–180 m²" },
-        { label: "Batarya", value: "5–15 kWh" },
+        { label: tt("lp.bt.floor"), value: "1–2" },
+        { label: tt("lp.bt.room"), value: "3–7" },
+        { label: tt("lp.bt.roof"), value: "60–180 m²" },
+        { label: tt("lp.bt.battery"), value: "5–15 kWh" },
       ],
-      desc: "Bahçeli müstakil evler için yüksek güneş potansiyeli.",
+      desc: tt("lp.bt.mustak.d"),
     },
     {
-      id: "villa", isim: "Villa", color: "#3b82f6", bg: "#eff6ff",
+      id: "villa", isim: tt("btype.Villa"), color: "#3b82f6",
       svg: (h) => <VillaSvg hovered={h}/>,
       specs: [
-        { label: "Kat", value: "2–3 kat" },
-        { label: "Oda", value: "4–10 oda" },
-        { label: "Çatı", value: "120–300 m²" },
-        { label: "Batarya", value: "10–25 kWh" },
+        { label: tt("lp.bt.floor"), value: "2–3" },
+        { label: tt("lp.bt.room"), value: "4–10" },
+        { label: tt("lp.bt.roof"), value: "120–300 m²" },
+        { label: tt("lp.bt.battery"), value: "10–25 kWh" },
       ],
-      desc: "Geniş çatılı villalar için yüksek panel kapasitesi.",
+      desc: tt("lp.bt.villa.d"),
     },
     {
-      id: "apt", isim: "Apartman", color: "#8b5cf6", bg: "#f5f3ff",
+      id: "apt", isim: tt("btype.Apartman"), color: "#8b5cf6",
       svg: (h) => <ApartmanSvg hovered={h}/>,
       specs: [
-        { label: "Kat", value: "3–10 kat" },
-        { label: "Daire/kat", value: "2–6 daire" },
-        { label: "Asansör", value: "opsiyonel" },
-        { label: "Batarya", value: "20–60 kWh" },
+        { label: tt("lp.bt.floor"), value: "3–10" },
+        { label: tt("lp.bt.flatPer"), value: "2–6" },
+        { label: tt("lp.bt.elevator"), value: tt("lp.bt.optional") },
+        { label: tt("lp.bt.battery"), value: "20–60 kWh" },
       ],
-      desc: "Ortak alan tüketimi + daire bazlı optimizasyon.",
+      desc: tt("lp.bt.apt.d"),
     },
     {
-      id: "ofis", isim: "Ofis Binası", color: "#f59e0b", bg: "#fffbeb",
+      id: "ofis", isim: tt("btype.Ofis Binası"), color: "#f59e0b",
       svg: (h) => <OfisSvg hovered={h}/>,
       specs: [
-        { label: "Kat", value: "4–12 kat" },
-        { label: "Birim", value: "8–40 ofis" },
-        { label: "HVAC", value: "merkezi sistem" },
-        { label: "Batarya", value: "40–120 kWh" },
+        { label: tt("lp.bt.floor"), value: "4–12" },
+        { label: tt("lp.bt.unit"), value: "8–40" },
+        { label: tt("lp.bt.hvac"), value: tt("lp.bt.central") },
+        { label: tt("lp.bt.battery"), value: "40–120 kWh" },
       ],
-      desc: "Gündüz yoğun tüketim + EV şarj istasyonu desteği.",
+      desc: tt("lp.bt.ofis.d"),
     },
   ];
 
@@ -638,11 +640,9 @@ function BinaTipleri() {
     <section style={{ padding: "80px 0", background: "#0a0a0c" }}>
       <div className="container">
         <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 52 }}>
-          <span className="eyebrow">Desteklenen bina tipleri</span>
-          <h2>Her bina tipi, kendi profiliyle</h2>
-          <p className="sub" style={{ maxWidth: 480, margin: "12px auto 0" }}>
-            Kat sayısı, oda sayısı, çatı alanı — hepsi slider ile ayarlanabilir. Batarya kapasitesi otomatik hesaplanır.
-          </p>
+          <span className="eyebrow">{tt("lp.bt.eyebrow")}</span>
+          <h2>{tt("lp.bt.title")}</h2>
+          <p className="sub" style={{ maxWidth: 480, margin: "12px auto 0" }}>{tt("lp.bt.sub")}</p>
         </motion.div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
@@ -699,15 +699,16 @@ function BinaTipleri() {
 
 /* ── Önce / Sonra ────────────────────────────────────────────── */
 function BeforeAfter() {
+  const t = useT();
   const [after, setAfter] = useState(false);
   return (
     <section style={{ textAlign: "center" }}>
       <div className="container">
-        <motion.h2 {...fadeUp}>Akıllı kararlar, daha düşük fatura</motion.h2>
-        <motion.div {...fadeUp} style={{ margin: "26px 0 22px" }}>
+        <motion.h2 {...fadeUp}>{t("lp.problem.title")}</motion.h2>
+        <motion.div {...fadeUp} style={{ margin: "26px 0 22px", textAlign: "center" }}>
           <div className="toggle-pill" role="tablist">
-            <button className={!after ? "on" : ""} onClick={() => setAfter(false)} role="tab" aria-selected={!after}>Sisteme sahip olmadan</button>
-            <button className={after ? "on" : ""} onClick={() => setAfter(true)} role="tab" aria-selected={after}>Akıllı asistanla</button>
+            <button className={!after ? "on" : ""} onClick={() => setAfter(false)} role="tab" aria-selected={!after}>{t("lp.problem.before")}</button>
+            <button className={after ? "on" : ""} onClick={() => setAfter(true)} role="tab" aria-selected={after}>{t("lp.problem.after")}</button>
           </div>
         </motion.div>
         <div style={{ maxWidth: 560, margin: "0 auto", perspective: 900 }}>
@@ -716,34 +717,28 @@ function BeforeAfter() {
               <motion.div key="b" className="card" style={{ textAlign: "left" }}
                 initial={{ opacity: 0, rotateY: -14 }} animate={{ opacity: 1, rotateY: 0 }}
                 exit={{ opacity: 0, rotateY: 14 }} transition={{ duration: 0.3 }}>
-                <h3 style={{ marginBottom: 14 }}>Enerji yönetimindeki zorluklar</h3>
-                {["Güneş üretimi en pahalı saatte değil, en ucuz saatte depoya giriyor",
-                  "Elektrik kesintisinde batarya yeterince hazır değil",
-                  "Hangi saatte şarj, hangi saatte deşarj yapılacağı bilinmiyor",
-                  "EPİAŞ fiyat değişimlerini takip etmek zaman alıyor"].map((t) => (
-                  <div className="tick" key={t}><span className="c" style={{ color: "var(--red)" }}><X /></span>{t}</div>
+                <h3 style={{ marginBottom: 14 }}>{t("lp.problem.beforeTitle")}</h3>
+                {["lp.problem.b1", "lp.problem.b2", "lp.problem.b3", "lp.problem.b4"].map((k) => (
+                  <div className="tick" key={k}><span className="c" style={{ color: "var(--red)" }}><X /></span>{t(k)}</div>
                 ))}
                 <div style={{ display: "flex", gap: 30, marginTop: 20 }}>
-                  <div><div style={{ fontSize: 30, fontWeight: 800 }}>%40+</div><div className="sub" style={{ fontSize: 14 }}>Kaçan tasarruf fırsatı</div></div>
-                  <div><div style={{ fontSize: 30, fontWeight: 800 }}>Sürekli</div><div className="sub" style={{ fontSize: 14 }}>Fiyat takip etme derdi</div></div>
+                  <div><div style={{ fontSize: 30, fontWeight: 800 }}>%40+</div><div className="sub" style={{ fontSize: 14 }}>{t("lp.problem.stat1")}</div></div>
+                  <div><div style={{ fontSize: 30, fontWeight: 800 }}>{t("lp.problem.constant")}</div><div className="sub" style={{ fontSize: 14 }}>{t("lp.problem.stat2")}</div></div>
                 </div>
               </motion.div>
             ) : (
               <motion.div key="a" className="card" style={{ textAlign: "left", background: "#141414", color: "#fff" }}
                 initial={{ opacity: 0, rotateY: -14 }} animate={{ opacity: 1, rotateY: 0 }}
                 exit={{ opacity: 0, rotateY: 14 }} transition={{ duration: 0.3 }}>
-                <h3 style={{ marginBottom: 14 }}>Akıllı asistanla <span style={{ color: "var(--green)" }}>her şey otomatik</span></h3>
-                {["Elektrik ucuzken depolar, pahalıyken depodakini kullanır — her gün, kendiliğinden",
-                  "Kesinti gelmeden bataryayı hazır tutar, ışıklarınız sönmez",
-                  "Testlerde günde ortalama 14 TL tasarruf sağladı — yılda 5.000 TL'den fazla",
-                  "Elektrik fiyatlarını sizin yerinize o takip eder"].map((t) => (
-                  <div className="tick" key={t} style={{ color: "#d8d8d8" }}>
-                    <span className="c" style={{ color: "var(--green)" }}><Check /></span>{t}
+                <h3 style={{ marginBottom: 14 }}>{t("lp.problem.afterTitle")}</h3>
+                {["lp.problem.a1", "lp.problem.a2", "lp.problem.a3", "lp.problem.a4"].map((k) => (
+                  <div className="tick" key={k} style={{ color: "#d8d8d8" }}>
+                    <span className="c" style={{ color: "var(--green)" }}><Check /></span>{t(k)}
                   </div>
                 ))}
                 <div style={{ display: "flex", gap: 30, marginTop: 20 }}>
-                  <div><div style={{ fontSize: 30, fontWeight: 800, color: "var(--green)" }}>+14 TL</div><div style={{ fontSize: 14, color: "#9a9a9a" }}>Günde cebinizde kalan</div></div>
-                  <div><div style={{ fontSize: 30, fontWeight: 800, color: "var(--green)" }}>7/24</div><div style={{ fontSize: 14, color: "#9a9a9a" }}>Sizin yerinize düşünür</div></div>
+                  <div><div style={{ fontSize: 30, fontWeight: 800, color: "var(--green)" }}>+14 TL</div><div style={{ fontSize: 14, color: "#9a9a9a" }}>{t("lp.problem.stat3")}</div></div>
+                  <div><div style={{ fontSize: 30, fontWeight: 800, color: "var(--green)" }}>7/24</div><div style={{ fontSize: 14, color: "#9a9a9a" }}>{t("lp.problem.stat4")}</div></div>
                 </div>
               </motion.div>
             )}
@@ -756,11 +751,11 @@ function BeforeAfter() {
 
 /* ── Ürün arayüzü paneli — aktif özelliğe göre değişir ────────── */
 const PANEL_META = [
-  { title: "Güneş Üretimi", color: "#f59e0b" },
-  { title: "Batarya Yönetimi", color: "#22c55e" },
-  { title: "Elektrik Fiyatları", color: "#3b82f6" },
-  { title: "Kesinti Modu", color: "#ef4444" },
-  { title: "Asistanın Kararları", color: "#8b5cf6" },
+  { title: "show.solar.title", color: "#f59e0b" },
+  { title: "show.batt.title", color: "#22c55e" },
+  { title: "show.price.title", color: "#3b82f6" },
+  { title: "show.outage.title", color: "#ef4444" },
+  { title: "show.agent.title", color: "#8b5cf6" },
 ];
 
 function PanelKpi({ label, value, color }) {
@@ -773,12 +768,13 @@ function PanelKpi({ label, value, color }) {
 }
 
 function SolarView() {
+  const t = useT();
   return (
     <div>
       <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-        <PanelKpi label="Anlık üretim" value="18.4 kW" color="#fbbf24" />
-        <PanelKpi label="Gün toplamı" value="126 kWh" color="#fff" />
-        <PanelKpi label="Öz-tüketim" value="%74" color="#22c55e" />
+        <PanelKpi label={t("show.solar.instant")} value="18.4 kW" color="#fbbf24" />
+        <PanelKpi label={t("show.solar.dayTotal")} value="126 kWh" color="#fff" />
+        <PanelKpi label={t("show.solar.selfUse")} value="%74" color="#22c55e" />
       </div>
       <svg viewBox="0 0 460 170" style={{ width: "100%" }}>
         <defs>
@@ -802,7 +798,7 @@ function SolarView() {
           initial={{ cx: 0, cy: 160, opacity: 0 }} animate={{ cx: 230, cy: 32, opacity: 1 }}
           transition={{ duration: 1.1, ease: "easeInOut" }} />
         <text x="8" y="165" fontSize="10" fill="#8b95a7">06:00</text>
-        <text x="222" y="24" fontSize="10" fill="#fbbf24" fontWeight="700">13:00 tepe</text>
+        <text x="222" y="24" fontSize="10" fill="#fbbf24" fontWeight="700">13:00 {t("show.solar.peak")}</text>
         <text x="425" y="165" fontSize="10" fill="#8b95a7">21:00</text>
       </svg>
     </div>
@@ -810,6 +806,7 @@ function SolarView() {
 }
 
 function BatteryView() {
+  const t = useT();
   const hours = [0.7, 0.9, 0.8, 0.6, 0, 0, -0.5, -0.8, 0, 0.4, 0.6, 0, -0.9, -0.7, 0, 0.3];
   return (
     <div style={{ display: "flex", gap: 22, alignItems: "center" }}>
@@ -821,13 +818,13 @@ function BatteryView() {
             initial={{ strokeDashoffset: 352 }} animate={{ strokeDashoffset: 352 * (1 - 0.68) }}
             transition={{ duration: 1.2, ease: "easeOut" }} />
           <text x="70" y="66" textAnchor="middle" fontSize="26" fontWeight="800" fill="#fff">%68</text>
-          <text x="70" y="86" textAnchor="middle" fontSize="10.5" fill="#8b95a7">dolu · şarj oluyor</text>
+          <text x="70" y="86" textAnchor="middle" fontSize="10.5" fill="#8b95a7">{t("show.batt.full")}</text>
         </svg>
         <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.6 }}
           style={{ position: "absolute", top: 4, right: 10, width: 10, height: 10, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 12px #22c55e" }} />
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 12, color: "#8b95a7", marginBottom: 8 }}>24 saatlik şarj planı</div>
+        <div style={{ fontSize: 12, color: "#8b95a7", marginBottom: 8 }}>{t("show.batt.plan")}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 3, height: 90 }}>
           {hours.map((v, i) => (
             <motion.div key={i}
@@ -841,8 +838,8 @@ function BatteryView() {
           ))}
         </div>
         <div style={{ display: "flex", gap: 14, marginTop: 10, fontSize: 11.5, color: "#8b95a7" }}>
-          <span><span style={{ color: "#22c55e" }}>■</span> şarj (ucuz saat)</span>
-          <span><span style={{ color: "#ef4444" }}>■</span> deşarj (pahalı saat)</span>
+          <span><span style={{ color: "#22c55e" }}>■</span> {t("show.batt.charge")}</span>
+          <span><span style={{ color: "#ef4444" }}>■</span> {t("show.batt.discharge")}</span>
         </div>
       </div>
     </div>
@@ -850,17 +847,18 @@ function BatteryView() {
 }
 
 function EpiasView() {
+  const t = useT();
   const bars = [42, 38, 35, 32, 30, 33, 40, 55, 68, 62, 52, 46, 44, 48, 55, 64, 78, 92, 100, 88, 74, 62, 52, 45];
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <div>
           <span style={{ fontSize: 24, fontWeight: 800, color: "#fff" }}>2.412 ₺</span>
-          <span style={{ fontSize: 12.5, color: "#8b95a7" }}> /MWh · şu an</span>
+          <span style={{ fontSize: 12.5, color: "#8b95a7" }}> {t("show.price.now")}</span>
         </div>
         <motion.span animate={{ opacity: [1, 0.5, 1] }} transition={{ repeat: Infinity, duration: 1.8 }}
           style={{ background: "#22c55e22", color: "#4ade80", border: "1px solid #22c55e55", borderRadius: 999, padding: "4px 14px", fontSize: 12.5, fontWeight: 700 }}>
-          ● Canlı
+          ● {t("show.price.live")}
         </motion.span>
       </div>
       <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 130 }}>
@@ -875,26 +873,27 @@ function EpiasView() {
         ))}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "#8b95a7", marginTop: 8 }}>
-        <span>00:00</span><span style={{ color: "#4ade80" }}>▲ ucuz → şarj</span>
-        <span style={{ color: "#f87171" }}>▼ pahalı → deşarj</span><span>23:00</span>
+        <span>00:00</span><span style={{ color: "#4ade80" }}>▲ {t("show.price.cheap")}</span>
+        <span style={{ color: "#f87171" }}>▼ {t("show.price.exp")}</span><span>23:00</span>
       </div>
     </div>
   );
 }
 
 function OutageView() {
-  const rows = [["Kritik yükler", 100], ["Aydınlatma", 100], ["Priz devreleri", 82], ["EV şarj", 0]];
+  const t = useT();
+  const rows = [[t("show.outage.critical"), 100], [t("show.outage.lighting"), 100], [t("show.outage.outlets"), 82], [t("show.outage.ev"), 0]];
   return (
     <div>
       <motion.div animate={{ opacity: [1, 0.6, 1] }} transition={{ repeat: Infinity, duration: 1 }}
         style={{ background: "#ef444418", border: "1px solid #ef444455", borderRadius: 12, padding: "10px 16px", color: "#f87171", fontWeight: 700, fontSize: 14, marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
         <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ef4444", boxShadow: "0 0 12px #ef4444" }} />
-        Şebeke kesintisi algılandı — batarya + güneş devrede
+        {t("show.outage.alert")}
       </motion.div>
       {rows.map(([l, p], i) => (
         <div key={l} style={{ marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "#c3cad6", marginBottom: 5 }}>
-            <span>{l}</span><span style={{ fontWeight: 700, color: p === 0 ? "#8b95a7" : p === 100 ? "#4ade80" : "#fbbf24" }}>{p === 0 ? "askıda" : `%${p}`}</span>
+            <span>{l}</span><span style={{ fontWeight: 700, color: p === 0 ? "#8b95a7" : p === 100 ? "#4ade80" : "#fbbf24" }}>{p === 0 ? t("show.outage.suspended") : `%${p}`}</span>
           </div>
           <div style={{ background: "#ffffff10", borderRadius: 999, height: 8, overflow: "hidden" }}>
             <motion.div initial={{ width: 0 }} animate={{ width: `${p}%` }}
@@ -904,34 +903,35 @@ function OutageView() {
         </div>
       ))}
       <div style={{ fontSize: 12.5, color: "#8b95a7", marginTop: 14 }}>
-        Tahmini otonomi: <b style={{ color: "#fff" }}>4s 20dk</b> · Jeneratör: <b style={{ color: "#4ade80" }}>hazır</b>
+        {t("show.outage.autonomy")}: <b style={{ color: "#fff" }}>{t("show.outage.autonomyVal")}</b> · {t("show.outage.gen")}: <b style={{ color: "#4ade80" }}>{t("show.outage.ready")}</b>
       </div>
     </div>
   );
 }
 
 function AgentView() {
+  const t = useT();
   const decisions = [
-    ["03:00", "DEPOLA", "#22c55e", "elektrik en ucuz — batarya doluyor"],
-    ["13:00", "BEKLE", "#8b95a7", "güneş zaten evi besliyor"],
-    ["18:00", "KULLAN", "#ef4444", "elektrik en pahalı — depodakini kullan"],
-    ["22:00", "DEPOLA", "#22c55e", "gece ucuz tarife başladı"],
+    ["03:00", t("show.agent.store"), "#22c55e", t("show.agent.d1")],
+    ["13:00", t("show.agent.wait"), "#8b95a7", t("show.agent.d2")],
+    ["18:00", t("show.agent.use"), "#ef4444", t("show.agent.d3")],
+    ["22:00", t("show.agent.store"), "#22c55e", t("show.agent.d4")],
   ];
   return (
     <div>
-      {decisions.map(([t, k, c, d], i) => (
-        <motion.div key={t}
+      {decisions.map(([saat, k, c, d], i) => (
+        <motion.div key={saat}
           initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.15 + i * 0.16, duration: 0.4 }}
           style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff07", border: "1px solid #ffffff10", borderRadius: 12, padding: "11px 15px", marginBottom: 10 }}>
-          <span style={{ fontFamily: "monospace", fontSize: 13, color: "#8b95a7", width: 44 }}>{t}</span>
+          <span style={{ fontFamily: "monospace", fontSize: 13, color: "#8b95a7", width: 44 }}>{saat}</span>
           <span style={{ background: c + "22", color: c, borderRadius: 999, padding: "3px 13px", fontSize: 12, fontWeight: 800, letterSpacing: "0.04em" }}>{k}</span>
           <span style={{ fontSize: 12.5, color: "#c3cad6" }}>{d}</span>
         </motion.div>
       ))}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}
         style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "linear-gradient(90deg,#22c55e18,#8b5cf618)", border: "1px solid #ffffff14", borderRadius: 12, padding: "13px 16px", marginTop: 4 }}>
-        <span style={{ fontSize: 13, color: "#c3cad6" }}>Bugünkü net kazanç</span>
+        <span style={{ fontSize: 13, color: "#c3cad6" }}>{t("show.agent.net")}</span>
         <span style={{ fontSize: 21, fontWeight: 800, color: "#4ade80" }}>+14.4 ₺</span>
       </motion.div>
     </div>
@@ -939,6 +939,7 @@ function AgentView() {
 }
 
 function ProductPanel({ active }) {
+  const t = useT();
   const meta = PANEL_META[active];
   const views = [<SolarView key="s" />, <BatteryView key="b" />, <EpiasView key="e" />, <OutageView key="o" />, <AgentView key="a" />];
   return (
@@ -957,24 +958,20 @@ function ProductPanel({ active }) {
             <span key={c} style={{ width: 11, height: 11, borderRadius: "50%", background: c, opacity: 0.85 }} />
           ))}
         </span>
-        <AnimatePresence mode="wait">
-          <motion.span key={active}
-            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-            style={{ fontSize: 13.5, fontWeight: 700, color: "#e6ebf2" }}>
-            {meta.title}
-          </motion.span>
-        </AnimatePresence>
+        <motion.span key={active}
+          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 13.5, fontWeight: 700, color: "#e6ebf2" }}>
+          {t(meta.title)}
+        </motion.span>
         <span style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: "50%", background: meta.color, boxShadow: `0 0 10px ${meta.color}`, transition: "background 0.5s" }} />
       </div>
       {/* içerik */}
       <div style={{ padding: "22px 22px 26px", minHeight: 260 }}>
-        <AnimatePresence mode="wait">
-          <motion.div key={active}
-            initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }}
-            transition={{ duration: 0.32 }}>
-            {views[active]}
-          </motion.div>
-        </AnimatePresence>
+        <motion.div key={active}
+          initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.32 }}>
+          {views[active]}
+        </motion.div>
       </div>
     </div>
   );
@@ -982,40 +979,16 @@ function ProductPanel({ active }) {
 
 /* ── Sticky Showcase — scroll-linked bina animasyonu ─────────── */
 function StickyShowcase() {
+  const t = useT();
   const [active, setActive] = useState(0);
   const refs = useRef([]);
 
   const features = [
-    {
-      Icon: Sun, color: "#f59e0b", bg: "#fef3c7",
-      title: "Güneş Paneli Optimizasyonu",
-      desc: "Güneşten üretilen elektrik önce evinizde kullanılır. Artan kısım ya bataryaya depolanır ya da şebekeye satılıp size gelir yazar. Yazın-kışın üretim farkı otomatik hesaba katılır.",
-      tags: ["Önce kendi eviniz", "Fazlası satılır", "Yaz-kış otomatik"],
-    },
-    {
-      Icon: Battery, color: "#22c55e", bg: "#dcfce7",
-      title: "Akıllı Batarya Yönetimi",
-      desc: "Elektrik gece yarısı ucuzken batarya dolar, akşam herkes elektrik kullanırken (fiyatlar en yüksekken) depodaki ucuz elektrik devreye girer. Aradaki fark cebinizde kalır.",
-      tags: ["Ucuzken doldur", "Pahalıyken kullan", "Fark cebinizde"],
-    },
-    {
-      Icon: Bolt, color: "#3b82f6", bg: "#dbeafe",
-      title: "Güncel Elektrik Fiyatları",
-      desc: "Elektriğin fiyatı her saat değişir — gece ucuz, akşam pahalıdır. Sistem resmi piyasa fiyatlarını her gün otomatik alır; siz hiçbir tarife takip etmezsiniz.",
-      tags: ["Resmi fiyatlar", "Her gün güncel", "Takip derdi yok"],
-    },
-    {
-      Icon: Alert, color: "#ef4444", bg: "#fee2e2",
-      title: "Kesinti Koruması",
-      desc: "Elektrik kesildiğinde batarya ve güneş otomatik devreye girer. Opsiyonel jeneratör (12 TL/kWh) ile kesintisiz güç; karşılanamayan yük raporlanır.",
-      tags: ["Otomatik devreye", "Jeneratör desteği", "Yük raporu"],
-    },
-    {
-      Icon: Brain, color: "#8b5cf6", bg: "#ede9fe",
-      title: "Kendi Kendine Öğrenen Asistan",
-      desc: "Asistan, binlerce günlük fiyat verisiyle eğitildi: hangi saatte ne yapılacağını deneye deneye kendisi öğrendi. Yarının fiyatını bilmese bile doğru kararı verir.",
-      tags: ["Günde ~14 TL kazandırır", "Şaşırtmaca fiyata dayanıklı", "Sürekli öğrenir"],
-    },
+    { Icon: Sun, color: "#f59e0b", title: t("lp.feat.solar.t"), desc: t("lp.feat.solar.d") },
+    { Icon: Battery, color: "#22c55e", title: t("lp.feat.batt.t"), desc: t("lp.feat.batt.d") },
+    { Icon: Bolt, color: "#3b82f6", title: t("lp.feat.price.t"), desc: t("lp.feat.price.d") },
+    { Icon: Alert, color: "#ef4444", title: t("lp.feat.outage.t"), desc: t("lp.feat.outage.d") },
+    { Icon: Brain, color: "#8b5cf6", title: t("lp.feat.agent.t"), desc: t("lp.feat.agent.d") },
   ];
 
   useEffect(() => {
@@ -1035,11 +1008,9 @@ function StickyShowcase() {
     <section id="features" style={{ padding: "100px 0", background: "#08080a" }}>
       <div className="container">
         <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 72 }}>
-          <span className="eyebrow">Kaydırarak keşfedin</span>
-          <h2>Sistem sizin için ne yapıyor?</h2>
-          <p className="sub" style={{ maxWidth: 480, margin: "12px auto 0" }}>
-            Güneşten kesinti korumasına — beş şey, hepsi kendiliğinden.
-          </p>
+          <span className="eyebrow">{t("lp.feat.eyebrow")}</span>
+          <h2>{t("lp.feat.title")}</h2>
+          <p className="sub" style={{ maxWidth: 480, margin: "12px auto 0" }}>{t("lp.feat.sub")}</p>
         </motion.div>
 
         <div className="showcase-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "start" }}>
@@ -1052,7 +1023,7 @@ function StickyShowcase() {
           <div>
             {features.map((f, i) => (
               <div
-                key={f.title}
+                key={i}
                 ref={el => refs.current[i] = el}
                 style={{ minHeight: "68vh", display: "flex", alignItems: "center" }}
               >
@@ -1070,16 +1041,7 @@ function StickyShowcase() {
                     marginBottom: 22,
                   }}><f.Icon size={26} /></div>
                   <h3 style={{ fontSize: 22, marginBottom: 12 }}>{f.title}</h3>
-                  <p style={{ color: "#a1a1aa", fontSize: 15.5, lineHeight: 1.75, marginBottom: 22 }}>{f.desc}</p>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {f.tags.map(tag => (
-                      <span key={tag} style={{
-                        background: f.color + "18", color: f.color,
-                        borderRadius: 999, padding: "5px 15px",
-                        fontSize: 13, fontWeight: 700,
-                      }}>{tag}</span>
-                    ))}
-                  </div>
+                  <p style={{ color: "#a1a1aa", fontSize: 15.5, lineHeight: 1.75 }}>{f.desc}</p>
                 </div>
               </div>
             ))}
@@ -1092,22 +1054,21 @@ function StickyShowcase() {
 
 /* ── İstatistikler ───────────────────────────────────────────── */
 function Stats() {
+  const t = useT();
   const rows = [
-    ["Günlük tasarruf", "~14 TL", "Elektriği ucuzken alıp pahalıyken kullanmanın günlük getirisi", "rgba(255,255,255,0.05)", "#fff"],
-    ["Yıllık tasarruf", "5.000+ TL", "Ortalama bir apartman için yıllık tahmini kazanç", "#10b981", "#04120c"],
-    ["Kurulum süresi", "2 dakika", "Binanızı tarif edin, gerisini asistan halleder", "rgba(255,255,255,0.05)", "#f4f4f5"],
-    ["Kesintide dayanma", "4+ saat", "Batarya ve güneşle elektriksiz kalmadan geçen süre", "#3b82f6", "#fff"],
-    ["Sizin yapacağınız", "Hiçbir şey", "Sistem 7/24 kendi kendine çalışır", "#f59e0b", "#1b1b1b"],
+    [t("lp.stats.1l"), "~14 TL", t("lp.stats.1d"), "rgba(255,255,255,0.05)", "#fff"],
+    [t("lp.stats.2l"), "5.000+ TL", t("lp.stats.2d"), "#10b981", "#04120c"],
+    [t("lp.stats.3l"), t("lp.stats.mins"), t("lp.stats.3d"), "rgba(255,255,255,0.05)", "#f4f4f5"],
+    [t("lp.stats.4l"), t("lp.stats.hrs"), t("lp.stats.4d"), "#3b82f6", "#fff"],
+    [t("lp.stats.5l"), t("lp.stats.nothing"), t("lp.stats.5d"), "#f59e0b", "#1b1b1b"],
   ];
   return (
     <section id="stats">
       <div className="container">
         <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 34 }}>
-          <span className="eyebrow">Rakamlarla</span>
-          <h2>Peki size ne kazandırır?</h2>
-          <p className="sub" style={{ margin: "12px auto 0", maxWidth: 520 }}>
-            74 günlük gerçek fiyat verisiyle yapılan testlerin sonuçları.
-          </p>
+          <span className="eyebrow">{t("lp.stats.eyebrow")}</span>
+          <h2>{t("lp.stats.title")}</h2>
+          <p className="sub" style={{ margin: "12px auto 0", maxWidth: 520 }}>{t("lp.stats.sub")}</p>
         </motion.div>
         {rows.map(([l, n, d, bg, fg], i) => (
           <motion.div key={l} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.05 }}
@@ -1127,26 +1088,19 @@ function Stats() {
 
 /* ── Kullanım senaryoları ─────────────────────────────────────── */
 function UseCases() {
+  const t = useT();
   const cases = [
-    [Home, "#3b82f6", "Müstakil ev & villa sahipleri",
-     "Güneş paneliniz ve bataryanız varsa asistan gece ucuz elektriği depolar, akşam pahalı saatte onu kullanır — fatura kendiliğinden düşer.",
-     "+5.200 TL/yıl", "Ortalama yıllık tasarruf tahmini"],
-    [Cube, "#22c55e", "Apartman yöneticileri",
-     "Asansör, merdiven aydınlatması ve su pompası gibi ortak giderleri düşürün. Aidatlara yansıyan elektrik kalemi küçülür.",
-     "%40'a kadar", "Ortak gider tasarrufu"],
-    [Chart, "#f97316", "Ofis binaları & ticari",
-     "HVAC, EV şarj istasyonu ve güvenlik kameralarını birlikte yönetin. Amorti süresi ve CO₂ tasarrufu anında görülür.",
-     "3–6 yıl", "Ortalama amorti süresi"],
-    [Brain, "#f59e0b", "Meraklısına: uzman modu",
-     "İşin tekniğini merak edenler için ayrı bir bölüm var: farklı yapay zekâ yöntemlerinin karşılaştırması, mevsimsel analizler ve tüm detaylar orada.",
-     "İsteğe bağlı", "Ana ekranda teknik detay yok"],
+    [Home, "#3b82f6", t("lp.use.1t"), t("lp.use.1d"), "+5.200 TL/" + t("unit.year"), t("lp.use.1m")],
+    [Cube, "#22c55e", t("lp.use.2t"), t("lp.use.2d"), "%40", t("lp.use.2m")],
+    [Chart, "#f97316", t("lp.use.3t"), t("lp.use.3d"), "3–6 " + t("unit.year"), t("lp.use.3m")],
+    [Brain, "#f59e0b", t("lp.use.4t"), t("lp.use.4d"), "", t("lp.use.4m")],
   ];
   return (
     <section id="use-cases">
       <div className="container">
         <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 34 }}>
-          <span className="eyebrow">Kullanım senaryoları</span>
-          <h2>Kim için geliştirildi?</h2>
+          <span className="eyebrow">{t("lp.use.eyebrow")}</span>
+          <h2>{t("lp.use.title")}</h2>
         </motion.div>
         {cases.map(([Icon, renk, t, d, m, md], i) => (
           <motion.div key={t} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.05 }}
@@ -1174,20 +1128,20 @@ function UseCases() {
 
 /* ── Mimari quote ─────────────────────────────────────────────── */
 function TechQuote() {
+  const t = useT();
   return (
     <section style={{ paddingTop: 20 }}>
       <div className="container">
         <motion.div {...fadeUp} className="card" style={{ padding: "44px 32px", textAlign: "center" }}>
           <div style={{ display: "flex", gap: 20, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
-            {["Gerçek fiyat verisi", "7/24 otomatik", "Kesinti koruması", "Kurulum 2 dakika"].map((c) => (
-              <span key={c} className="eyebrow" style={{ marginBottom: 0 }}>{c}</span>
+            {["lp.quote.c1", "lp.quote.c2", "lp.quote.c3", "lp.quote.c4"].map((c) => (
+              <span key={c} className="eyebrow" style={{ marginBottom: 0 }}>{t(c)}</span>
             ))}
           </div>
           <blockquote style={{ fontSize: "clamp(18px,2.4vw,26px)", fontWeight: 700, maxWidth: 720, margin: "0 auto 22px", letterSpacing: "-0.01em" }}>
-            "Elektriğin ne zaman ucuz, ne zaman pahalı olduğunu sistem kendisi öğreniyor.
-            Siz sadece ay sonunda düşen faturayı görüyorsunuz."
+            {t("lp.quote.text")}
           </blockquote>
-          <div style={{ fontWeight: 700 }}>SmartHome Energy — Proje Ekibi</div>
+          <div style={{ fontWeight: 700 }}>{t("lp.quote.by")}</div>
         </motion.div>
       </div>
     </section>
@@ -1196,33 +1150,24 @@ function TechQuote() {
 
 /* ── SSS ─────────────────────────────────────────────────────── */
 function Faq() {
+  const t = useT();
   const qs = [
-    ["Kullanmak için teknik bilgi gerekiyor mu?",
-     "Hayır. Binanızı tarif edersiniz (kaç kat, kaç daire, çatı ne kadar) — gerisini sistem halleder. Ekranda gördüğünüz her şey günlük dille yazılmıştır: ne kadar tasarruf ettiniz, batarya ne kadar dolu, şu an ne yapıyor."],
-    ["Bu gerçekten faturamı düşürür mü?",
-     "Elektriğin fiyatı gün içinde 2-3 kata kadar değişir. Sistem ucuz saatte elektriği bataryaya depolar, pahalı saatte onu kullanır. Testlerde bu fark günde ortalama 14 TL, yılda 5.000 TL'nin üzerinde tasarruf sağladı."],
-    ["Benim bir şey yapmam gerekiyor mu?",
-     "Hayır. Kurulumdan sonra sistem 7/24 kendi kendine çalışır. İsterseniz ekrandan ne yaptığını izlersiniz, istemezseniz hiç açmazsınız — tasarruf her iki durumda da devam eder."],
-    ["Elektrik kesilirse ne olur?",
-     "Sistem bataryayı kesintilere karşı hazır tutar. Kesinti anında batarya ve güneş otomatik devreye girer; jeneratörünüz varsa onu da yönetir. Ortalama 4 saatten uzun süre elektriksiz kalmazsınız."],
-    ["Gerçek bir binaya bağlanabilir mi?",
-     "Şu an bu bir simülasyon ve karar destek uygulamasıdır: binanızın birebir modelini kurar, gerçek fiyatlarla ne kadar tasarruf edeceğinizi gösterir. Gerçek binaya fiziksel bağlantı gelecek sürümde planlanıyor."],
+    [t("lp.faq.q1"), t("lp.faq.a1")],
+    [t("lp.faq.q2"), t("lp.faq.a2")],
+    [t("lp.faq.q3"), t("lp.faq.a3")],
+    [t("lp.faq.q4"), t("lp.faq.a4")],
+    [t("lp.faq.q5"), t("lp.faq.a5")],
   ];
   const [open, setOpen] = useState(0);
   return (
     <section id="faq">
       <div className="container grid grid-2" style={{ alignItems: "start" }}>
         <motion.div {...fadeUp}>
-          <h2 style={{ maxWidth: 420 }}>Sıkça sorulan sorular</h2>
-          <p className="sub" style={{ margin: "12px 0 26px", maxWidth: 400 }}>
-            Proje, teknik detaylar ve entegrasyon hakkında sık sorulan sorular.
-          </p>
+          <h2 style={{ maxWidth: 420 }}>{t("lp.faq.title")}</h2>
+          <p className="sub" style={{ margin: "12px 0 26px", maxWidth: 400 }}>{t("expert.sub")}</p>
           <div className="card" style={{ maxWidth: 380 }}>
-            <h3 style={{ fontSize: 19, marginBottom: 8 }}>Hâlâ sorunuz var mı?</h3>
-            <p className="sub" style={{ fontSize: 14.5, margin: "4px 0 16px" }}>
-              GitHub Issues üzerinden soru sorabilirsiniz.
-            </p>
-            <a className="btn btn-dark" href="https://github.com/isambais/SmartHome-EnergyRL/issues" target="_blank" rel="noreferrer" style={{ padding: "11px 20px", fontSize: 14 }}>
+            <h3 style={{ fontSize: 19, marginBottom: 8 }}>{t("lp.faq.title")}</h3>
+            <a className="btn btn-dark" href="https://github.com/isambais/SmartHome-EnergyRL/issues" target="_blank" rel="noreferrer" style={{ padding: "11px 20px", fontSize: 14, marginTop: 10 }}>
               GitHub Issues <span className="arr"><Arrow size={13} /></span>
             </a>
           </div>
@@ -1253,6 +1198,7 @@ function Faq() {
 
 /* ── CTA ─────────────────────────────────────────────────────── */
 function Cta() {
+  const t = useT();
   return (
     <section style={{
       background: "linear-gradient(135deg, #0d1117 0%, #1a2332 50%, #0f2417 100%)",
@@ -1260,67 +1206,20 @@ function Cta() {
     }}>
       <div className="container">
         <motion.div {...fadeUp} style={{ color: "#e6edf3" }}>
-          <span className="eyebrow" style={{ background: "#21262d", color: "#58a6ff" }}>Ücretsiz & Açık Kaynak</span>
-          <h2 style={{ color: "#fff", marginTop: 16 }}>Dashboard'u şimdi açın</h2>
-          <p style={{ color: "#8b949e", margin: "14px auto 30px", maxWidth: 480, fontSize: 18 }}>
-            Binanızı 2 dakikada tarif edin — ne kadar tasarruf edeceğinizi hemen görün.
-          </p>
+          <h2 style={{ color: "#fff", marginTop: 16 }}>{t("lp.cta.title")}</h2>
+          <p style={{ color: "#8b949e", margin: "14px auto 30px", maxWidth: 480, fontSize: 18 }}>{t("lp.cta.sub")}</p>
           <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
             <Link className="btn btn-blue" to="/simulasyon">
-              Ücretsiz Dene <span className="arr"><Arrow size={14} /></span>
+              {t("lp.cta.btn")} <span className="arr"><Arrow size={14} /></span>
             </Link>
             <a className="btn" href="https://github.com/isambais/SmartHome-EnergyRL" target="_blank" rel="noreferrer"
               style={{ background: "#21262d", color: "#e6edf3", border: "1px solid #30363d" }}>
-              GitHub'da Gör
+              GitHub
             </a>
           </div>
         </motion.div>
       </div>
     </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer>
-      <div className="container">
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 30 }} className="foot-grid">
-          <div>
-            <div className="logo" style={{ marginBottom: 12 }}>
-              <span className="logo-mark"><Bolt size={17} /></span> SmartHome Energy RL
-            </div>
-            <p className="sub" style={{ fontSize: 14.5, maxWidth: 260 }}>
-              Güneş panelli ve bataryalı binalar için akıllı enerji yönetimi — faturanızı kendiliğinden düşürür.
-            </p>
-            <a href="mailto:test@example.com" style={{ marginTop: 10, fontWeight: 600, color: "var(--ink)" }}>test@example.com</a>
-          </div>
-          <div>
-            <h4>Dashboard</h4>
-            <Link to="/simulasyon">Bina Simülasyonu</Link>
-            <Link to="/epias">Canlı EPİAŞ</Link>
-            <Link to="/yatirim">Yatırım & Çevre</Link>
-            <Link to="/uzman">Uzman Modu</Link>
-          </div>
-          <div>
-            <h4>Proje</h4>
-            <a href="#features">Özellikler</a>
-            <a href="#features">Nasıl Çalışır</a>
-            <a href="#stats">Sonuçlar</a>
-            <a href="#faq">SSS</a>
-          </div>
-          <div>
-            <h4>Bağlantılar</h4>
-            <a href="https://github.com/isambais/SmartHome-EnergyRL" target="_blank" rel="noreferrer">GitHub</a>
-            <a href="https://github.com/isambais/SmartHome-EnergyRL/issues" target="_blank" rel="noreferrer">Issues</a>
-            <a href="https://github.com/isambais/SmartHome-EnergyRL/pulls" target="_blank" rel="noreferrer">Pull Requests</a>
-          </div>
-        </div>
-        <div style={{ borderTop: "1px solid var(--line)", marginTop: 34, paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14, color: "var(--muted)" }}>
-          <span>© {new Date().getFullYear()} SmartHome-EnergyRL · Trunçgil Teknoloji Staj Projesi</span>
-          <span style={{ fontSize: 13 }}>Gaziantep Teknopark · SAC + EPİAŞ + Three.js</span>
-        </div>
-      </div>
-    </footer>
   );
 }
 

@@ -4,49 +4,39 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { api } from "../api.js";
-import { AYLAR } from "../components/ConfigPanel.jsx";
 import { Loading, Metric, PageWrap, useDebounced } from "../components/ui.jsx";
 import { useApp } from "../state.jsx";
+import { AYLAR_FULL, AYLAR_KISA, useI18n } from "../i18n.jsx";
 
-const AY_KISA = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
 const AY_RENK = (m) => ([12, 1, 2].includes(m) ? "#3b82f6" : [3, 4, 5].includes(m) ? "#22c55e" : [6, 7, 8].includes(m) ? "#f59e0b" : "#f97316");
 
-/* Basit yazdırılabilir PDF — tarayıcının kendi yazdır/PDF diyaloğunu açar */
-function raporYazdir(d, cfg) {
+/* Yazdırılabilir PDF — seçili dile göre */
+function raporYazdir(d, cfg, t, aylar, locale) {
   const w = window.open("", "_blank");
   if (!w) return;
   const satir = (a, b) => `<tr><td>${a}</td><td style="text-align:right;font-weight:700">${b}</td></tr>`;
   w.document.write(`
-    <html><head><title>SmartHome Energy — Yatırım Raporu</title>
+    <html dir="${locale === "ar" ? "rtl" : "ltr"}"><head><title>SmartHome Energy — ${t("invest.title")}</title>
     <style>
       body{font-family:system-ui,sans-serif;color:#1b1b1b;max-width:720px;margin:32px auto;padding:0 24px}
       h1{font-size:24px} h2{font-size:16px;margin-top:26px;border-bottom:2px solid #22c55e;padding-bottom:6px}
       table{width:100%;border-collapse:collapse;margin-top:10px}
       td{padding:8px 6px;border-bottom:1px solid #eee;font-size:14px}
-      .big{font-size:30px;font-weight:800;color:#22c55e}
-      .muted{color:#6b6b6b;font-size:13px}
+      .big{font-size:30px;font-weight:800;color:#22c55e} .muted{color:#6b6b6b;font-size:13px}
     </style></head><body>
-    <h1>SmartHome Energy — Yatırım Raporu</h1>
-    <div class="muted">${new Date().toLocaleDateString("tr-TR")} · Bina: ${cfg.bina_tipi}, ${cfg.kat} kat, ${cfg.aktif_daire} aktif daire</div>
-    <h2>Özet</h2>
-    <div class="big">${d.amorti_yil} yılda kendini amorti eder</div>
-    <table>
-      ${satir("Toplam yatırım", d.toplam_yatirim.toLocaleString("tr-TR") + " TL")}
-      ${satir("Yıllık tasarruf", d.yillik_tasarruf.toLocaleString("tr-TR") + " TL")}
-      ${satir("Amorti süresi", d.amorti_yil + " yıl")}
-      ${satir("Yıllık güneş üretimi", d.yillik_uretim_kwh.toLocaleString("tr-TR") + " kWh")}
+    <h1>SmartHome Energy — ${t("invest.title")}</h1>
+    <div class="muted">${new Date().toLocaleDateString(locale)} · ${t(`btype.${cfg.bina_tipi}`)}, ${cfg.kat} ${t("profile.floors")}, ${cfg.aktif_daire} ${t("profile.activeFlats")}</div>
+    <table style="margin-top:18px">
+      ${satir(t("invest.total"), d.toplam_yatirim.toLocaleString(locale) + " TL")}
+      ${satir(t("m.yearlySaving"), d.yillik_tasarruf.toLocaleString(locale) + " TL")}
+      ${satir(t("m.payback"), d.amorti_yil + " " + t("unit.year"))}
+      ${satir(t("invest.solarProd"), d.yillik_uretim_kwh.toLocaleString(locale) + " kWh")}
+      ${satir(t("m.co2"), d.co2_ton + " " + t("unit.ton"))}
     </table>
-    <h2>Çevresel Etki</h2>
+    <h2>${t("invest.monthly")}</h2>
     <table>
-      ${satir("Yıllık CO₂ tasarrufu", d.co2_ton + " ton")}
-      ${satir("Eşdeğer ağaç", d.agac + " ağaç/yıl")}
-      ${satir("Eşdeğer araç emisyonu", d.araba + " araç/yıl")}
+      ${(d.aylik || []).map((a) => satir(aylar[a.ay - 1], Math.round(a.tasarruf).toLocaleString(locale) + " TL")).join("")}
     </table>
-    <h2>Aylık Tasarruf</h2>
-    <table>
-      ${(d.aylik || []).map((a) => satir(AYLAR[a.ay - 1], Math.round(a.tasarruf).toLocaleString("tr-TR") + " TL  ·  batarya verimi %" + a.batarya_verim)).join("")}
-    </table>
-    <p class="muted" style="margin-top:24px">Bu rapor bir simülasyon tahminidir; gerçek tasarruf tüketim alışkanlıkları ve fiyat değişimlerine göre farklılık gösterebilir.</p>
     </body></html>`);
   w.document.close();
   w.focus();
@@ -55,10 +45,14 @@ function raporYazdir(d, cfg) {
 
 export default function Yatirim() {
   const { cfg } = useApp();
+  const { t, dil } = useI18n();
   const [bataryaTl, setBataryaTl] = useState(null);
   const [panelTl, setPanelTl] = useState(null);
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
+  const locale = dil === "ar" ? "ar" : dil === "en" ? "en-US" : "tr-TR";
+  const aylar = AYLAR_FULL[dil] || AYLAR_FULL.tr;
+  const aylarKisa = AYLAR_KISA[dil] || AYLAR_KISA.tr;
 
   const dReq = useDebounced({ cfg, bataryaTl, panelTl }, 500);
 
@@ -70,112 +64,94 @@ export default function Yatirim() {
     return () => { ok = false; };
   }, [JSON.stringify(dReq)]);
 
-  if (err) return <PageWrap><h1>Yatırım & Çevre Analizi</h1><div className="kesinti-uyari">API'ye ulaşılamadı ({err})</div></PageWrap>;
-  if (!d) return <PageWrap><h1>Yatırım & Çevre Analizi</h1><Loading text="12 aylık simülasyon çalışıyor…" /></PageWrap>;
+  if (err) return <PageWrap><h1>{t("invest.title")}</h1><div className="kesinti-uyari">{t("common.apidown")} ({err})</div></PageWrap>;
+  if (!d) return <PageWrap><h1>{t("invest.title")}</h1><Loading text={t("load.invest")} /></PageWrap>;
 
-  const yillar = Array.from({ length: Math.max(Math.ceil(d.amorti_yil) + 6, 10) }, (_, i) => ({
-    yil: i, kumulatif: i * d.yillik_tasarruf,
-  }));
+  const yillar = Array.from({ length: Math.max(Math.ceil(d.amorti_yil) + 6, 10) }, (_, i) => ({ yil: i, kumulatif: i * d.yillik_tasarruf }));
   const kisalma30 = d.amorti_yil - d.toplam_yatirim / (d.yillik_tasarruf * 1.3);
-  const aylikChart = (d.aylik || []).map((a) => ({ ...a, ad: AY_KISA[a.ay - 1] }));
+  const aylikChart = (d.aylik || []).map((a) => ({ ...a, ad: aylarKisa[a.ay - 1] }));
 
   return (
     <PageWrap>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-        <h1 style={{ margin: 0 }}>Yatırım & Çevre Analizi</h1>
-        <button onClick={() => raporYazdir(d, cfg)} className="btn-app ghost" style={{ padding: "11px 20px", fontSize: 14.5 }}>
-          Raporu indir (PDF)
+        <h1 style={{ margin: 0 }}>{t("invest.title")}</h1>
+        <button onClick={() => raporYazdir(d, cfg, t, aylar, locale)} className="btn-app ghost" style={{ padding: "11px 20px", fontSize: 14.5 }}>
+          {t("invest.pdf")}
         </button>
       </div>
 
       <div className="split cfg" style={{ marginTop: 14 }}>
         <div className="card">
-          <b>Yatırım Maliyetleri</b>
-          <label className="fld">Batarya maliyeti (TL) — öneri: {d.varsayilan_batarya_tl.toLocaleString("tr-TR")}</label>
-          <input type="number" step="10000" min="0"
-            value={bataryaTl ?? d.varsayilan_batarya_tl}
+          <b>{t("invest.costs")}</b>
+          <label className="fld">{t("invest.battCost")} — {d.varsayilan_batarya_tl.toLocaleString(locale)}</label>
+          <input type="number" step="10000" min="0" value={bataryaTl ?? d.varsayilan_batarya_tl}
             onChange={(e) => setBataryaTl(+e.target.value || 0)} />
-          <label className="fld">Panel maliyeti (TL) — öneri: {d.varsayilan_panel_tl.toLocaleString("tr-TR")}</label>
-          <input type="number" step="10000" min="0"
-            value={panelTl ?? d.varsayilan_panel_tl}
+          <label className="fld">{t("invest.panelCost")} — {d.varsayilan_panel_tl.toLocaleString(locale)}</label>
+          <input type="number" step="10000" min="0" value={panelTl ?? d.varsayilan_panel_tl}
             onChange={(e) => setPanelTl(+e.target.value || 0)} />
-          <div className="caption" style={{ marginTop: 12 }}>
-            Değerler senin binana özel; 12 ayın her biri ayrı simüle edilip toplandı.
-          </div>
+          <div className="caption" style={{ marginTop: 12 }}>{t("invest.costsNote")}</div>
         </div>
 
         <div>
           <div className="grid grid-4">
-            <Metric i={0} label="Toplam yatırım" value={d.toplam_yatirim} suffix=" TL" />
-            <Metric i={1} label="Yıllık tasarruf" value={d.yillik_tasarruf} suffix=" TL" />
-            <Metric i={2} label="Amorti süresi" value={d.amorti_yil} decimals={1} suffix=" yıl" />
-            <Metric i={3} label="Yıllık CO₂ tasarrufu" value={d.co2_ton} decimals={1} suffix=" ton" />
+            <Metric i={0} label={t("invest.total")} value={d.toplam_yatirim} suffix=" TL" />
+            <Metric i={1} label={t("m.yearlySaving")} value={d.yillik_tasarruf} suffix=" TL" />
+            <Metric i={2} label={t("m.payback")} value={d.amorti_yil} decimals={1} suffix={" " + t("unit.year")} />
+            <Metric i={3} label={t("m.co2")} value={d.co2_ton} decimals={1} suffix={" " + t("unit.ton")} />
           </div>
 
           <div className="oneri" style={{ marginTop: 14 }}>
-            Sisteminiz <b>{d.amorti_yil} yılda</b> kendini amorti ediyor; yılda <b>{d.agac} ağacın</b> tuttuğu
-            kadar CO₂ tasarrufu sağlıyor — bu <b>{d.araba} arabanın</b> yıllık emisyonuna eşit.
+            {t("invest.envNote").replace("{y}", d.amorti_yil).replace("{a}", d.agac).replace("{c}", d.araba)}
           </div>
 
-          {/* Aylık tasarruf — YENİ */}
           <div className="card" style={{ marginTop: 14 }}>
-            <b>Ay ay tasarruf — hangi ay ne kadar kazandırıyor?</b>
+            <b>{t("invest.monthly")}</b>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={aylikChart}>
                 <XAxis dataKey="ad" stroke="#8a8a8a" />
                 <YAxis stroke="#8a8a8a" tickFormatter={(v) => (v / 1000).toFixed(0) + "k"} />
                 <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }}
-                  formatter={(v, n) => n === "tasarruf"
-                    ? [Math.round(v).toLocaleString("tr-TR") + " TL", "Aylık tasarruf"]
-                    : [v, n]}
-                  labelFormatter={(l, p) => {
-                    const ay = p?.[0]?.payload;
-                    return ay ? `${AYLAR[ay.ay - 1]} · batarya verimi %${ay.batarya_verim}` : l;
-                  }} />
-                <Bar dataKey="tasarruf" name="tasarruf" radius={[6, 6, 0, 0]}>
+                  formatter={(v) => [Math.round(v).toLocaleString(locale) + " TL", t("m.yearlySaving")]}
+                  labelFormatter={(l, p) => { const a = p?.[0]?.payload; return a ? aylar[a.ay - 1] : l; }} />
+                <Bar dataKey="tasarruf" radius={[6, 6, 0, 0]}>
                   {aylikChart.map((a) => <Cell key={a.ay} fill={AY_RENK(a.ay)} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <div className="caption">
-              Yazın güneş bol → tasarruf yüksek; kışın güneş az + batarya verimi düşük → tasarruf azalır.
-              Renkler mevsimi gösterir (mavi kış, yeşil ilkbahar, sarı yaz, turuncu sonbahar).
-            </div>
+            <div className="caption">{t("invest.monthlyNote")}</div>
           </div>
 
           <div className="grid grid-2" style={{ marginTop: 14 }}>
             <div className="card">
-              <b>Amorti süresi — kümülatif tasarruf vs yatırım</b>
+              <b>{t("invest.payChart")}</b>
               <ResponsiveContainer width="100%" height={320}>
                 <AreaChart data={yillar}>
-                  <XAxis dataKey="yil" stroke="#8a8a8a" label={{ value: "Yıl", position: "insideBottom", offset: -2, fill: "#8a8a8a" }} />
+                  <XAxis dataKey="yil" stroke="#8a8a8a" label={{ value: t("unit.year"), position: "insideBottom", offset: -2, fill: "#8a8a8a" }} />
                   <YAxis stroke="#8a8a8a" tickFormatter={(v) => (v / 1000).toFixed(0) + "k"} />
                   <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }}
-                    formatter={(v) => Math.round(v).toLocaleString("tr-TR") + " TL"} />
-                  <Area dataKey="kumulatif" name="Kümülatif tasarruf" stroke="#22c55e" strokeWidth={3} fill="#22c55e26" />
+                    formatter={(v) => Math.round(v).toLocaleString(locale) + " TL"} />
+                  <Area dataKey="kumulatif" name={t("invest.cumSaving")} stroke="#22c55e" strokeWidth={3} fill="#22c55e26" />
                   <ReferenceLine y={d.toplam_yatirim} stroke="#f59e0b" strokeDasharray="6 4"
-                    label={{ value: `Yatırım: ${d.toplam_yatirim.toLocaleString("tr-TR")} TL`, fill: "#f59e0b", fontSize: 12 }} />
+                    label={{ value: `${t("invest.investLine")}: ${d.toplam_yatirim.toLocaleString(locale)}`, fill: "#f59e0b", fontSize: 12 }} />
                   <ReferenceLine x={d.amorti_yil} stroke="#3b82f6" strokeDasharray="2 4"
-                    label={{ value: `Amorti: ${d.amorti_yil} yıl`, fill: "#3b82f6", fontSize: 12 }} />
+                    label={{ value: `${t("invest.paybackLine")}: ${d.amorti_yil}`, fill: "#3b82f6", fontSize: 12 }} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
 
             <div className="card">
-              <b>Fiyat duyarlılık analizi</b>
+              <b>{t("invest.sensitivity")}</b>
               <ResponsiveContainer width="100%" height={320}>
                 <LineChart data={d.duyarlilik}>
-                  <XAxis dataKey="artis" stroke="#8a8a8a"
-                    label={{ value: "Elektrik fiyat artışı (%)", position: "insideBottom", offset: -2, fill: "#8a8a8a" }} />
-                  <YAxis stroke="#8a8a8a" label={{ value: "Amorti (yıl)", angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
+                  <XAxis dataKey="artis" stroke="#8a8a8a" label={{ value: t("invest.priceRise"), position: "insideBottom", offset: -2, fill: "#8a8a8a" }} />
+                  <YAxis stroke="#8a8a8a" label={{ value: t("invest.paybackYr"), angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
                   <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }}
-                    formatter={(v) => v + " yıl"} labelFormatter={(l) => `+%${l} fiyat artışı`} />
-                  <Line dataKey="amorti" name="Amorti süresi" stroke="#f97316" strokeWidth={3} />
+                    formatter={(v) => v + " " + t("unit.year")} labelFormatter={(l) => `+${l}%`} />
+                  <Line dataKey="amorti" name={t("m.payback")} stroke="#f97316" strokeWidth={3} />
                 </LineChart>
               </ResponsiveContainer>
               <div className="oneri">
-                Elektrik fiyatları <b>%30 artarsa</b> amorti süresi <b>{kisalma30.toFixed(1)} yıl
-                kısalarak {(d.amorti_yil - kisalma30).toFixed(1)} yıla</b> iner.
+                {t("invest.sensNote").replace("{x}", kisalma30.toFixed(1)).replace("{y}", (d.amorti_yil - kisalma30).toFixed(1))}
               </div>
             </div>
           </div>

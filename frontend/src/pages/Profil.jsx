@@ -1,10 +1,21 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Chip, Loading, Metric, PageHeader, PageWrap, Section } from "../components/ui.jsx";
-import { Arrow, Chart, Coins, Gauge, Home, Shield, Star, Sun } from "../icons.jsx";
+import { Loading, Metric, PageWrap } from "../components/ui.jsx";
 import { useApp } from "../state.jsx";
+import { useI18n } from "../i18n.jsx";
+
+function CardHead({ renk, baslik, alt }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ width: 4, height: 18, borderRadius: 2, background: renk }} />
+        <b style={{ fontSize: 15.5 }}>{baslik}</b>
+      </div>
+      {alt && <div className="caption" style={{ marginTop: 4, marginLeft: 14 }}>{alt}</div>}
+    </div>
+  );
+}
 
 const inpStil = {
   width: "100%", background: "var(--bg3)", border: "1px solid var(--border)",
@@ -12,28 +23,25 @@ const inpStil = {
 };
 
 export default function Profil() {
-  const { user, cfg, setCfg } = useApp();
+  const { user } = useApp();
+  const { t, dil } = useI18n();
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [yatirim, setYatirim] = useState(null);
-
-  // Şifre değiştirme
   const [eski, setEski] = useState("");
   const [yeni, setYeni] = useState("");
   const [sifreMsj, setSifreMsj] = useState(null);
+  const locale = dil === "ar" ? "ar" : dil === "en" ? "en-US" : "tr-TR";
 
   const yukle = () => api.profile().then(setData).catch((e) => setErr(e.message));
-
   useEffect(() => { yukle(); }, []);
-
-  // Kayıtlı binaya göre tasarruf özeti
   useEffect(() => {
     const bina = data?.user?.bina;
     if (bina) api.yatirim({ config: bina }).then(setYatirim).catch(() => {});
   }, [JSON.stringify(data?.user?.bina)]);
 
-  if (err) return <PageWrap><h1>Profil</h1><div className="kesinti-uyari">Yüklenemedi ({err})</div></PageWrap>;
-  if (!data) return <PageWrap><h1>Profil</h1><Loading text="Profil yükleniyor…" /></PageWrap>;
+  if (err) return <PageWrap><h1>{t("profile.title")}</h1><div className="kesinti-uyari">{t("common.apidown")} ({err})</div></PageWrap>;
+  if (!data) return <PageWrap><h1>{t("profile.title")}</h1><Loading text={t("load.profile")} /></PageWrap>;
 
   const bina = data.user.bina;
 
@@ -42,78 +50,92 @@ export default function Profil() {
     setSifreMsj(null);
     try {
       await api.sifreDegistir(eski, yeni);
-      setSifreMsj({ ok: true, t: "Şifre güncellendi." });
+      setSifreMsj({ ok: true, txt: t("profile.pwUpdated") });
       setEski(""); setYeni("");
-    } catch (er) { setSifreMsj({ ok: false, t: er.message }); }
+    } catch (er) { setSifreMsj({ ok: false, txt: er.message }); }
   };
 
   return (
     <PageWrap>
-      <PageHeader
-        title="Profil"
-        subtitle="Hesabın, kayıtlı binan ve simülasyon geçmişin. Yaptığın her değişiklik otomatik kaydedilir."
-        right={<Chip icon={Star} accent="#34d399">Hesap aktif</Chip>}
-      />
+      <h1>{t("profile.title")}</h1>
+      <p className="caption" style={{ marginBottom: 16 }}>{t("profile.sub")}</p>
 
-      {/* Profil bandı */}
-      <motion.div className="card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-        style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap", padding: 22 }}>
-        <div style={{
-          width: 62, height: 62, borderRadius: "50%", flexShrink: 0,
-          background: "linear-gradient(135deg,#34d399,#10b981)", color: "#04120c",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 26, fontWeight: 800, boxShadow: "0 0 26px -4px #34d399aa",
-        }}>{(data.user.ad || "K").charAt(0).toUpperCase()}</div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em" }}>{data.user.ad}</div>
-          <div className="caption" style={{ fontSize: 13.5 }}>{data.user.email}</div>
-        </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Chip icon={Star}>Üyelik {new Date(data.user.created_at).toLocaleDateString("tr-TR")}</Chip>
-          {bina && <Chip icon={Home} accent="#60a5fa">{bina.bina_tipi}</Chip>}
-          <Chip icon={Chart} accent="#fb923c">{data.gecmis.length} simülasyon</Chip>
-        </div>
-      </motion.div>
+      <div className="split wide-r">
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <motion.div className="card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 4 }}>
+              <div style={{ width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
+                background: "linear-gradient(135deg,#34d399,#10b981)", color: "#04120c",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22, fontWeight: 800, boxShadow: "0 0 22px -4px #34d39988" }}>
+                {(data.user.ad || "K").charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{data.user.ad}</div>
+                <div className="caption">{data.user.email}</div>
+              </div>
+            </div>
+            <div className="caption" style={{ marginTop: 8 }}>
+              {t("profile.member")}: {new Date(data.user.created_at).toLocaleDateString(locale)}
+            </div>
+          </motion.div>
 
-      {/* KPI'lar */}
-      {yatirim && (
-        <div className="grid grid-4" style={{ marginTop: 16 }}>
-          <Metric i={0} icon={Coins}  accent="#34d399" label="Yıllık tasarruf" value={yatirim.yillik_tasarruf} suffix=" TL" />
-          <Metric i={1} icon={Gauge}  accent="#60a5fa" label="Amorti süresi"   value={yatirim.amorti_yil} decimals={1} suffix=" yıl" />
-          <Metric i={2} icon={Shield} accent="#a78bfa" label="Yıllık CO₂"       value={yatirim.co2_ton} decimals={1} suffix=" ton" />
-          <Metric i={3} icon={Sun}    accent="#fbbf24" label="Panel üretimi"    value={yatirim.yillik_uretim_kwh} suffix=" kWh" />
+          <motion.div className="card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+            <CardHead renk="#f59e0b" baslik={t("profile.changePw")} />
+            <form onSubmit={sifreGonder}>
+              <label className="fld">{t("profile.currentPw")}</label>
+              <input type="password" style={inpStil} value={eski} onChange={(e) => setEski(e.target.value)} required />
+              <label className="fld">{t("profile.newPw")}</label>
+              <input type="password" style={inpStil} value={yeni} onChange={(e) => setYeni(e.target.value)} minLength={4} required />
+              {sifreMsj && (
+                <div style={{ marginTop: 10, fontSize: 13.5, color: sifreMsj.ok ? "#34d399" : "#fca5a5" }}>{sifreMsj.txt}</div>
+              )}
+              <button type="submit" className="btn-app" style={{ marginTop: 14, width: "100%", padding: "12px 0", fontSize: 14.5 }}>
+                {t("profile.updatePw")}
+              </button>
+            </form>
+          </motion.div>
         </div>
-      )}
 
-      {/* Alt: bina + geçmiş | şifre */}
-      <div className="split wide-l" style={{ marginTop: 16, alignItems: "start" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <Section i={0} icon={Home} accent="#60a5fa" title="Kayıtlı binam"
-            desc="Ayarların otomatik kaydedilir; her girişte hazır gelir."
-            right={<Link to="/simulasyon" className="btn-app ghost" style={{ padding: "8px 14px", fontSize: 13 }}>Düzenle <Arrow size={13} /></Link>}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <motion.div className="card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
+            <CardHead renk="#3b82f6" baslik={t("profile.savedBuilding")} alt={t("profile.savedBuilding.alt")} />
             {bina ? (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Chip icon={Home} accent="#60a5fa">{bina.bina_tipi}</Chip>
-                <Chip>{bina.kat} kat</Chip>
-                <Chip>{bina.aktif_daire} aktif daire</Chip>
-                <Chip>{bina.cati_alani} m² çatı</Chip>
+              <div style={{ display: "flex", gap: 20, flexWrap: "wrap", fontSize: 14 }}>
+                <span><b>{t(`btype.${bina.bina_tipi}`)}</b></span>
+                <span>{bina.kat} {t("profile.floors")}</span>
+                <span>{bina.aktif_daire} {t("profile.activeFlats")}</span>
+                <span>{bina.cati_alani} {t("profile.roof")}</span>
               </div>
             ) : (
-              <div className="caption">Henüz bina ayarı yok — Bina Simülasyonu'na gidip ayarla, otomatik kaydedilir.</div>
+              <div className="caption">{t("profile.noBuilding")}</div>
             )}
-          </Section>
+          </motion.div>
 
-          <Section i={1} icon={Chart} accent="#fb923c" title="Simülasyon geçmişi">
+          {yatirim && (
+            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+              <CardHead renk="#22c55e" baslik={t("profile.savingsSummary")} />
+              <div className="grid grid-4">
+                <Metric i={0} label={t("m.yearlySaving")} value={yatirim.yillik_tasarruf} suffix=" TL" />
+                <Metric i={1} label={t("m.payback")} value={yatirim.amorti_yil} decimals={1} suffix={" " + t("unit.year")} />
+                <Metric i={2} label={t("m.co2")} value={yatirim.co2_ton} decimals={1} suffix={" " + t("unit.ton")} />
+                <Metric i={3} label={t("invest.solarProd")} value={yatirim.yillik_uretim_kwh} suffix=" kWh" />
+              </div>
+            </motion.div>
+          )}
+
+          <motion.div className="card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
+            <CardHead renk="#f97316" baslik={t("profile.history")} />
             {data.gecmis.length === 0 ? (
-              <div className="caption">Henüz kayıt yok. Simülasyon çalıştırıp kaydedebilirsin.</div>
+              <div className="caption">{t("profile.noHistory")}</div>
             ) : (
               <table className="tbl">
-                <thead><tr><th>Tarih</th><th>Bina</th><th>Tasarruf</th><th>Güneş</th></tr></thead>
+                <thead><tr><th>{t("epias.col.hour")}</th><th>{t("cfg.type")}</th><th>{t("m.yearlySaving")}</th><th>{t("m.solar")}</th></tr></thead>
                 <tbody>
                   {data.gecmis.map((g) => (
                     <tr key={g.id}>
-                      <td>{new Date(g.tarih).toLocaleDateString("tr-TR")}</td>
-                      <td>{g.bina_tipi}</td>
+                      <td>{new Date(g.tarih).toLocaleDateString(locale)}</td>
+                      <td>{t(`btype.${g.bina_tipi}`)}</td>
                       <td>{Math.round(g.tasarruf_tl)} TL</td>
                       <td>{Math.round(g.gunes_kwh)} kWh</td>
                     </tr>
@@ -121,23 +143,8 @@ export default function Profil() {
                 </tbody>
               </table>
             )}
-          </Section>
+          </motion.div>
         </div>
-
-        <Section i={2} icon={Shield} accent="#fbbf24" title="Güvenlik" desc="Şifreni güncelle.">
-          <form onSubmit={sifreGonder}>
-            <label className="fld">Mevcut şifre</label>
-            <input type="password" style={inpStil} value={eski} onChange={(e) => setEski(e.target.value)} required />
-            <label className="fld">Yeni şifre</label>
-            <input type="password" style={inpStil} value={yeni} onChange={(e) => setYeni(e.target.value)} minLength={4} required />
-            {sifreMsj && (
-              <div style={{ marginTop: 10, fontSize: 13.5, color: sifreMsj.ok ? "#34d399" : "#fca5a5" }}>{sifreMsj.t}</div>
-            )}
-            <button type="submit" className="btn-app" style={{ marginTop: 16, width: "100%", padding: "12px 0", fontSize: 14.5 }}>
-              Şifreyi güncelle
-            </button>
-          </form>
-        </Section>
       </div>
     </PageWrap>
   );
