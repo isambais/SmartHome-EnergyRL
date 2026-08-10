@@ -485,22 +485,28 @@ export function LangProvider({ children }) {
     el.setAttribute("dir", dil === "ar" ? "rtl" : "ltr");
   }, [dil]);
 
-  // Canlı USD/TRY kuru — elle ayarlanmadıysa. 1 saatlik cache ile gereksiz ağ isteği önlenir.
+    // Canlı USD/TRY kuru — elle ayarlanmadıysa.
+  // 1 saatlik cache ile gereksiz ağ isteği önlenir.
   useEffect(() => {
     if (localStorage.getItem("she_kur_manuel") === "1") return;
+
     const cached = localStorage.getItem("she_kur");
     const cachedAt = Number(localStorage.getItem("she_kur_ts") || 0);
     const ONE_HOUR = 60 * 60 * 1000;
+
     if (cached && Date.now() - cachedAt < ONE_HOUR) {
       const v = parseFloat(cached);
       if (v > 1) setKurState(v);
       return;
     }
+
     let ok = true;
+
     fetch("https://open.er-api.com/v6/latest/USD")
       .then((r) => r.json())
       .then((d) => {
         const v = d?.rates?.TRY;
+
         if (ok && v && v > 1) {
           setKurState(v);
           localStorage.setItem("she_kur", String(v));
@@ -508,7 +514,10 @@ export function LangProvider({ children }) {
         }
       })
       .catch(() => {});
-    return () => { ok = false; };
+
+    return () => {
+      ok = false;
+    };
   }, []);
 
   const setDil = (k) => {
