@@ -9,7 +9,10 @@ import json
 import os
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, Header, HTTPException, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+_bearer = HTTPBearer(auto_error=False)
 from sqlalchemy.orm import Session
 
 from backend.db import get_db
@@ -67,9 +70,17 @@ def token_coz(token: str) -> int | None:
 
 
 # ── FastAPI bağımlılığı: geçerli kullanıcı ───────────────────────
-def current_user(authorization: str = Header(default=""),
-                 db: Session = Depends(get_db)) -> User:
-    token = authorization.replace("Bearer ", "").strip()
+def current_user(
+    credentials: HTTPAuthorizationCredentials | None = Security(_bearer),
+    authorization: str = Header(default=""),
+    db: Session = Depends(get_db),
+) -> User:
+    # Swagger Bearer veya düz Authorization header — ikisini de destekle
+    token = ""
+    if credentials:
+        token = credentials.credentials
+    elif authorization:
+        token = authorization.replace("Bearer ", "").strip()
     uid = token_coz(token) if token else None
     if not uid:
         raise HTTPException(status_code=401, detail="Oturum geçersiz veya süresi dolmuş")
