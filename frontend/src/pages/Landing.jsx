@@ -165,10 +165,17 @@ function Mockup() {
         {/* Metrik kartlar */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, margin: "14px 0" }}>
           {[
+<<<<<<< HEAD
             [Coins, t("mock.save"), "+" + fmtPara(312), "#4ade80"],
             [Battery, t("mock.soc"), "%68", "#60a5fa"],
             [Sun, t("mock.solar"), "18.4 kWh", "#fbbf24"],
             [Bolt, t("mock.now"), t("mock.discharging"), "#f87171"],
+=======
+            [Coins, t("mock.save"), "+" + fmtPara(312), "#15803d"],
+            [Battery, t("mock.soc"), "%68", "#1d4ed8"],
+            [Sun, t("mock.solar"), "18.4 kWh", "#b45309"],
+            [Bolt, t("mock.now"), t("mock.discharging"), "#b91c1c"],
+>>>>>>> feat/i18n-en-ar
           ].map(([Icon, label, val, fg]) => (
             <div key={label} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 14px", border: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "#a1a1aa", marginBottom: 4 }}>
