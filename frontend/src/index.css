@@ -230,11 +230,7 @@ a { color: var(--blue); text-decoration: none; }
   background: rgba(255,255,255,0.04); border: 1px solid var(--border);
 }
 .pf-seg button {
-<<<<<<< HEAD
   flex: 1; padding: 11px 0; min-height: 48px; border: none; cursor: pointer; font-family: inherit;
-=======
-  flex: 1; padding: 11px 0; border: none; cursor: pointer; font-family: inherit;
->>>>>>> feat/i18n-en-ar
   font-weight: 700; font-size: 14px; border-radius: 10px; background: transparent; color: var(--muted);
   transition: color .25s, background .25s, box-shadow .25s;
 }
@@ -411,11 +407,7 @@ a { color: var(--blue); text-decoration: none; }
 .au-field:-webkit-autofill, .au-field:-webkit-autofill:hover, .au-field:-webkit-autofill:focus {
   -webkit-text-fill-color: #f1f5f9; -webkit-box-shadow: 0 0 0 1000px #12161c inset; caret-color: #f1f5f9;
 }
-<<<<<<< HEAD
 .au-toggle { position: absolute; inset-inline-end: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; color: #2dd4bf; min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center; }
-=======
-.au-toggle { position: absolute; inset-inline-end: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; color: #2dd4bf; }
->>>>>>> feat/i18n-en-ar
 .au-toggle:hover { color: #e879f9; }
 
 .au-meter { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
@@ -436,19 +428,12 @@ a { color: var(--blue); text-decoration: none; }
 
 .au-err { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.35); color: #fca5a5; border-radius: 10px; padding: 9px 13px; font-size: 13.5px; }
 .au-foot { text-align: center; margin-top: 18px; font-size: 14px; color: #94a3b8; }
-<<<<<<< HEAD
 .au-foot a { display: inline-block; padding: 6px 4px; min-height: 32px; }
-=======
->>>>>>> feat/i18n-en-ar
 
 /* Trust strip */
 .au-trust { position: relative; z-index: 10; border-top: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.015); }
 .au-trust-inner { max-width: 1120px; margin: 0 auto; padding: 34px 24px; text-align: center; }
-<<<<<<< HEAD
 .au-trust-label { font-size: 12px; letter-spacing: .25em; text-transform: uppercase; color: #94a3b8; }
-=======
-.au-trust-label { font-size: 12px; letter-spacing: .25em; text-transform: uppercase; color: #64748b; }
->>>>>>> feat/i18n-en-ar
 .au-trust-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px 40px; margin-top: 20px; opacity: .7; }
 .au-trust-item { display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: #cbd5e1; font-size: 17px; }
 
