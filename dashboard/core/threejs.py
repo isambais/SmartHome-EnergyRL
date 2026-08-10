@@ -24,6 +24,17 @@ _TEMPLATE = r"""
 </style>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- Eklentiler (r128 examples/js — hepsi global THREE.* olarak eklenir).
+     Sıra önemli: shader'lar → composer → passes. -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script>
 (function(){
 const CFG = __CFG__;
@@ -41,6 +52,42 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
 wrap.appendChild(renderer.domElement);
 
+/* ── Gerçekçilik eklentileri: model / HDRI / efekt ayarları ─ */
+// Harici .glb model + .hdr HDRI adresleri (Python'dan CFG.assets ile gelir).
+// Boş bırakılırsa mevcut ilkel geometri (fallback) kullanılır — hiçbir şey bozulmaz.
+const ASSETS = CFG.assets || {};
+// Sinematik bloom açık/kapalı — renkler soluk/aşırı parlak görünürse Python'dan bloom=False verin.
+const USE_BLOOM = (CFG.bloom !== false);
+// Nabız/akış animasyonu için toplanan emissive materyaller (animate döngüsünde sürülür).
+const energyFX = [];
+
+// GLTF yükleyici (Draco'suz .glb önerilir → ek decoder gerekmez).
+const gltfLoader = THREE.GLTFLoader ? new THREE.GLTFLoader() : null;
+
+/* Bir ilkel-geometri grubunu yüklenen GLB modeliyle değiştirir.
+   • URL yoksa / yükleyici yoksa       → hiçbir şey yapmaz, ilkel kalır.
+   • Model yüklenince                  → ilkel çocuklar silinir, model konur.
+   • Yükleme hata verirse              → ilkel korunur (güvenli fallback).
+   opts: { targetHeight, scale, scaleMul, rotY } */
+function swapWithModel(placeholder, url, opts) {
+  opts = opts || {};
+  if (!url || !gltfLoader) return;
+  gltfLoader.load(url, (gltf) => {
+    const model = gltf.scene;
+    model.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    // Hedef yüksekliğe otomatik ölçekle
+    const size = new THREE.Vector3();
+    new THREE.Box3().setFromObject(model).getSize(size);
+    if (opts.targetHeight && size.y > 0) model.scale.setScalar((opts.targetHeight / size.y) * (opts.scaleMul || 1));
+    else if (opts.scale) model.scale.setScalar(opts.scale);
+    // Zemine otur (alt yüzey y=0)
+    model.position.y -= new THREE.Box3().setFromObject(model).min.y;
+    if (opts.rotY) model.rotation.y = opts.rotY;
+    while (placeholder.children.length) placeholder.remove(placeholder.children[0]);
+    placeholder.add(model);
+  }, undefined, (err) => console.warn('Model yüklenemedi, ilkel geometri korunuyor:', url, err));
+}
+
 /* ── Scene ────────────────────────────────────────────────── */
 const scene = new THREE.Scene();
 
@@ -56,23 +103,47 @@ const isSunrise = hour >= 5 && hour < 8;
 const isSunset  = hour >= 18 && hour < 21;
 const isGolden  = isSunrise || isSunset;
 
-// Gökyüzü rengi
-function skyColor() {
-  if (hour < 5 || hour >= 22) return new THREE.Color(0x01060f); // derin gece
-  if (hour < 6)  return new THREE.Color(0x040d1e); // gece sonu
-  if (hour < 7)  return new THREE.Color(0xc45c1e); // şafak
-  if (hour < 8)  return new THREE.Color(0xe8955a); // sabah altını
-  if (hour < 10) return new THREE.Color(0x6fb8e8); // sabah
-  if (hour < 17) return new THREE.Color(0x4a9fd4); // gündüz
-  if (hour < 18) return new THREE.Color(0x6ab0d8); // öğleden sonra
-  if (hour < 19) return new THREE.Color(0xe07030); // gün batımı
-  if (hour < 20) return new THREE.Color(0x8a2a10); // alaca karanlık
-  if (hour < 21) return new THREE.Color(0x1a0a20); // akşam
-  return new THREE.Color(0x02060e); // gece
+// Gökyüzü paleti — [zirve rengi, ufuk rengi] (degrade için)
+function skyPair() {
+  if (hour < 5 || hour >= 22) return [0x01040c, 0x0a1226]; // derin gece
+  if (hour < 6)  return [0x03081a, 0x142344]; // gece sonu
+  if (hour < 7)  return [0x241d4a, 0xc45c1e]; // şafak
+  if (hour < 8)  return [0x39568a, 0xe8955a]; // sabah altını
+  if (hour < 10) return [0x2f7fc4, 0xa6d6f2]; // sabah
+  if (hour < 17) return [0x2170bf, 0x9fcdec]; // gündüz
+  if (hour < 18) return [0x2f7bbc, 0xb2d6ea]; // öğleden sonra
+  if (hour < 19) return [0x281a4d, 0xff7a2e]; // gün batımı
+  if (hour < 20) return [0x180f34, 0x8a2a10]; // alaca karanlık
+  if (hour < 21) return [0x0c0722, 0x2a1330]; // akşam
+  return [0x01050e, 0x0a1020]; // gece
 }
-const sky = skyColor();
-scene.background = sky;
-scene.fog = new THREE.FogExp2(sky, 0.008);
+const _sp = skyPair();
+const skyTop = new THREE.Color(_sp[0]);
+const sky    = new THREE.Color(_sp[1]);   // ufuk rengi → fog + hemisphere
+scene.background = sky;                     // kubbe altında yedek
+scene.fog = new THREE.FogExp2(sky, 0.008);  // ufku yumuşatır
+
+// Degrade gökyüzü kubbesi — vertex renkli (shader gerektirmez, r128 uyumlu)
+{
+  const R = 300;
+  const domeGeo = new THREE.SphereGeometry(R, 32, 20);
+  const dp = domeGeo.attributes.position;
+  const cols = [];
+  for (let i = 0; i < dp.count; i++) {
+    let t = (dp.getY(i) / R + 0.04) / 0.52;   // ufuk ≈ 0, zirve ≈ 1
+    t = Math.max(0, Math.min(1, t));
+    t = t * t * (3 - 2 * t);                    // smoothstep — yumuşak geçiş
+    const c = sky.clone().lerp(skyTop, t);
+    cols.push(c.r, c.g, c.b);
+  }
+  domeGeo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  const domeMat = new THREE.MeshBasicMaterial({
+    vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false
+  });
+  const skyDome = new THREE.Mesh(domeGeo, domeMat);
+  skyDome.renderOrder = -1;
+  scene.add(skyDome);
+}
 
 /* ── Işıklandırma ────────────────────────────────────────── */
 // Hemisphere: gökyüzü rengi yukarıdan, toprak yeşili aşağıdan
@@ -177,9 +248,11 @@ if (dayF > 0.3) {
 
 /* ── Zemin ──────────────────────────────────────────────── */
 // Çimen
+// Gündüz→gece arası yumuşak geçiş (sert eşik yok → çamurlu görünmez)
+const grassCol = new THREE.Color(0x16280d).lerp(new THREE.Color(0x5c9147), dayF);
 const grassMat = new THREE.MeshStandardMaterial({
-  color: dayF > 0.5 ? 0x4a7c3f : 0x1a3010,
-  roughness: 0.9
+  color: grassCol,
+  roughness: 0.95
 });
 const grass = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), grassMat);
 grass.rotation.x = -Math.PI / 2;
@@ -454,6 +527,10 @@ for (let r = 0; r < pRows && placed < nPanels; r++) {
     panel.position.set(px, roofY + 0.45, pz);
     panel.rotation.x = -0.32; // güneye eğim
     group.add(panel);
+    // Üretim varsa panel hafifçe pırıldar (gündüz emissive yüksek, gece sıfıra iner)
+    if (solarNorm > 0.05) {
+      energyFX.push({ mat: panelMat, base: solarNorm * 0.7, amp: solarNorm * 0.12, speed: 1.3, phase: placed * 0.5 });
+    }
 
     // Panel ızgara çizgileri
     const gridMat = new THREE.MeshBasicMaterial({color: 0x1a3a6a});
@@ -671,17 +748,20 @@ const fillH   = Math.max((battH - 0.3) * soc, 0.05);
 const fillCol = new THREE.Color(0xef4444)
   .lerp(new THREE.Color(0xfbbf24), Math.min(soc / 0.5, 1))
   .lerp(new THREE.Color(0x22c55e), Math.max((soc - 0.5) / 0.5, 0));
+const battFillMat = new THREE.MeshStandardMaterial({
+  color: fillCol,
+  emissive: fillCol,
+  emissiveIntensity: 0.35,
+  roughness: 0.5
+});
 const battFill = new THREE.Mesh(
   new THREE.BoxGeometry(battW - 0.22, fillH, 0.06),
-  new THREE.MeshStandardMaterial({
-    color: fillCol,
-    emissive: fillCol,
-    emissiveIntensity: 0.35,
-    roughness: 0.5
-  })
+  battFillMat
 );
 battFill.position.set(battX, battY0 + 0.15 + fillH / 2, 1.0 + battD / 2 + 0.04);
 group.add(battFill);
+// Batarya doluluğu hafifçe "solur" — enerji canlılığı
+energyFX.push({ mat: battFillMat, base: 0.35, amp: 0.18, speed: 1.6, phase: 1.2 });
 
 // Batarya logo / etiket
 const battLabel = new THREE.Mesh(
@@ -802,18 +882,27 @@ if (CFG.ev) {
 
   car.position.set(evX + 0.5, 0.01, evZ);
   car.castShadow = true;
+  // Gerçekçi elektrikli araç modeli verilmişse ilkel kutuları onunla değiştir (~1.5 m boy)
+  swapWithModel(car, ASSETS.car, { targetHeight: 1.5, rotY: -Math.PI / 2 });
   group.add(car);
 
-  // Şarj kablosu
+  // Şarj kablosu — şarj sırasında yeşil enerji akışı gibi nabız atar
+  const evCableMat = new THREE.MeshStandardMaterial({
+    color: 0x065f46, roughness: 0.4, metalness: 0.6,
+    emissive: new THREE.Color(0x22c55e),
+    emissiveIntensity: evCharging ? 0.6 : 0.0
+  });
   const chargeCable = new THREE.Mesh(
     new THREE.CylinderGeometry(0.03, 0.03, 1.8, 6),
-    metalMat(0x065f46)
+    evCableMat
   );
   chargeCable.rotation.z = Math.PI / 3;
   chargeCable.position.set(evX - 0.8, 0.8, evZ);
   group.add(chargeCable);
 
   if (evCharging) {
+    // Kabloyu "akan enerji" gibi yakıp söndür (Math.sin nabzı)
+    energyFX.push({ mat: evCableMat, base: 0.55, amp: 0.45, speed: 5.0, phase: 0 });
     const evLight = new THREE.PointLight(0x4ade80, 0.6, 5);
     evLight.position.set(evX - 1.5, 2.5, evZ);
     group.add(evLight);
@@ -871,6 +960,8 @@ function tree(x, z, h) {
   }
   g.position.set(x, 0, z);
   g.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+  // Gerçekçi ağaç modeli verilmişse ilkel konileri onunla değiştir (yoksa ilkel kalır)
+  swapWithModel(g, ASSETS.tree, { targetHeight: h, rotY: Math.random() * Math.PI * 2 });
   return g;
 }
 
@@ -978,6 +1069,8 @@ function streetLamp(x, z) {
   }
 
   g.position.set(x, 0, z);
+  // Gerçekçi sokak lambası modeli verilmişse ilkel geometriyle değiştir
+  swapWithModel(g, ASSETS.lamp, { targetHeight: 5.8 });
   return g;
 }
 
@@ -990,6 +1083,21 @@ group.traverse(c => {
   if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
 });
 scene.add(group);
+
+/* ── PBR ortam haritası — YALNIZCA gerçek HDRI verilirse ──── */
+// NOT: Sahneden otomatik env üretmek (pmrem.fromScene) haritayı sahne
+// merkezinden = bina içi karanlığından örneklediği için görüntüyü
+// koyulaştırıyordu; kaldırıldı. Gerçek yansıma istiyorsan assets={'hdri': url} ver.
+if (ASSETS.hdri && THREE.RGBELoader) {
+  try {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    new THREE.RGBELoader().load(ASSETS.hdri, (hdr) => {
+      scene.environment = pmrem.fromEquirectangular(hdr).texture;  // sadece yansıma; ışık zaten kurulu
+      hdr.dispose();
+    }, undefined, (e) => console.warn('HDRI yüklenemedi:', e));
+  } catch (e) { console.warn('Ortam haritası kurulamadı:', e); }
+}
 
 /* ── HUD ─────────────────────────────────────────────────── */
 const hud = document.getElementById('hud');
@@ -1048,6 +1156,26 @@ renderer.domElement.addEventListener('touchmove', e => {
   touch0 = t;
 });
 
+/* ── Sinematik post-process (bloom) ──────────────────────── */
+// Pencereler, LED'ler ve enerji akışı hafifçe parlasın.
+// Renk yönetimi: RenderPass+Bloom lineer uzayda çalışır, GammaCorrection ile sRGB'ye çevrilir.
+let composer = null;
+if (USE_BLOOM) {
+  try {
+    composer = new THREE.EffectComposer(renderer);
+    composer.addPass(new THREE.RenderPass(scene, camera));
+    const bloomStrength = 0.55 + 0.45 * (1 - dayF);   // gece daha güçlü, gündüz daha hafif
+    const bloom = new THREE.UnrealBloomPass(
+      new THREE.Vector2(W, H),
+      bloomStrength,  // strength
+      0.5,            // radius
+      0.82            // threshold — yalnızca parlak emissive'ler parlar, taban sahne bozulmaz
+    );
+    composer.addPass(bloom);
+    composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader)); // lineer → sRGB
+  } catch (e) { composer = null; console.warn('Bloom kurulamadı, düz render kullanılıyor:', e); }
+}
+
 /* ── Animasyon döngüsü ───────────────────────────────────── */
 let t0 = 0;
 function animate(ts) {
@@ -1066,8 +1194,15 @@ function animate(ts) {
   // Kesinti ışığı titremesi
   if (alarmLight) alarmLight.intensity = 1.5 + Math.sin(ts / 120) * 1.2;
 
+  // Enerji akışı nabzı — kablo/batarya/panel emissive'i Math.sin ile solup parlar
+  const tsec = ts / 1000;
+  for (let i = 0; i < energyFX.length; i++) {
+    const fx = energyFX[i];
+    fx.mat.emissiveIntensity = fx.base + fx.amp * (0.5 + 0.5 * Math.sin(tsec * fx.speed + fx.phase));
+  }
+
   updateCam();
-  renderer.render(scene, camera);
+  if (composer) composer.render(); else renderer.render(scene, camera);
 }
 
 updateCam();
@@ -1079,6 +1214,7 @@ window.addEventListener('resize', () => {
   camera.aspect = nW / nH;
   camera.updateProjectionMatrix();
   renderer.setSize(nW, nH);
+  if (composer) composer.setSize(nW, nH);
 });
 })();
 </script>
@@ -1087,9 +1223,19 @@ window.addEventListener('resize', () => {
 
 def building_html(cfg: BinaConfig, hour: int, soc: float,
                   solar_kw: float, outage: bool = False, height: int = 520,
-                  unit_label: str = "daire") -> str:
+                  unit_label: str = "daire",
+                  assets: dict | None = None, bloom: bool = False) -> str:
+    """assets: {'hdri': url, 'car': url, 'tree': url, 'lamp': url} — verilen .glb / .hdr
+    adresleri ilgili ilkel geometrilerin yerine yüklenir. Boş bırakılırsa mevcut
+    prosedürel geometri (fallback) kullanılır; hiçbir şey bozulmaz.
+    bloom: sinematik parlama efekti. VARSAYILAN KAPALI — r128 renk yönetimi hassas
+    olduğu için açınca renkleri kontrol et; soluk/karanlık olursa kapalı bırak.
+    NOT: Streamlit iframe'i srcdoc ile çalışır → model/HDRI adresleri MUTLAK ve
+    CORS-açık olmalı (yerel dosya yolu çalışmaz)."""
     solar_max = max(cfg.panel_kw * 0.80, 0.1)
     params = dict(
+        assets=dict(assets or {}),
+        bloom=bool(bloom),
         unit_label=str(unit_label),
         floors=int(cfg.kat),
         units_per_floor=int(cfg.daire_per_kat),

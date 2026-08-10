@@ -53,7 +53,16 @@ function CardHead({ renk, baslik, alt }) {
 
 export default function Uzman() {
   const { uzman, setUzman } = useApp();
-  const { t, dil } = useI18n();
+  const { t, dil, fmtPara, fmtFiyat, paraCevir, paraSuffix, fiyatBirimi, parabirimi } = useI18n();
+  const locale = dil === "ar" ? "ar" : dil === "en" ? "en-US" : "tr-TR";
+  // Backend tablo sütunları: "(TL)" içerenleri seçili para birimine çevir
+  const tlSutun = (k) => /\(TL\)/i.test(String(k));
+  const sutunBaslik = (k) => (tlSutun(k) ? String(k).replace(/\(TL\)/i, "(" + paraSuffix.trim() + ")") : k);
+  const huceDeger = (k, v) => {
+    const n = Number(v);
+    if (tlSutun(k) && Number.isFinite(n)) return parabirimi === "USD" ? paraCevir(n).toFixed(1) : v;
+    return v;
+  };
   const [tab, setTab] = useState("algo");
   const [cmp, setCmp] = useState(null);
   const [mev, setMev] = useState(null);
@@ -116,7 +125,7 @@ export default function Uzman() {
                         )}
                       </div>
                       <div style={{ fontSize: 26, fontWeight: 800, color: RENK[r.Politika], marginTop: 6 }}>
-                        {r.mean > 0 ? "+" : ""}{r.mean} TL
+                        {r.mean > 0 ? "+" : ""}{fmtPara(r.mean)}
                       </div>
                       <div className="caption">{t("expert.dailyAvg")} {r.std}</div>
                     </motion.div>
@@ -129,8 +138,10 @@ export default function Uzman() {
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={oracle}>
                     <XAxis dataKey="Politika" stroke="#8a8a8a" />
-                    <YAxis stroke="#8a8a8a" label={{ value: "TL / " + t("unit.year"), angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
-                    <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }} cursor={{ fill: "#00000008" }} />
+                    <YAxis stroke="#8a8a8a" tickFormatter={(v) => Math.round(paraCevir(v)).toLocaleString(locale)} label={{ value: paraSuffix.trim() + " / " + t("unit.year"), angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
+                    <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }} cursor={{ fill: "#00000008" }}
+                      itemStyle={{ color: "var(--fg)" }} labelStyle={{ color: "var(--fg)" }}
+                      formatter={(v) => [fmtPara(v), t("expert.dailyReward")]} />
                     <Bar dataKey="mean" name={t("expert.dailyReward")} radius={[6, 6, 0, 0]} isAnimationActive>
                       {oracle.map((r) => <Cell key={r.Politika} fill={RENK[r.Politika] || "#8a8a8a"} />)}
                       <ErrorBar dataKey="std" stroke="var(--fg)" strokeWidth={1.2} width={5} />
@@ -143,9 +154,9 @@ export default function Uzman() {
                 <div className="card" style={{ marginTop: 16, overflowX: "auto" }}>
                   <CardHead renk="#f59e0b" baslik={t("expert.forecastTitle")} alt={t("expert.forecastAlt")} />
                   <table className="tbl">
-                    <thead><tr>{Object.keys(cmp.forecast[0]).map((k) => <th key={k}>{k}</th>)}</tr></thead>
+                    <thead><tr>{Object.keys(cmp.forecast[0]).map((k) => <th key={k}>{sutunBaslik(k)}</th>)}</tr></thead>
                     <tbody>{cmp.forecast.map((r, i) => (
-                      <tr key={i}>{Object.values(r).map((v, j) => <td key={j}>{v}</td>)}</tr>
+                      <tr key={i}>{Object.entries(r).map(([k, v], j) => <td key={j}>{huceDeger(k, v)}</td>)}</tr>
                     ))}</tbody>
                   </table>
                 </div>
@@ -171,7 +182,7 @@ export default function Uzman() {
                         {["Oracle", "Forecast", "Naive"].filter((m) => m in r).map((m) => {
                           const tt = max > min ? (r[m] - min) / (max - min) : 0.5;
                           const bg = `rgba(${Math.round(248 - tt * 185)}, ${Math.round(81 + tt * 104)}, ${Math.round(73 + tt * 7)}, 0.26)`;
-                          return <td key={m} style={{ background: bg, fontWeight: 600 }}>{r[m]}</td>;
+                          return <td key={m} style={{ background: bg, fontWeight: 600 }}>{parabirimi === "USD" ? paraCevir(Number(r[m])).toFixed(2) : r[m]}</td>;
                         })}
                       </tr>
                     );
@@ -199,8 +210,10 @@ export default function Uzman() {
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={mev.aylik_fiyat.map((v, i) => ({ ay: aylarKisa[i], fiyat: v, m: i + 1 }))}>
                     <XAxis dataKey="ay" stroke="#8a8a8a" />
-                    <YAxis stroke="#8a8a8a" label={{ value: "TL/MWh", angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
-                    <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }} cursor={{ fill: "#00000008" }} />
+                    <YAxis stroke="#8a8a8a" tickFormatter={(v) => Math.round(paraCevir(v)).toLocaleString(locale)} label={{ value: fiyatBirimi, angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
+                    <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }} cursor={{ fill: "#00000008" }}
+                      itemStyle={{ color: "var(--fg)" }} labelStyle={{ color: "var(--fg)" }}
+                      formatter={(v) => [fmtFiyat(v), t("sim.price")]} />
                     <Bar dataKey="fiyat" radius={[6, 6, 0, 0]} isAnimationActive>
                       {mev.aylik_fiyat.map((_, i) => <Cell key={i} fill={AY_RENK(i + 1)} />)}
                     </Bar>

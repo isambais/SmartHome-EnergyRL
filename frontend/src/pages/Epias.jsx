@@ -21,7 +21,7 @@ function CardHead({ renk, baslik, alt }) {
 
 export default function Epias() {
   const { cfg } = useApp();
-  const { t, dil } = useI18n();
+  const { t, dil, fmtPara, fmtFiyat, fiyatBirimi, paraCevir, parabirimi, paraSuffix } = useI18n();
   const [kesinti, setKesinti] = useState(false);
   const [aralik, setAralik] = useState([18, 21]);
   const [tablo, setTablo] = useState(false);
@@ -95,13 +95,13 @@ export default function Epias() {
       </AnimatePresence>
 
       <div className="grid grid-4" style={{ marginTop: 14 }}>
-        <Metric i={0} label={t("epias.nowPrice")} value={r.fiyat_tl_mwh} suffix=" TL/MWh"
-          delta={`${(r.fiyat_tl_mwh - ort) >= 0 ? "+" : ""}${(r.fiyat_tl_mwh - ort).toFixed(0)} / ${t("epias.avg")}`} />
+        <Metric i={0} label={t("epias.nowPrice")} value={paraCevir(r.fiyat_tl_mwh)} decimals={parabirimi === "USD" ? 1 : 0} suffix={" " + fiyatBirimi}
+          delta={`${(r.fiyat_tl_mwh - ort) >= 0 ? "+" : ""}${fmtFiyat(r.fiyat_tl_mwh - ort)} / ${t("epias.avg")}`} />
         <Metric i={1} label={t("epias.cheapest")} value={enUcuz.saat} suffix=":00"
-          delta={`${enUcuz.fiyat_tl_mwh.toFixed(0)} TL/MWh`} />
+          delta={fmtFiyat(enUcuz.fiyat_tl_mwh)} />
         <Metric i={2} label={t("epias.priciest")} value={enPahali.saat} suffix=":00"
-          delta={`${enPahali.fiyat_tl_mwh.toFixed(0)} TL/MWh`} />
-        <Metric i={3} label={t("epias.todaySaving")} value={sim.ozet.tasarruf_tl} suffix=" TL" />
+          delta={fmtFiyat(enPahali.fiyat_tl_mwh)} />
+        <Metric i={3} label={t("epias.todaySaving")} value={sim.ozet.tasarruf_tl} para />
       </div>
 
       <div className="split epias" style={{ marginTop: 16 }}>
@@ -110,10 +110,11 @@ export default function Epias() {
           <ResponsiveContainer width="100%" height={360}>
             <BarChart data={df.map((x) => ({ ...x, et: KARAR_ETIKET[x.karar] }))}>
               <XAxis dataKey="saat" stroke="#8a8a8a" ticks={[0, 3, 6, 9, 12, 15, 18, 21]} interval={0} />
-              <YAxis stroke="#8a8a8a" />
+              <YAxis stroke="#8a8a8a" tickFormatter={(v) => Math.round(paraCevir(v)).toLocaleString(locale)} />
               <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }}
+                itemStyle={{ color: "var(--fg)" }} labelStyle={{ color: "var(--fg)" }}
                 cursor={{ fill: "#00000008" }}
-                formatter={(v) => [Math.round(v) + " TL/MWh", t("epias.nowPrice")]}
+                formatter={(v) => [fmtFiyat(v), t("epias.nowPrice")]}
                 labelFormatter={(l) => `${String(l).padStart(2, "0")}:00`} />
               <Bar dataKey="fiyat_tl_mwh" radius={[5, 5, 0, 0]} isAnimationActive>
                 {df.map((x) => {
@@ -131,7 +132,7 @@ export default function Epias() {
             <div className="oneri">
               batarya + güneş <b>{karsilanan.toFixed(1)} kWh</b>
               {cfg.jenerator
-                ? <> · <b>{jenKwh.toFixed(1)} kWh</b> ({jenTl.toFixed(0)} TL)</>
+                ? <> · <b>{jenKwh.toFixed(1)} kWh</b> ({fmtPara(jenTl)})</>
                 : acik > 0.05 ? <> · <b>{acik.toFixed(1)} kWh</b></> : ""}
             </div>
           )}
@@ -173,7 +174,7 @@ export default function Epias() {
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 4 }}>
               <span><b>{tar.ad}</b> <span className="caption">· {tar.not}</span></span>
               <b style={{ color: tar.renk }}>
-                {tar.tl < 0 ? `+${Math.abs(Math.round(tar.tl))} ${t("epias.gainDay")}` : `${Math.round(tar.tl)} ${t("epias.perDay")}`}
+                {tar.tl < 0 ? `+${fmtPara(Math.abs(tar.tl))} ${t("epias.gainDay")}` : `${fmtPara(tar.tl)} ${t("epias.perDay")}`}
               </b>
             </div>
             <div style={{ height: 12, background: "var(--hover)", borderRadius: 999, overflow: "hidden" }}>
@@ -184,7 +185,7 @@ export default function Epias() {
           </div>
         ))}
         <div className="oneri" style={{ marginTop: 8 }}>
-          {t("epias.tariffNote").replace("{x}", Math.round(Math.min(maliyetTek, maliyetUc) - maliyetAkilli))}
+          {t("epias.tariffNote").replace("{x}", fmtPara(Math.min(maliyetTek, maliyetUc) - maliyetAkilli))}
         </div>
       </motion.div>
 
@@ -199,20 +200,20 @@ export default function Epias() {
               initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
               <table className="tbl">
                 <thead><tr>
-                  <th>{t("epias.col.hour")}</th><th>{t("epias.col.price")}</th><th>{t("epias.col.decision")}</th><th>{t("epias.col.battery")}</th>
-                  <th>{t("epias.col.solar")}</th><th>{t("epias.col.demand")}</th><th>{t("epias.col.cost")}</th><th>{t("epias.col.saving")}</th>
+                  <th>{t("epias.col.hour")}</th><th>{t("epias.col.price")} ({fiyatBirimi})</th><th>{t("epias.col.decision")}</th><th>{t("epias.col.battery")}</th>
+                  <th>{t("epias.col.solar")}</th><th>{t("epias.col.demand")}</th><th>{t("epias.col.cost")} ({paraSuffix.trim()})</th><th>{t("epias.col.saving")} ({paraSuffix.trim()})</th>
                 </tr></thead>
                 <tbody>
                   {df.map((x) => (
                     <tr key={x.saat} style={x.saat === saat ? { background: "var(--hover)" } : undefined}>
                       <td>{String(x.saat).padStart(2, "0")}:00</td>
-                      <td>{x.fiyat_tl_mwh.toFixed(0)}</td>
+                      <td>{parabirimi === "USD" ? paraCevir(x.fiyat_tl_mwh).toFixed(1) : x.fiyat_tl_mwh.toFixed(0)}</td>
                       <td>{x.karar === "şarj" ? t("kw.store") : x.karar === "deşarj" ? t("kw.use") : t("sim.wait")}</td>
                       <td>{Math.round(x.soc * 100)}%</td>
                       <td>{x.gunes_kw.toFixed(1)}</td>
                       <td>{x.talep_kw.toFixed(1)}</td>
-                      <td>{x.net_maliyet_tl.toFixed(1)}</td>
-                      <td>{x.tasarruf_tl.toFixed(1)}</td>
+                      <td>{paraCevir(x.net_maliyet_tl).toFixed(parabirimi === "USD" ? 2 : 1)}</td>
+                      <td>{paraCevir(x.tasarruf_tl).toFixed(parabirimi === "USD" ? 2 : 1)}</td>
                     </tr>
                   ))}
                 </tbody>
