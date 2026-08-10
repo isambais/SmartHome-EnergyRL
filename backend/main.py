@@ -53,12 +53,20 @@ except Exception:
 EPIAS_USER = os.environ.get("EPIAS_USER", "")
 EPIAS_PASS = os.environ.get("EPIAS_PASS", "")
 
-app = FastAPI(title="SmartHome Energy RL API")
+from fastapi.openapi.models import HTTPBase as HTTPBaseModel  # noqa: E402
+from fastapi.security import HTTPBearer  # noqa: E402
+
+security = HTTPBearer()
+
+app = FastAPI(
+    title="SmartHome Energy RL API",
+    swagger_ui_parameters={"persistAuthorization": True},
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
@@ -133,9 +141,9 @@ _UNIT_LABEL = {"tr": "daire", "en": "flats", "ar": "وحدة"}
 
 # ── Auth / profil istek modelleri ────────────────────────────────
 class KayitIn(BaseModel):
-    ad: str
-    email: str
-    sifre: str
+    ad: str = Field(default="", max_length=120)
+    email: str = Field(max_length=255)
+    sifre: str = Field(min_length=4, max_length=128)
 
 
 class GirisIn(BaseModel):
@@ -245,26 +253,30 @@ def yatirim(inp: YatirimIn):
     if key in _CACHE:
         return _CACHE[key]
     cfg = inp.config.to_cfg()
-    batarya_tl = inp.batarya_tl if inp.batarya_tl is not None else cfg.batarya_kwh * 12_000
-    panel_tl = inp.panel_tl if inp.panel_tl is not None else cfg.panel_sayisi * 6_500
+    batarya_tl = inp.batarya_tl if inp.batarya_tl else cfg.batarya_kwh * 12_000
+    panel_tl = inp.panel_tl if inp.panel_tl else cfg.panel_sayisi * 6_500
     toplam = batarya_tl + panel_tl
 
-    # 12 ayın her biri için temsilci gün simüle et
+    # 12 ayın her biri için temsilci gün simüle et — paralel
+    from concurrent.futures import ThreadPoolExecutor  # noqa: E402
     AY_GUN = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    aylik = []
     yil = dt.date.today().year
-    for ay_no in range(1, 13):
+
+    def _ay_simule(ay_no):
         try:
             sim = SimIn(config=inp.config, tarih=dt.date(yil, ay_no, 15).isoformat())
             df, _, _, _, _, _ = _simulate(sim)
-            aylik.append({
+            return {
                 "ay": ay_no,
                 "tasarruf": round(float(df["tasarruf_tl"].sum()) * AY_GUN[ay_no - 1], 0),
                 "uretim_kwh": round(float(df["gunes_kw"].sum()) * AY_GUN[ay_no - 1], 0),
                 "batarya_verim": round(VERIM * SICAKLIK_VERIM[ay_no - 1] * 100, 1),
-            })
+            }
         except Exception:
-            pass
+            return None
+
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        aylik = [r for r in ex.map(_ay_simule, range(1, 13)) if r]
 
     yillik_tasarruf = float(sum(a["tasarruf"] for a in aylik)) if aylik else 1.0
     yillik_uretim = float(sum(a["uretim_kwh"] for a in aylik)) if aylik else 0.0
