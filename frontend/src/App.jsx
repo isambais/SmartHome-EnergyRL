@@ -1,5 +1,6 @@
-import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import TopNav from "./components/TopNav.jsx";
+import Footer from "./components/Footer.jsx";
 import Auth from "./pages/Auth.jsx";
 import Epias from "./pages/Epias.jsx";
 import Landing from "./pages/Landing.jsx";
@@ -13,14 +14,17 @@ import { AppState, useApp } from "./state.jsx";
    Giriş yapılmadıysa kayıt sayfasına yönlendirir. */
 function AppLayout() {
   const { user } = useApp();
+  const loc = useLocation();
   if (!user) return <Navigate to="/kayit" replace />;
+  const footerGizle = loc.pathname === "/profil";
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
       <TopNav />
-      <main className="main" style={{ paddingTop: 96, maxWidth: 1440, margin: "0 auto" }}>
+      <main className="main" style={{ paddingTop: 96, maxWidth: 1440, margin: "0 auto", width: "100%", flex: 1 }}>
         <Outlet />
       </main>
+      {!footerGizle && <Footer />}
     </div>
   );
 }

@@ -11,6 +11,13 @@ export const DILLER = [
   { kod: "ar", ad: "العربية", bayrak: "🇸🇦" },
 ];
 
+// Para birimleri — tutarlar dahili olarak TL; USD seçilirse kura göre çevrilir
+export const PARALAR = [
+  { kod: "TRY", ad: "Türk Lirası", sembol: "₺" },
+  { kod: "USD", ad: "ABD Doları", sembol: "$" },
+];
+const KUR_YEDEK = 41; // USD/TRY yedek değeri (canlı kur alınamazsa)
+
 // Ay isimleri (tam ve kısa) — dil bazlı
 export const AYLAR_FULL = {
   tr: ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"],
@@ -64,6 +71,11 @@ const S = {
   "profile.sub":   { tr: "Hesabın, kayıtlı binan ve simülasyon geçmişin. Yaptığın her değişiklik otomatik kaydedilir.", en: "Your account, saved building and simulation history. Every change is saved automatically.", ar: "حسابك، المبنى المحفوظ وسجل المحاكاة. يتم حفظ كل تغيير تلقائيًا." },
   "profile.member": { tr: "Üyelik", en: "Member since", ar: "عضو منذ" },
   "profile.changePw": { tr: "Şifre değiştir", en: "Change password", ar: "تغيير كلمة المرور" },
+  "profile.currency": { tr: "Para birimi", en: "Currency", ar: "العملة" },
+  "profile.currencyAlt": { tr: "Tüm tutarlar seçilen para birimine göre gösterilir", en: "All amounts are shown in the selected currency", ar: "تُعرض جميع المبالغ بالعملة المختارة" },
+  "profile.rate": { tr: "Kur (1 USD)", en: "Rate (1 USD)", ar: "سعر الصرف (1 دولار)" },
+  "profile.rateLive": { tr: "canlı", en: "live", ar: "مباشر" },
+  "profile.rateManual": { tr: "elle", en: "manual", ar: "يدوي" },
   "profile.currentPw": { tr: "Mevcut şifre", en: "Current password", ar: "كلمة المرور الحالية" },
   "profile.newPw": { tr: "Yeni şifre", en: "New password", ar: "كلمة المرور الجديدة" },
   "profile.updatePw": { tr: "Şifreyi güncelle", en: "Update password", ar: "تحديث كلمة المرور" },
@@ -103,9 +115,9 @@ const S = {
   "sim.chart": { tr: "24 saatlik plan — fiyat, batarya ve ajan kararları", en: "24-hour plan — price, battery and agent decisions", ar: "خطة 24 ساعة — السعر والبطارية وقرارات الوكيل" },
   "sim.recos": { tr: "Şu anki öneriler", en: "Current recommendations", ar: "التوصيات الحالية" },
   // ── Öneriler (backend kod + parametre) — {..} yer tutucular biçimlendirilir ──
-  "rec.charge": { tr: "Şu an şarj edin — fiyat düşük ({p} TL/MWh, ortalama {ort})", en: "Charge now — price is low ({p} TL/MWh, avg {ort})", ar: "اشحن الآن — السعر منخفض ({p} ليرة/م.و.س، المتوسط {ort})" },
-  "rec.discharge": { tr: "Batarya %{soc} — deşarj ile pahalı saatten kaçınılıyor ({p} TL/MWh)", en: "Battery {soc}% — discharging to avoid the expensive hour ({p} TL/MWh)", ar: "البطارية {soc}% — يفرّغ لتفادي ساعة الذروة ({p} ليرة/م.و.س)" },
-  "rec.idle": { tr: "Beklemede — fiyat nötr bölgede ({p} TL/MWh)", en: "On standby — price is neutral ({p} TL/MWh)", ar: "في وضع الانتظار — السعر متعادل ({p} ليرة/م.و.س)" },
+  "rec.charge": { tr: "Şu an şarj edin — fiyat düşük ({pf}, ortalama {ortf})", en: "Charge now — price is low ({pf}, avg {ortf})", ar: "اشحن الآن — السعر منخفض ({pf}، المتوسط {ortf})" },
+  "rec.discharge": { tr: "Batarya %{soc} — deşarj ile pahalı saatten kaçınılıyor ({pf})", en: "Battery {soc}% — discharging to avoid the expensive hour ({pf})", ar: "البطارية {soc}% — يفرّغ لتفادي ساعة الذروة ({pf})" },
+  "rec.idle": { tr: "Beklemede — fiyat nötr bölgede ({pf})", en: "On standby — price is neutral ({pf})", ar: "في وضع الانتظار — السعر متعادل ({pf})" },
   "rec.defer": { tr: "Çamaşır/bulaşık makinesini saat {saat}:00'te çalıştırın (günün en uygun saati)", en: "Run the washer/dishwasher at {saat}:00 (the day's best hour)", ar: "شغّل الغسالة/غسالة الصحون الساعة {saat}:00 (أفضل ساعة في اليوم)" },
   "rec.solar": { tr: "Güneş {kw} kW üretiyor — yüksek tüketimli işleri şimdi yapın", en: "Solar is producing {kw} kW — run high-consumption tasks now", ar: "الطاقة الشمسية تنتج {kw} كيلوواط — نفّذ المهام عالية الاستهلاك الآن" },
   "rec.outageGen": { tr: "Elektrik kesintisi! Jeneratör devrede.", en: "Power outage! Generator is active.", ar: "انقطاع الكهرباء! المولّد يعمل." },
@@ -158,8 +170,8 @@ const S = {
   "invest.title": { tr: "Yatırım & Çevre Analizi", en: "Investment & Impact Analysis", ar: "تحليل الاستثمار والأثر" },
   "invest.pdf": { tr: "Raporu indir (PDF)", en: "Download report (PDF)", ar: "تنزيل التقرير (PDF)" },
   "invest.costs": { tr: "Yatırım Maliyetleri", en: "Investment Costs", ar: "تكاليف الاستثمار" },
-  "invest.battCost": { tr: "Batarya maliyeti (TL)", en: "Battery cost (TL)", ar: "تكلفة البطارية (ليرة)" },
-  "invest.panelCost": { tr: "Panel maliyeti (TL)", en: "Panel cost (TL)", ar: "تكلفة الألواح (ليرة)" },
+  "invest.battCost": { tr: "Batarya maliyeti", en: "Battery cost", ar: "تكلفة البطارية" },
+  "invest.panelCost": { tr: "Panel maliyeti", en: "Panel cost", ar: "تكلفة الألواح" },
   "invest.total": { tr: "Toplam yatırım", en: "Total investment", ar: "إجمالي الاستثمار" },
   "invest.monthly": { tr: "Ay ay tasarruf — hangi ay ne kadar kazandırıyor?", en: "Month-by-month savings", ar: "التوفير شهرًا بشهر" },
   "invest.payChart": { tr: "Amorti süresi — kümülatif tasarruf vs yatırım", en: "Payback — cumulative savings vs investment", ar: "الاسترداد — التوفير التراكمي مقابل الاستثمار" },
@@ -203,7 +215,7 @@ const S = {
   "sim.chargePct": { tr: "Batarya", en: "Battery", ar: "البطارية" },
   "sim.storeDecision": { tr: "Depolama kararı", en: "Store decision", ar: "قرار التخزين" },
   "sim.useDecision": { tr: "Kullanma kararı", en: "Use decision", ar: "قرار الاستخدام" },
-  "sim.price": { tr: "Elektrik fiyatı (TL/MWh)", en: "Electricity price (TL/MWh)", ar: "سعر الكهرباء (ليرة/م.و.س)" },
+  "sim.price": { tr: "Elektrik fiyatı", en: "Electricity price", ar: "سعر الكهرباء" },
   "sim.batteryLine": { tr: "Batarya doluluğu (%)", en: "Battery level (%)", ar: "مستوى البطارية (٪)" },
   "sim.solarLine": { tr: "Güneş (kW)", en: "Solar (kW)", ar: "شمسي (ك.و)" },
   "sim.billZeroed": { tr: "bugünkü fatura sıfırlandı, üstüne kazanç var", en: "today's bill is zeroed, with extra earnings", ar: "فاتورة اليوم صفر، مع أرباح إضافية" },
@@ -218,17 +230,17 @@ const S = {
   "epias.tariffSingleNot": { tr: "sabit fiyat, sistem yok", en: "flat price, no system", ar: "سعر ثابت، بدون نظام" },
   "epias.tariffThreeNot": { tr: "gece ucuz / akşam pahalı, sistem yok", en: "cheap at night / pricey evening, no system", ar: "رخيص ليلًا / غالٍ مساءً، بدون نظام" },
   "epias.smartNot": { tr: "güneş + batarya + saatlik optimizasyon", en: "solar + battery + hourly optimization", ar: "شمسي + بطارية + تحسين بالساعة" },
-  "epias.perDay": { tr: "TL/gün", en: "TL/day", ar: "ليرة/يوم" },
-  "epias.gainDay": { tr: "TL kazanç", en: "TL earnings", ar: "ليرة أرباح" },
-  "epias.tariffNote": { tr: "Akıllı sistem, en ucuz konut tarifesine göre bile günde {x} TL daha az — çünkü güneş üretimini ve saatlik fiyat farkını birlikte kullanıyor.", en: "The smart system costs {x} TL/day less than even the cheapest household tariff — because it combines solar output with hourly price gaps.", ar: "النظام الذكي أقل بـ {x} ليرة/يوم حتى من أرخص تعرفة منزلية — لأنه يجمع الإنتاج الشمسي مع فروق الأسعار بالساعة." },
+  "epias.perDay": { tr: "/gün", en: "/day", ar: "/يوم" },
+  "epias.gainDay": { tr: "kazanç", en: "earnings", ar: "أرباح" },
+  "epias.tariffNote": { tr: "Akıllı sistem, en ucuz konut tarifesine göre bile günde {x} daha az — çünkü güneş üretimini ve saatlik fiyat farkını birlikte kullanıyor.", en: "The smart system costs {x}/day less than even the cheapest household tariff — because it combines solar output with hourly price gaps.", ar: "النظام الذكي أقل بـ {x}/يوم حتى من أرخص تعرفة منزلية — لأنه يجمع الإنتاج الشمسي مع فروق الأسعار بالساعة." },
   "epias.col.hour": { tr: "Saat", en: "Hour", ar: "الساعة" },
-  "epias.col.price": { tr: "Fiyat (TL/MWh)", en: "Price (TL/MWh)", ar: "السعر (ليرة/م.و.س)" },
+  "epias.col.price": { tr: "Fiyat", en: "Price", ar: "السعر" },
   "epias.col.decision": { tr: "Karar", en: "Decision", ar: "القرار" },
   "epias.col.battery": { tr: "Batarya", en: "Battery", ar: "البطارية" },
   "epias.col.solar": { tr: "Güneş (kW)", en: "Solar (kW)", ar: "شمسي (ك.و)" },
   "epias.col.demand": { tr: "Talep (kW)", en: "Demand (kW)", ar: "الطلب (ك.و)" },
-  "epias.col.cost": { tr: "Maliyet (TL)", en: "Cost (TL)", ar: "التكلفة (ليرة)" },
-  "epias.col.saving": { tr: "Tasarruf (TL)", en: "Saving (TL)", ar: "التوفير (ليرة)" },
+  "epias.col.cost": { tr: "Maliyet", en: "Cost", ar: "التكلفة" },
+  "epias.col.saving": { tr: "Tasarruf", en: "Saving", ar: "التوفير" },
   "kw.store": { tr: "depola", en: "store", ar: "تخزين" },
   "kw.use": { tr: "kullan", en: "use", ar: "استخدام" },
 
@@ -267,7 +279,7 @@ const S = {
   "lp.hero.sub": { tr: "Akıllı asistanınız elektriğin ucuz olduğu saatlerde bataryanızı doldurur, pahalı saatlerde depoladığı enerjiyi kullanır. Siz hiçbir şey yapmazsınız — fatura kendiliğinden düşer.", en: "Your smart assistant charges the battery when electricity is cheap and uses the stored energy when it's expensive. You do nothing — the bill drops by itself.", ar: "يشحن مساعدك الذكي البطارية عندما تكون الكهرباء رخيصة ويستخدم الطاقة المخزّنة عندما تكون غالية. لا تفعل شيئًا — تنخفض الفاتورة من تلقاء نفسها." },
   "lp.hero.cta": { tr: "Ücretsiz Dene", en: "Try for Free", ar: "جرّب مجانًا" },
   "lp.hero.how": { tr: "Nasıl Çalışır", en: "How It Works", ar: "كيف يعمل" },
-  "lp.hero.chip1": { tr: "Günde ~14 TL cebinizde kalır", en: "Keep ~14 TL in your pocket daily", ar: "احتفظ بنحو 14 ليرة يوميًا" },
+  "lp.hero.chip1": { tr: "Günde ~{d} cebinizde kalır", en: "Keep ~{d} in your pocket daily", ar: "احتفظ بنحو {d} يوميًا" },
   "lp.hero.chip2": { tr: "Tamamen otomatik", en: "Fully automatic", ar: "تلقائي بالكامل" },
   "lp.hero.chip3": { tr: "Kesintide de sizi korur", en: "Protects you during outages", ar: "يحميك أثناء الانقطاع" },
 
@@ -348,7 +360,7 @@ const S = {
   "lp.problem.afterTitle": { tr: "Akıllı asistanla her şey otomatik", en: "With the smart assistant, everything is automatic", ar: "مع المساعد الذكي، كل شيء تلقائي" },
   "lp.problem.a1": { tr: "Elektrik ucuzken depolar, pahalıyken depodakini kullanır — her gün, kendiliğinden", en: "Stores power when cheap, uses it when pricey — every day, automatically", ar: "يخزّن عند الرخص ويستخدم عند الغلاء — كل يوم تلقائيًا" },
   "lp.problem.a2": { tr: "Kesinti gelmeden bataryayı hazır tutar, ışıklarınız sönmez", en: "Keeps the battery ready before outages; your lights stay on", ar: "يبقي البطارية جاهزة قبل الانقطاع؛ تبقى الأضواء مضاءة" },
-  "lp.problem.a3": { tr: "Testlerde günde ortalama 14 TL tasarruf sağladı — yılda 5.000 TL'den fazla", en: "Saved ~14 TL/day in tests — over 5,000 TL a year", ar: "وفّر نحو 14 ليرة يوميًا في الاختبارات — أكثر من 5000 ليرة سنويًا" },
+  "lp.problem.a3": { tr: "Testlerde günde ortalama {d} tasarruf sağladı — yılda {y}'den fazla", en: "Saved ~{d}/day in tests — over {y} a year", ar: "وفّر نحو {d} يوميًا في الاختبارات — أكثر من {y} سنويًا" },
   "lp.problem.a4": { tr: "Elektrik fiyatlarını sizin yerinize o takip eder", en: "It tracks electricity prices for you", ar: "يتابع أسعار الكهرباء بدلًا عنك" },
   "lp.problem.stat1": { tr: "Kaçan tasarruf fırsatı", en: "Missed savings", ar: "توفير ضائع" },
   "lp.problem.stat2": { tr: "Fiyat takip etme derdi", en: "Price-tracking hassle", ar: "عناء متابعة الأسعار" },
@@ -422,7 +434,7 @@ const S = {
   "lp.faq.q1": { tr: "Kullanmak için teknik bilgi gerekiyor mu?", en: "Do I need technical knowledge to use it?", ar: "هل أحتاج معرفة تقنية لاستخدامه؟" },
   "lp.faq.a1": { tr: "Hayır. Binanızı tarif edersiniz (kaç kat, kaç daire, çatı ne kadar) — gerisini sistem halleder. Ekranda gördüğünüz her şey günlük dille yazılmıştır.", en: "No. You describe your building (floors, flats, roof) — the system does the rest. Everything on screen is written in plain language.", ar: "لا. تصف مبناك (الطوابق، الشقق، السطح) — والنظام يتولى الباقي. كل ما على الشاشة مكتوب بلغة بسيطة." },
   "lp.faq.q2": { tr: "Bu gerçekten faturamı düşürür mü?", en: "Will it really lower my bill?", ar: "هل سيخفّض فاتورتي فعلًا؟" },
-  "lp.faq.a2": { tr: "Elektriğin fiyatı gün içinde 2-3 kata kadar değişir. Sistem ucuz saatte elektriği bataryaya depolar, pahalı saatte onu kullanır. Testlerde günde ortalama 14 TL, yılda 5.000 TL'nin üzerinde tasarruf sağladı.", en: "Electricity price varies 2-3x during the day. The system stores power when cheap and uses it when pricey. In tests it saved ~14 TL/day, over 5,000 TL a year.", ar: "يتغيّر سعر الكهرباء 2-3 أضعاف خلال اليوم. يخزّن النظام عند الرخص ويستخدم عند الغلاء. وفّر في الاختبارات نحو 14 ليرة يوميًا وأكثر من 5000 ليرة سنويًا." },
+  "lp.faq.a2": { tr: "Elektriğin fiyatı gün içinde 2-3 kata kadar değişir. Sistem ucuz saatte elektriği bataryaya depolar, pahalı saatte onu kullanır. Testlerde günde ortalama {d}, yılda {y}'nin üzerinde tasarruf sağladı.", en: "Electricity price varies 2-3x during the day. The system stores power when cheap and uses it when pricey. In tests it saved ~{d}/day, over {y} a year.", ar: "يتغيّر سعر الكهرباء 2-3 أضعاف خلال اليوم. يخزّن النظام عند الرخص ويستخدم عند الغلاء. وفّر في الاختبارات نحو {d} يوميًا وأكثر من {y} سنويًا." },
   "lp.faq.q3": { tr: "Benim bir şey yapmam gerekiyor mu?", en: "Do I have to do anything?", ar: "هل عليّ فعل أي شيء؟" },
   "lp.faq.a3": { tr: "Hayır. Kurulumdan sonra sistem 7/24 kendi kendine çalışır. İsterseniz ekrandan ne yaptığını izlersiniz, istemezseniz hiç açmazsınız — tasarruf her iki durumda da devam eder.", en: "No. After setup the system runs itself 24/7. You can watch what it does or never open it — savings continue either way.", ar: "لا. بعد الإعداد يعمل النظام وحده على مدار الساعة. يمكنك متابعته أو عدم فتحه أبدًا — يستمر التوفير في الحالتين." },
   "lp.faq.q4": { tr: "Elektrik kesilirse ne olur?", en: "What happens during a blackout?", ar: "ماذا يحدث أثناء انقطاع الكهرباء؟" },
@@ -464,6 +476,8 @@ const Ctx = createContext(null);
 
 export function LangProvider({ children }) {
   const [dil, setDilState] = useState(detectDefault);
+  const [parabirimi, setParaState] = useState(() => localStorage.getItem("she_para") || "TRY");
+  const [kur, setKurState] = useState(() => Number(localStorage.getItem("she_kur")) || KUR_YEDEK);
 
   useEffect(() => {
     const el = document.documentElement;
@@ -471,9 +485,36 @@ export function LangProvider({ children }) {
     el.setAttribute("dir", dil === "ar" ? "rtl" : "ltr");
   }, [dil]);
 
+  // Canlı USD/TRY kuru — elle ayarlanmadıysa. Alınamazsa yedek değer korunur.
+  useEffect(() => {
+    if (localStorage.getItem("she_kur_manuel") === "1") return;
+    let ok = true;
+    fetch("https://open.er-api.com/v6/latest/USD")
+      .then((r) => r.json())
+      .then((d) => {
+        const v = d?.rates?.TRY;
+        if (ok && v && v > 1) { setKurState(v); localStorage.setItem("she_kur", String(v)); }
+      })
+      .catch(() => {});
+    return () => { ok = false; };
+  }, []);
+
   const setDil = (k) => {
     setDilState(k);
     localStorage.setItem("she_dil", k);
+  };
+
+  const setParaBirimi = (p) => {
+    setParaState(p);
+    localStorage.setItem("she_para", p);
+  };
+
+  // Kuru elle ayarla — otomatik güncellemeyi devre dışı bırakır
+  const setKur = (v) => {
+    const n = Number(v) || KUR_YEDEK;
+    setKurState(n);
+    localStorage.setItem("she_kur", String(n));
+    localStorage.setItem("she_kur_manuel", "1");
   };
 
   const t = (key) => {
@@ -482,11 +523,49 @@ export function LangProvider({ children }) {
     return e[dil] ?? e.tr ?? key;
   };
 
-  return <Ctx.Provider value={{ dil, setDil, t }}>{children}</Ctx.Provider>;
+  const _locale = () => (dil === "ar" ? "ar" : dil === "en" ? "en-US" : "tr-TR");
+  // Latin sayı+birim ifadelerini RTL (Arapça) içinde LTR olarak izole et — yön karışmasını önler
+  const _ltr = (s) => "⁦" + s + "⁩";
+  // Sayı biçimlemede Batı rakamları (Arapça'da bile) — grafik/tabloda tutarlı görünüm
+  const _numLocale = () => (dil === "en" ? "en-US" : dil === "ar" ? "en-US" : "tr-TR");
+  // TL değerini seçili para birimine çevirir (sayı)
+  const paraCevir = (tl) => (parabirimi === "USD" ? (Number(tl) || 0) / kur : (Number(tl) || 0));
+  const paraSuffix = parabirimi === "USD" ? " $" : " TL";
+  const paraSembol = parabirimi === "USD" ? "$" : "₺";
+  const _birimRaw = parabirimi === "USD" ? "$/MWh" : "TL/MWh";
+  // Tam biçimlendirilmiş metin: "312 TL" / "7,6 $" (RTL-güvenli)
+  const fmtPara = (tl, decimals) => {
+    const v = paraCevir(tl);
+    const d = decimals != null ? decimals : (parabirimi === "USD" ? (Math.abs(v) < 100 ? 1 : 0) : 0);
+    return _ltr(v.toLocaleString(_numLocale(), { maximumFractionDigits: d, minimumFractionDigits: d }) + paraSuffix);
+  };
+  // Elektrik fiyatı birimi + biçimleyici (TL/MWh ↔ $/MWh) — RTL-güvenli
+  const fiyatBirimi = _ltr(_birimRaw);
+  const fmtFiyat = (tlMwh) => {
+    const v = paraCevir(tlMwh);
+    const d = parabirimi === "USD" ? 1 : 0;
+    return _ltr(v.toLocaleString(_numLocale(), { maximumFractionDigits: d, minimumFractionDigits: d }) + " " + _birimRaw);
+  };
+
+  return (
+    <Ctx.Provider value={{
+      dil, setDil, t,
+      parabirimi, setParaBirimi, kur, setKur,
+      paraCevir, paraSuffix, paraSembol, fmtPara, fiyatBirimi, fmtFiyat,
+    }}>
+      {children}
+    </Ctx.Provider>
+  );
 }
 
+const _fallbackFmt = (tl) => `${Math.round(Number(tl) || 0)} TL`;
 export function useI18n() {
-  return useContext(Ctx) || { dil: "tr", setDil: () => {}, t: (k) => (S[k]?.tr ?? k) };
+  return useContext(Ctx) || {
+    dil: "tr", setDil: () => {}, t: (k) => (S[k]?.tr ?? k),
+    parabirimi: "TRY", setParaBirimi: () => {}, kur: KUR_YEDEK, setKur: () => {},
+    paraCevir: (tl) => Number(tl) || 0, paraSuffix: " TL", paraSembol: "₺", fmtPara: _fallbackFmt,
+    fiyatBirimi: "TL/MWh", fmtFiyat: (tl) => `${Math.round(Number(tl) || 0)} TL/MWh`,
+  };
 }
 
 export function useT() {

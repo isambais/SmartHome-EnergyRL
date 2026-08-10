@@ -3,28 +3,33 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Loading, Metric, PageWrap } from "../components/ui.jsx";
 import { useApp } from "../state.jsx";
-import { useI18n } from "../i18n.jsx";
+import { PARALAR, useI18n } from "../i18n.jsx";
+import { Building, Calendar, Chart, Coins, Home, Shield, Star } from "../icons.jsx";
 
-function CardHead({ renk, baslik, alt }) {
+const EASE = [0.22, 1, 0.36, 1];
+/* Kademeli giriş animasyonu — her kart bir öncekinden hafif gecikmeyle süzülür */
+const rise = (i = 0) => ({
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.5, ease: EASE, delay: 0.06 + i * 0.07 },
+});
+
+/* Renk aksanlı kart başlığı (ikon + başlık + alt yazı) */
+function CardHead({ renk, Icon, baslik, alt }) {
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ width: 4, height: 18, borderRadius: 2, background: renk }} />
-        <b style={{ fontSize: 15.5 }}>{baslik}</b>
+    <div className="pf-card-head">
+      <span className="pf-card-ic"><Icon size={19} /></span>
+      <div>
+        <div className="pf-card-title">{baslik}</div>
+        {alt && <div className="pf-card-sub">{alt}</div>}
       </div>
-      {alt && <div className="caption" style={{ marginTop: 4, marginLeft: 14 }}>{alt}</div>}
     </div>
   );
 }
 
-const inpStil = {
-  width: "100%", background: "var(--bg3)", border: "1px solid var(--border)",
-  color: "var(--fg)", borderRadius: 8, padding: "9px 11px", fontSize: 14, fontFamily: "inherit",
-};
-
 export default function Profil() {
   const { user } = useApp();
-  const { t, dil } = useI18n();
+  const { t, dil, parabirimi, setParaBirimi, kur, fmtPara } = useI18n();
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [yatirim, setYatirim] = useState(null);
@@ -57,55 +62,70 @@ export default function Profil() {
 
   return (
     <PageWrap>
-      <h1>{t("profile.title")}</h1>
-      <p className="caption" style={{ marginBottom: 16 }}>{t("profile.sub")}</p>
+      {/* ── Hero: avatar + kimlik + hızlı bilgiler ─────────── */}
+      <motion.div className="pf-hero"
+        initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, ease: EASE }}>
+        <div className="pf-avatar">{(data.user.ad || "K").charAt(0).toUpperCase()}</div>
+        <div style={{ minWidth: 0 }}>
+          <div className="pf-name">{data.user.ad}</div>
+          <div className="pf-email">{data.user.email}</div>
+        </div>
+        <div className="pf-hero-stats">
+          <span className="pf-chip"><span style={{ color: "var(--muted)", display: "flex" }}><Calendar size={14} /></span> {t("profile.member")}: {new Date(data.user.created_at).toLocaleDateString(locale)}</span>
+          {bina && <span className="pf-chip"><span style={{ color: "var(--muted)", display: "flex" }}><Building size={14} /></span> {t(`btype.${bina.bina_tipi}`)}</span>}
+        </div>
+      </motion.div>
+
+      <p className="caption" style={{ margin: "14px 2px 18px" }}>{t("profile.sub")}</p>
 
       <div className="split wide-r">
+        {/* ── Sol sütun ───────────────────────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <motion.div className="card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 4 }}>
-              <div style={{ width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
-                background: "linear-gradient(135deg,#34d399,#10b981)", color: "#04120c",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 22, fontWeight: 800, boxShadow: "0 0 22px -4px #34d39988" }}>
-                {(data.user.ad || "K").charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 800 }}>{data.user.ad}</div>
-                <div className="caption">{data.user.email}</div>
-              </div>
-            </div>
-            <div className="caption" style={{ marginTop: 8 }}>
-              {t("profile.member")}: {new Date(data.user.created_at).toLocaleDateString(locale)}
-            </div>
-          </motion.div>
-
-          <motion.div className="card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-            <CardHead renk="#f59e0b" baslik={t("profile.changePw")} />
+          <motion.div className="pf-card" style={{ "--c": "#f59e0b", "--c-soft": "rgba(245,158,11,0.14)" }} {...rise(0)}>
+            <CardHead renk="#f59e0b" Icon={Shield} baslik={t("profile.changePw")} />
             <form onSubmit={sifreGonder}>
-              <label className="fld">{t("profile.currentPw")}</label>
-              <input type="password" style={inpStil} value={eski} onChange={(e) => setEski(e.target.value)} required />
-              <label className="fld">{t("profile.newPw")}</label>
-              <input type="password" style={inpStil} value={yeni} onChange={(e) => setYeni(e.target.value)} minLength={4} required />
+              <label className="pf-label">{t("profile.currentPw")}</label>
+              <input type="password" className="pf-input" value={eski} onChange={(e) => setEski(e.target.value)} required />
+              <label className="pf-label">{t("profile.newPw")}</label>
+              <input type="password" className="pf-input" value={yeni} onChange={(e) => setYeni(e.target.value)} minLength={4} required />
               {sifreMsj && (
-                <div style={{ marginTop: 10, fontSize: 13.5, color: sifreMsj.ok ? "#34d399" : "#fca5a5" }}>{sifreMsj.txt}</div>
+                <div style={{ marginTop: 12, fontSize: 13.5, fontWeight: 600, color: sifreMsj.ok ? "#34d399" : "#fca5a5" }}>{sifreMsj.txt}</div>
               )}
-              <button type="submit" className="btn-app" style={{ marginTop: 14, width: "100%", padding: "12px 0", fontSize: 14.5 }}>
+              <button type="submit" className="btn-app" style={{ marginTop: 16, width: "100%", padding: "12px 0", fontSize: 14.5 }}>
                 {t("profile.updatePw")}
               </button>
             </form>
           </motion.div>
+
+          <motion.div className="pf-card" style={{ "--c": "#34d399", "--c-soft": "rgba(52,211,153,0.14)" }} {...rise(1)}>
+            <CardHead renk="#22c55e" Icon={Coins} baslik={t("profile.currency")} alt={t("profile.currencyAlt")} />
+            <div className="pf-seg">
+              {PARALAR.map((p) => (
+                <button key={p.kod} type="button" onClick={() => setParaBirimi(p.kod)}
+                  className={parabirimi === p.kod ? "on" : ""}>
+                  {p.sembol} {p.kod}
+                </button>
+              ))}
+            </div>
+            <div className="caption" style={{ marginTop: 12 }}>
+              {t("profile.rate")}: <b style={{ color: "#fff" }}>{kur.toLocaleString(locale, { maximumFractionDigits: 2 })} ₺</b>
+              {" · "}
+              {localStorage.getItem("she_kur_manuel") === "1" ? t("profile.rateManual") : t("profile.rateLive")}
+            </div>
+          </motion.div>
         </div>
 
+        {/* ── Sağ sütun ───────────────────────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <motion.div className="card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
-            <CardHead renk="#3b82f6" baslik={t("profile.savedBuilding")} alt={t("profile.savedBuilding.alt")} />
+          <motion.div className="pf-card" style={{ "--c": "#3b82f6", "--c-soft": "rgba(59,130,246,0.14)" }} {...rise(1)}>
+            <CardHead renk="#3b82f6" Icon={Home} baslik={t("profile.savedBuilding")} alt={t("profile.savedBuilding.alt")} />
             {bina ? (
-              <div style={{ display: "flex", gap: 20, flexWrap: "wrap", fontSize: 14 }}>
-                <span><b>{t(`btype.${bina.bina_tipi}`)}</b></span>
-                <span>{bina.kat} {t("profile.floors")}</span>
-                <span>{bina.aktif_daire} {t("profile.activeFlats")}</span>
-                <span>{bina.cati_alani} {t("profile.roof")}</span>
+              <div className="pf-info">
+                <span className="pf-info-chip"><b>{t(`btype.${bina.bina_tipi}`)}</b></span>
+                <span className="pf-info-chip"><b>{bina.kat}</b> {t("profile.floors")}</span>
+                <span className="pf-info-chip"><b>{bina.aktif_daire}</b> {t("profile.activeFlats")}</span>
+                <span className="pf-info-chip"><b>{bina.cati_alani}</b> {t("profile.roof")}</span>
               </div>
             ) : (
               <div className="caption">{t("profile.noBuilding")}</div>
@@ -113,10 +133,10 @@ export default function Profil() {
           </motion.div>
 
           {yatirim && (
-            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
-              <CardHead renk="#22c55e" baslik={t("profile.savingsSummary")} />
+            <motion.div {...rise(2)}>
+              <CardHead renk="#22c55e" Icon={Star} baslik={t("profile.savingsSummary")} />
               <div className="grid grid-4">
-                <Metric i={0} label={t("m.yearlySaving")} value={yatirim.yillik_tasarruf} suffix=" TL" />
+                <Metric i={0} label={t("m.yearlySaving")} value={yatirim.yillik_tasarruf} para />
                 <Metric i={1} label={t("m.payback")} value={yatirim.amorti_yil} decimals={1} suffix={" " + t("unit.year")} />
                 <Metric i={2} label={t("m.co2")} value={yatirim.co2_ton} decimals={1} suffix={" " + t("unit.ton")} />
                 <Metric i={3} label={t("invest.solarProd")} value={yatirim.yillik_uretim_kwh} suffix=" kWh" />
@@ -124,8 +144,8 @@ export default function Profil() {
             </motion.div>
           )}
 
-          <motion.div className="card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
-            <CardHead renk="#f97316" baslik={t("profile.history")} />
+          <motion.div className="pf-card" style={{ "--c": "#f97316", "--c-soft": "rgba(249,115,22,0.14)" }} {...rise(3)}>
+            <CardHead renk="#f97316" Icon={Chart} baslik={t("profile.history")} />
             {data.gecmis.length === 0 ? (
               <div className="caption">{t("profile.noHistory")}</div>
             ) : (
@@ -136,7 +156,7 @@ export default function Profil() {
                     <tr key={g.id}>
                       <td>{new Date(g.tarih).toLocaleDateString(locale)}</td>
                       <td>{t(`btype.${g.bina_tipi}`)}</td>
-                      <td>{Math.round(g.tasarruf_tl)} TL</td>
+                      <td>{fmtPara(g.tasarruf_tl)}</td>
                       <td>{Math.round(g.gunes_kwh)} kWh</td>
                     </tr>
                   ))}

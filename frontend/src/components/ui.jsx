@@ -1,5 +1,6 @@
 import { motion, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useI18n } from "../i18n.jsx";
 
 /** Sayfa başlığı — büyük başlık + alt açıklama + sağ aksiyonlar, altında ince ayraç */
 export function PageHeader({ title, subtitle, right }) {
@@ -70,7 +71,14 @@ export function AnimNum({ value, decimals = 0, suffix = "", prefix = "" }) {
 }
 
 /** Metrik kartı — opsiyonel ikon + aksan rengi */
-export function Metric({ label, value, decimals = 0, suffix = "", prefix = "", delta, icon: Icon, accent = "#34d399", i = 0 }) {
+export function Metric({ label, value, decimals = 0, suffix = "", prefix = "", delta, icon: Icon, accent = "#34d399", i = 0, para = false }) {
+  const { paraCevir, paraSuffix, parabirimi } = useI18n();
+  let val = value, sfx = suffix, dec = decimals;
+  if (para) {
+    val = paraCevir(value);
+    sfx = paraSuffix;
+    dec = parabirimi === "USD" ? (Math.abs(val) < 100 ? 1 : 0) : 0;
+  }
   return (
     <motion.div
       className="card metric-card"
@@ -84,7 +92,7 @@ export function Metric({ label, value, decimals = 0, suffix = "", prefix = "", d
         {Icon && <span className="metric-ico" style={{ color: accent, background: accent + "1f" }}><Icon size={15} /></span>}
       </div>
       <div className="metric-value">
-        <AnimNum value={value} decimals={decimals} suffix={suffix} prefix={prefix} />
+        <AnimNum value={val} decimals={dec} suffix={sfx} prefix={prefix} />
       </div>
       {delta && <div className="metric-delta">{delta}</div>}
     </motion.div>

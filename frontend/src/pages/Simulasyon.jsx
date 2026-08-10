@@ -13,12 +13,16 @@ import { AYLAR_FULL, useI18n } from "../i18n.jsx";
 
 /* Backend artık yapısal öneri döndürüyor: {code, ...params}.
    Eski sürümle uyum için düz metin de gelirse olduğu gibi gösterilir. */
-const formatOneri = (o, t) => {
+const formatOneri = (o, t, fmtFiyat, paraCevir) => {
   if (typeof o === "string")
     return o.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, "").trim();
   if (!o || !o.code) return "";
   let s = t("rec." + o.code);
-  for (const [k, v] of Object.entries(o)) {
+  // Fiyat alanları seçili para birimine çevrilir
+  const alan = { ...o };
+  if (o.p != null) alan.pf = fmtFiyat(o.p);
+  if (o.ort != null) alan.ortf = Math.round(paraCevir(o.ort)).toLocaleString();
+  for (const [k, v] of Object.entries(alan)) {
     if (k === "code") continue;
     s = s.replaceAll("{" + k + "}", String(v));
   }
@@ -26,7 +30,7 @@ const formatOneri = (o, t) => {
 };
 
 /* Ajanın o saatteki kararı — sayfanın en görünür ögesi */
-function KararBanner({ karar, saat, fiyat, soc, t }) {
+function KararBanner({ karar, saat, fiyat, soc, t, fmtFiyat }) {
   const stil = {
     "şarj": { bg: "rgba(52,211,153,0.12)", border: "#34d399", renk: "#6ee7b7", etiket: t("sim.store"), aciklama: t("sim.storeDesc") },
     "deşarj": { bg: "rgba(248,113,113,0.12)", border: "#f87171", renk: "#fca5a5", etiket: t("sim.use"), aciklama: t("sim.useDesc") },
@@ -47,7 +51,7 @@ function KararBanner({ karar, saat, fiyat, soc, t }) {
         <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "0.01em", color: stil.renk }}>{stil.etiket}</span>
       </div>
       <span style={{ fontSize: 14.5, color: stil.renk, opacity: 0.9 }}>
-        {stil.aciklama} {karar !== "bekle" ? `(${fiyat.toFixed(0)} TL/MWh)` : ""}
+        {stil.aciklama} {karar !== "bekle" ? `(${fmtFiyat(fiyat)})` : ""}
       </span>
       <span style={{ marginLeft: "auto", fontSize: 14, fontWeight: 700, color: stil.renk }}>
         {t("sim.chargePct")} %{Math.round(soc * 100)}
@@ -58,7 +62,7 @@ function KararBanner({ karar, saat, fiyat, soc, t }) {
 
 export default function Simulasyon() {
   const { cfg, saat, setSaat, ay } = useApp();
-  const { t, dil } = useI18n();
+  const { t, dil, fmtPara, fmtFiyat, fiyatBirimi, paraCevir } = useI18n();
   const dCfg = useDebounced(cfg, 450);
   const [sim, setSim] = useState(null);
   const [err, setErr] = useState(null);
@@ -104,7 +108,7 @@ export default function Simulasyon() {
         </span>
       </div>
 
-      <KararBanner karar={r.karar} saat={saat} fiyat={r.fiyat_tl_mwh} soc={r.soc} t={t} />
+      <KararBanner karar={r.karar} saat={saat} fiyat={r.fiyat_tl_mwh} soc={r.soc} t={t} fmtFiyat={fmtFiyat} />
 
       <div className="split cfg">
         <div className="card"><ConfigPanel showSaat={false} /></div>
@@ -135,7 +139,7 @@ export default function Simulasyon() {
       </div>
 
       <div className="grid grid-4" style={{ marginTop: 16 }}>
-        <Metric i={0} label={t("m.dailySaving")} value={sim.ozet.tasarruf_tl} suffix=" TL"
+        <Metric i={0} label={t("m.dailySaving")} value={sim.ozet.tasarruf_tl} para
           delta={tasarrufPct >= 100 ? t("sim.billZeroed") : t("sim.billPct").replace("{x}", Math.max(tasarrufPct, 0))} />
         <Metric i={1} label={t("m.battery")} value={r.soc * 100} suffix="%" delta={kararTxt[r.karar]} />
         <Metric i={2} label={t("m.solar")} value={r.gunes_kw} decimals={1} suffix=" kW"
@@ -150,14 +154,14 @@ export default function Simulasyon() {
           <div style={{ display: "flex", gap: 14, marginTop: 14, alignItems: "flex-end" }}>
             <div style={{ flex: 1 }}>
               <div className="caption">{t("sim.without")}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#fca5a5" }}>{Math.round(sim.ozet.taban_maliyet_tl)} TL</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#fca5a5" }}>{fmtPara(sim.ozet.taban_maliyet_tl)}</div>
               <div style={{ height: 10, background: "rgba(248,113,113,0.15)", borderRadius: 999, marginTop: 6 }}>
                 <div style={{ width: "100%", height: "100%", background: "#ef4444", borderRadius: 999 }} />
               </div>
             </div>
             <div style={{ flex: 1 }}>
               <div className="caption">{t("sim.with")}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#34d399" }}>{Math.round(sim.ozet.net_maliyet_tl)} TL</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#34d399" }}>{fmtPara(sim.ozet.net_maliyet_tl)}</div>
               <div style={{ height: 10, background: "rgba(52,211,153,0.15)", borderRadius: 999, marginTop: 6 }}>
                 <div style={{ width: `${Math.max(0, Math.min(100, 100 * sim.ozet.net_maliyet_tl / Math.max(sim.ozet.taban_maliyet_tl, 0.01)))}%`,
                               height: "100%", background: "#22c55e", borderRadius: 999 }} />
@@ -166,8 +170,8 @@ export default function Simulasyon() {
           </div>
           <div className="oneri" style={{ marginTop: 14 }}>
             {sim.ozet.net_maliyet_tl < 0
-              ? <><b>+{Math.abs(Math.round(sim.ozet.net_maliyet_tl))} TL</b> {t("sim.gainToday")}</>
-              : <><b>{Math.round(sim.ozet.tasarruf_tl)} TL</b> · ~{Math.round(sim.ozet.tasarruf_tl * 365).toLocaleString(locale)} TL/{t("unit.year")}</>}
+              ? <><b>+{fmtPara(Math.abs(sim.ozet.net_maliyet_tl))}</b> {t("sim.gainToday")}</>
+              : <><b>{fmtPara(sim.ozet.tasarruf_tl)}</b> · ~{fmtPara(sim.ozet.tasarruf_tl * 365)}/{t("unit.year")}</>}
           </div>
         </div>
 
@@ -185,9 +189,13 @@ export default function Simulasyon() {
         <ResponsiveContainer width="100%" height={400}>
           <ComposedChart data={chart}>
             <XAxis dataKey="saat" stroke="#8a8a8a" ticks={[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]} interval={0} />
-            <YAxis yAxisId="tl" stroke="#8a8a8a" label={{ value: "TL/MWh", angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
+            <YAxis yAxisId="tl" stroke="#8a8a8a"
+              tickFormatter={(v) => Math.round(paraCevir(v)).toLocaleString(locale)}
+              label={{ value: fiyatBirimi, angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
             <YAxis yAxisId="pct" orientation="right" stroke="#8a8a8a" />
-            <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }} />
+            <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }}
+              itemStyle={{ color: "var(--fg)" }} labelStyle={{ color: "var(--fg)" }}
+              formatter={(v, name, p) => (p?.dataKey === "soc_pct" ? [Math.round(v) + "%", name] : [fmtFiyat(v), name])} />
             <Legend />
             <Area yAxisId="pct" dataKey="gunes_kw" name={t("sim.solarLine")} fill="#f9731640" stroke="#f97316" />
             <Line yAxisId="tl" dataKey="fiyat_tl_mwh" name={t("sim.price")} stroke="#f59e0b" strokeWidth={2.5} dot={false} />
@@ -200,7 +208,7 @@ export default function Simulasyon() {
       </div>
 
       <h2>{t("sim.recos")}</h2>
-      <Oneriler items={(sim.oneriler[saat] || []).map((o) => formatOneri(o, t))} />
+      <Oneriler items={(sim.oneriler[saat] || []).map((o) => formatOneri(o, t, fmtFiyat, paraCevir))} />
     </PageWrap>
   );
 }

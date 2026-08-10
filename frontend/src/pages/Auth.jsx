@@ -2,20 +2,47 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../state.jsx";
-import { Bolt } from "../icons.jsx";
-import { useT } from "../i18n.jsx";
+import { Arrow, Bolt, Brain, Check, Cube, Gauge, Lock, Mail, User } from "../icons.jsx";
+import { LogoMark } from "../components/TopNav.jsx";
+import { useI18n } from "../i18n.jsx";
 
-/* Kayıt + Giriş — landing ile aynı açık tasarım dili */
+const EASE = [0.22, 1, 0.36, 1];
+
+/* Dile göre küçük metinler (i18n anahtarı olmayan mikro kopya) */
+const PILL  = { tr: "Ücretsiz · kart gerekmez", en: "Free · no card needed", ar: "مجانًا · بدون بطاقة" };
+const PUNCH = { tr: "kendiliğinden.", en: "on autopilot.", ar: "تلقائيًا." };
+const TRUST = { tr: "Açık kaynak · gerçek piyasa verisi", en: "Open source · real market data", ar: "مفتوح المصدر · بيانات سوق حقيقية" };
+const SHOW  = { tr: ["Göster", "Gizle"], en: ["Show", "Hide"], ar: ["إظهار", "إخفاء"] };
+const STR   = {
+  tr: ["Çok zayıf", "Zayıf", "Orta", "İyi", "Güçlü"],
+  en: ["Very weak", "Weak", "Fair", "Good", "Strong"],
+  ar: ["ضعيفة جدًا", "ضعيفة", "متوسطة", "جيدة", "قوية"],
+};
+
+/* Basit ama gerçek şifre gücü (0–4) */
+function pwScore(pw) {
+  let s = 0;
+  if (pw.length >= 6) s++;
+  if (pw.length >= 10) s++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
+  if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) s++;
+  return Math.min(s, 4);
+}
+
+/* Kayıt + Giriş — aurora glassmorphism */
 export default function Auth({ mode = "kayit" }) {
   const kayit = mode === "kayit";
   const { register, login } = useApp();
-  const t = useT();
+  const { t, dil } = useI18n();
+  const lang = dil === "ar" ? "ar" : dil === "en" ? "en" : "tr";
   const nav = useNavigate();
   const [ad, setAd] = useState("");
   const [email, setEmail] = useState("");
   const [sifre, setSifre] = useState("");
+  const [goster, setGoster] = useState(false);
   const [hata, setHata] = useState(null);
   const [bekliyor, setBekliyor] = useState(false);
+  const score = pwScore(sifre);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -25,77 +52,108 @@ export default function Auth({ mode = "kayit" }) {
                       : await login(email.trim(), sifre);
     setBekliyor(false);
     if (err) setHata(err);
-    else nav("/");   // kayıt/giriş sonrası ana sayfaya (landing) dön
+    else nav("/");
   };
 
-  const inp = {
-    width: "100%", background: "var(--bg3)", border: "1px solid var(--border)",
-    color: "var(--fg)", borderRadius: 10, padding: "12px 14px", fontSize: 15,
-    fontFamily: "inherit",
-  };
+  const trust = [[Bolt, "EPİAŞ"], [Brain, "PPO"], [Cube, "React"], [Gauge, "FastAPI"]];
 
   return (
-    <div style={{
-      minHeight: "100vh", background: "var(--bg)", position: "relative", overflow: "hidden",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
-    }}>
-      {/* arka plan ışıması */}
-      <div style={{ position: "absolute", top: "-10%", left: "50%", transform: "translateX(-50%)",
-        width: "70vw", height: "60vh", background: "radial-gradient(circle, rgba(52,211,153,0.12), transparent 65%)",
-        filter: "blur(40px)", pointerEvents: "none" }} />
-      <motion.div
-        initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        style={{
-          background: "var(--surface-solid)", border: "1px solid var(--border)", borderRadius: 24,
-          boxShadow: "0 30px 80px -30px #000000cc", padding: "38px 34px",
-          width: "100%", maxWidth: 420, position: "relative", backdropFilter: "blur(8px)",
-        }}>
-        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, fontSize: 18, color: "#fff", marginBottom: 22 }}>
-          <span style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg,#34d399,#10b981)", color: "#04120c", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 18px -2px #34d39988" }}><Bolt size={17} /></span>
-          SmartHome Energy
-        </Link>
+    <div className="au-root">
+      <div className="au-aurora" />
+      <div className="au-grain" />
 
-        <h1 style={{ fontSize: 26, margin: "0 0 6px", letterSpacing: "-0.02em" }}>
-          {kayit ? t("auth.register.title") : t("auth.login.title")}
-        </h1>
-        <p style={{ color: "var(--muted)", fontSize: 14.5, marginBottom: 24 }}>
-          {kayit ? t("auth.register.sub") : t("auth.login.sub")}
-        </p>
+      {/* ── Ortada marka — ana sayfaya dönüş (kutusuz) ────── */}
+      <Link to="/" className="au-topbrand">
+        <LogoMark size={36} />
+        <span className="au-grad-text">SmartHome Energy</span>
+      </Link>
 
-        <form onSubmit={submit}>
-          {kayit && (
-            <>
-              <label className="fld">{t("auth.name")}</label>
-              <input style={inp} value={ad} onChange={(e) => setAd(e.target.value)} placeholder={t("auth.name.ph")} />
-            </>
-          )}
-          <label className="fld">{t("auth.email")}</label>
-          <input style={inp} type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@eposta.com" />
-          <label className="fld">{t("auth.password")}</label>
-          <input style={inp} type="password" required minLength={4} value={sifre} onChange={(e) => setSifre(e.target.value)} placeholder="••••••••" />
-
-          {hata && (
-            <div style={{ background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.35)", color: "#fca5a5", borderRadius: 10, padding: "9px 13px", fontSize: 13.5, marginTop: 12 }}>
-              {hata}
+      {/* ── Hero: pitch + kart ────────────────────────────── */}
+      <main className="au-shell">
+        <div className="au-grid">
+          {/* Sol — pazarlama */}
+          <motion.div className="au-pitch"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: EASE }}>
+            <span className="au-chip"><span className="au-dot" />{PILL[lang]}</span>
+            <h1 className="au-head">
+              {t("lp.hero.titleFull")}<br />
+              <span className="au-grad-text">{PUNCH[lang]}</span>
+            </h1>
+            <p className="au-lead">{t("lp.hero.sub")}</p>
+            <div className="au-points">
+              {["lp.hero.chip1", "lp.hero.chip2", "lp.hero.chip3"].map((k, i) => (
+                <motion.div className="au-point" key={k}
+                  initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.25 + i * 0.08, duration: 0.45, ease: EASE }}>
+                  <span className="ic"><Check size={18} /></span>{t(k)}
+                </motion.div>
+              ))}
             </div>
-          )}
+          </motion.div>
 
-          <motion.button whileHover={{ scale: bekliyor ? 1 : 1.015 }} whileTap={{ scale: 0.985 }} type="submit"
-            disabled={bekliyor} className="btn-app"
-            style={{
-              width: "100%", marginTop: 18, padding: "13px 0", fontSize: 15.5,
-              cursor: bekliyor ? "default" : "pointer", opacity: bekliyor ? 0.7 : 1,
-            }}>
-            {bekliyor ? t("auth.wait") : (kayit ? t("auth.register.btn") : t("auth.login.btn"))}
-          </motion.button>
-        </form>
+          {/* Sağ — buzlu cam kart */}
+          <motion.div className="au-card au-glass au-sheen au-cardglow"
+            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: EASE, delay: 0.05 }}>
+            <div className="au-card-h">{kayit ? t("auth.register.title") : t("auth.login.title")}</div>
+            <div className="au-card-sub">{kayit ? t("auth.register.sub") : t("auth.login.sub")}</div>
 
-        <div style={{ textAlign: "center", marginTop: 18, fontSize: 14, color: "var(--muted)" }}>
-          {kayit ? <>{t("auth.haveAccount")} <Link to="/giris" style={{ fontWeight: 700 }}>{t("auth.goLogin")}</Link></>
-                 : <>{t("auth.noAccount")} <Link to="/kayit" style={{ fontWeight: 700 }}>{t("auth.goRegister")}</Link></>}
+            <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {kayit && (
+                <div className="au-field-wrap">
+                  <span className="au-field-icon"><User size={18} /></span>
+                  <input className="au-field" value={ad} onChange={(e) => setAd(e.target.value)} placeholder={t("auth.name.ph")} />
+                </div>
+              )}
+              <div className="au-field-wrap">
+                <span className="au-field-icon"><Mail size={18} /></span>
+                <input className="au-field" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@eposta.com" />
+              </div>
+              <div className="au-field-wrap">
+                <span className="au-field-icon"><Lock size={18} /></span>
+                <input className="au-field" type={goster ? "text" : "password"} required minLength={4}
+                  value={sifre} onChange={(e) => setSifre(e.target.value)} placeholder={t("auth.password")} />
+                <button type="button" className="au-toggle" onClick={() => setGoster((v) => !v)}>
+                  {SHOW[lang][goster ? 1 : 0]}
+                </button>
+              </div>
+
+              {kayit && sifre && (
+                <div className="au-meter">
+                  {[0, 1, 2, 3].map((i) => <span key={i} className={"bar" + (i < score ? " on" : "")} />)}
+                  <span className="lbl">{STR[lang][score]}</span>
+                </div>
+              )}
+
+              {hata && <div className="au-err">{hata}</div>}
+
+              <motion.button whileTap={{ scale: 0.985 }} type="submit" disabled={bekliyor} className="au-btn">
+                {bekliyor ? t("auth.wait") : (kayit ? t("auth.register.btn") : t("auth.login.btn"))}
+                {!bekliyor && <Arrow size={16} />}
+              </motion.button>
+            </form>
+
+            <div className="au-foot">
+              {kayit
+                ? <>{t("auth.haveAccount")} <Link to="/giris" className="au-grad-text" style={{ fontWeight: 700 }}>{t("auth.goLogin")}</Link></>
+                : <>{t("auth.noAccount")} <Link to="/kayit" className="au-grad-text" style={{ fontWeight: 700 }}>{t("auth.goRegister")}</Link></>}
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
+      </main>
+
+      {/* ── Trust strip (gerçek teknoloji rozetleri) ──────── */}
+      <section className="au-trust">
+        <div className="au-trust-inner">
+          <div className="au-trust-label">{TRUST[lang]}</div>
+          <div className="au-trust-row">
+            {trust.map(([Ic, name]) => (
+              <div className="au-trust-item" key={name}><Ic size={18} /> {name}</div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

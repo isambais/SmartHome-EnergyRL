@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import Footer from "../components/Footer.jsx";
 import { Link } from "react-router-dom";
 import TopNav from "../components/TopNav.jsx";
@@ -7,18 +7,46 @@ import {
   Alert, Arrow, Battery, Bolt, Brain, Chart, Check, Chevron,
   Coins, Cube, Gauge, Home, Shield, Star, Sun, X,
 } from "../icons.jsx";
-import { useT } from "../i18n.jsx";
+import { useI18n, useT } from "../i18n.jsx";
 
+/* Kaydırınca içerik belirgin biçimde aşağıdan yukarı süzülür.
+   margin: alttan -12% → eleman ekrana iyice girmeden tetiklenmez,
+   böylece kullanıcı hareketi gerçekten görür. */
+const EASE = [0.22, 1, 0.36, 1];
 const fadeUp = {
-  initial: { opacity: 0, y: 30 },
+  initial: { opacity: 0, y: 46 },
   whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-70px" },
-  transition: { duration: 0.55, ease: "easeOut" },
+  viewport: { once: true, margin: "0px 0px -80px 0px" },
+  transition: { duration: 0.6, ease: EASE },
 };
+
+/* Grid/list öğelerini sırayla (cascade) açmak için yardımcı.
+   i = öğe indeksi → her kart bir öncekinden 0.1s sonra gelir.
+   NOT: viewport.margin yalnızca px kabul eder — % observer'ı bozar. */
+const reveal = (i = 0, y = 46) => ({
+  initial: { opacity: 0, y },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "0px 0px -70px 0px" },
+  transition: { duration: 0.55, ease: EASE, delay: i * 0.1 },
+});
+
+/* Sayfa üstünde kaydırma ilerleme çubuğu — sayfaya "canlılık" katar. */
+function ScrollProgress() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30, restDelta: 0.001 });
+  return (
+    <motion.div style={{
+      position: "fixed", top: 0, left: 0, right: 0, height: 3, zIndex: 100,
+      transformOrigin: "0%", scaleX,
+      background: "linear-gradient(90deg,#34d399,#60a5fa,#f59e0b)",
+      boxShadow: "0 0 10px rgba(52,211,153,0.6)",
+    }} />
+  );
+}
 
 /* ── Mockup: gerçekçi BMS dashboard önizlemesi ───────────────── */
 function Mockup() {
-  const t = useT();
+  const { t, fmtPara, fmtFiyat } = useI18n();
   const navItems = [
     { label: t("nav.sim"), Icon: Home, active: true },
     { label: t("nav.epias"), Icon: Bolt, active: false },
@@ -137,7 +165,7 @@ function Mockup() {
         {/* Metrik kartlar */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, margin: "14px 0" }}>
           {[
-            [Coins, t("mock.save"), "+312 TL", "#15803d"],
+            [Coins, t("mock.save"), "+" + fmtPara(312), "#15803d"],
             [Battery, t("mock.soc"), "%68", "#1d4ed8"],
             [Sun, t("mock.solar"), "18.4 kWh", "#b45309"],
             [Bolt, t("mock.now"), t("mock.discharging"), "#b91c1c"],
@@ -399,7 +427,7 @@ function HeroScene() {
 }
 
 function Hero() {
-  const t = useT();
+  const { t, fmtPara } = useI18n();
   return (
     <section id="top" style={{
       position: "relative",
@@ -444,7 +472,7 @@ function Hero() {
         <motion.div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "26px 0 50px" }}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
           <span className="chip" style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: "8px 16px", backdropFilter: "blur(8px)" }}>
-            <span style={{ color: "var(--amber)", display: "flex" }}><Star size={17} /></span> {t("lp.hero.chip1")}
+            <span style={{ color: "var(--amber)", display: "flex" }}><Star size={17} /></span> {t("lp.hero.chip1").replace("{d}", fmtPara(14))}
           </span>
           <span className="chip" style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: "8px 16px", backdropFilter: "blur(8px)" }}>
             <span style={{ color: "var(--green)", display: "flex" }}><Shield size={17} /></span> {t("lp.hero.chip2")}
@@ -646,23 +674,22 @@ function BinaTipleri() {
         </motion.div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
-          {tipler.map((t) => {
+          {tipler.map((t, ti) => {
             const isHov = hov === t.id;
             return (
               <motion.div
                 key={t.id}
                 onMouseEnter={() => setHov(t.id)}
                 onMouseLeave={() => setHov(null)}
-                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                {...reveal(ti, 40)}
+                whileHover={{ y: -6 }}
                 style={{
                   background: isHov ? t.color + "1a" : "rgba(255,255,255,0.03)",
                   border: `1px solid ${isHov ? t.color : "rgba(255,255,255,0.10)"}`,
                   borderRadius: 20, padding: "32px 24px",
                   cursor: "default",
-                  transition: "background 0.3s, border-color 0.3s, box-shadow 0.3s, transform 0.3s",
+                  transition: "background 0.3s, border-color 0.3s, box-shadow 0.3s",
                   boxShadow: isHov ? `0 16px 50px -12px ${t.color}55` : "none",
-                  transform: isHov ? "translateY(-6px)" : "translateY(0)",
                 }}>
                 {/* SVG bina */}
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, height: 88 }}>
@@ -699,50 +726,52 @@ function BinaTipleri() {
 
 /* ── Önce / Sonra ────────────────────────────────────────────── */
 function BeforeAfter() {
-  const t = useT();
-  const [after, setAfter] = useState(false);
+  const { t, fmtPara } = useI18n();
+  const cards = [
+    {
+      good: false, accent: "#f87171", Icon: X, tag: t("lp.problem.before"),
+      title: t("lp.problem.beforeTitle"),
+      items: ["lp.problem.b1", "lp.problem.b2", "lp.problem.b3", "lp.problem.b4"],
+      stats: [["%40+", t("lp.problem.stat1")], [t("lp.problem.constant"), t("lp.problem.stat2")]],
+    },
+    {
+      good: true, accent: "#34d399", Icon: Check, tag: t("lp.problem.after"),
+      title: t("lp.problem.afterTitle"),
+      items: ["lp.problem.a1", "lp.problem.a2", "lp.problem.a3", "lp.problem.a4"],
+      stats: [["+" + fmtPara(14), t("lp.problem.stat3")], ["7/24", t("lp.problem.stat4")]],
+    },
+  ];
   return (
     <section style={{ textAlign: "center" }}>
       <div className="container">
-        <motion.h2 {...fadeUp}>{t("lp.problem.title")}</motion.h2>
-        <motion.div {...fadeUp} style={{ margin: "26px 0 22px", textAlign: "center" }}>
-          <div className="toggle-pill" role="tablist">
-            <button className={!after ? "on" : ""} onClick={() => setAfter(false)} role="tab" aria-selected={!after}>{t("lp.problem.before")}</button>
-            <button className={after ? "on" : ""} onClick={() => setAfter(true)} role="tab" aria-selected={after}>{t("lp.problem.after")}</button>
-          </div>
-        </motion.div>
-        <div style={{ maxWidth: 560, margin: "0 auto", perspective: 900 }}>
-          <AnimatePresence mode="wait">
-            {!after ? (
-              <motion.div key="b" className="card" style={{ textAlign: "left" }}
-                initial={{ opacity: 0, rotateY: -14 }} animate={{ opacity: 1, rotateY: 0 }}
-                exit={{ opacity: 0, rotateY: 14 }} transition={{ duration: 0.3 }}>
-                <h3 style={{ marginBottom: 14 }}>{t("lp.problem.beforeTitle")}</h3>
-                {["lp.problem.b1", "lp.problem.b2", "lp.problem.b3", "lp.problem.b4"].map((k) => (
-                  <div className="tick" key={k}><span className="c" style={{ color: "var(--red)" }}><X /></span>{t(k)}</div>
-                ))}
-                <div style={{ display: "flex", gap: 30, marginTop: 20 }}>
-                  <div><div style={{ fontSize: 30, fontWeight: 800 }}>%40+</div><div className="sub" style={{ fontSize: 14 }}>{t("lp.problem.stat1")}</div></div>
-                  <div><div style={{ fontSize: 30, fontWeight: 800 }}>{t("lp.problem.constant")}</div><div className="sub" style={{ fontSize: 14 }}>{t("lp.problem.stat2")}</div></div>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div key="a" className="card" style={{ textAlign: "left", background: "#141414", color: "#fff" }}
-                initial={{ opacity: 0, rotateY: -14 }} animate={{ opacity: 1, rotateY: 0 }}
-                exit={{ opacity: 0, rotateY: 14 }} transition={{ duration: 0.3 }}>
-                <h3 style={{ marginBottom: 14 }}>{t("lp.problem.afterTitle")}</h3>
-                {["lp.problem.a1", "lp.problem.a2", "lp.problem.a3", "lp.problem.a4"].map((k) => (
-                  <div className="tick" key={k} style={{ color: "#d8d8d8" }}>
-                    <span className="c" style={{ color: "var(--green)" }}><Check /></span>{t(k)}
+        <motion.h2 {...fadeUp} style={{ marginBottom: 40 }}>{t("lp.problem.title")}</motion.h2>
+        <div className="cmp-grid">
+          {cards.map((c, i) => (
+            <motion.article key={i} {...reveal(i, 40)}
+              className={"cmp-card" + (c.good ? " good" : "")}
+              style={{ "--c": c.accent, "--c-soft": c.accent + "22" }}>
+              <div className="cmp-head">
+                <span className="cmp-badge"><c.Icon size={20} /></span>
+                <span className="cmp-tag">{c.tag}</span>
+              </div>
+              <h3>{c.title}</h3>
+              <div style={{ marginBottom: 6 }}>
+                {c.items.map((k) => (
+                  <div className="cmp-tick" key={k}>
+                    <span className="ic"><c.Icon size={17} /></span>{t(k).replace("{d}", fmtPara(14)).replace("{y}", fmtPara(5000))}
                   </div>
                 ))}
-                <div style={{ display: "flex", gap: 30, marginTop: 20 }}>
-                  <div><div style={{ fontSize: 30, fontWeight: 800, color: "var(--green)" }}>+14 TL</div><div style={{ fontSize: 14, color: "#9a9a9a" }}>{t("lp.problem.stat3")}</div></div>
-                  <div><div style={{ fontSize: 30, fontWeight: 800, color: "var(--green)" }}>7/24</div><div style={{ fontSize: 14, color: "#9a9a9a" }}>{t("lp.problem.stat4")}</div></div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+              <div className="cmp-stats">
+                {c.stats.map(([n, d]) => (
+                  <div key={d}>
+                    <div className="num">{n}</div>
+                    <div className="lbl">{d}</div>
+                  </div>
+                ))}
+              </div>
+            </motion.article>
+          ))}
         </div>
       </div>
     </section>
@@ -847,13 +876,13 @@ function BatteryView() {
 }
 
 function EpiasView() {
-  const t = useT();
+  const { t, fmtPara } = useI18n();
   const bars = [42, 38, 35, 32, 30, 33, 40, 55, 68, 62, 52, 46, 44, 48, 55, 64, 78, 92, 100, 88, 74, 62, 52, 45];
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <div>
-          <span style={{ fontSize: 24, fontWeight: 800, color: "#fff" }}>2.412 ₺</span>
+          <span style={{ fontSize: 24, fontWeight: 800, color: "#fff" }}>{fmtPara(2412)}</span>
           <span style={{ fontSize: 12.5, color: "#8b95a7" }}> {t("show.price.now")}</span>
         </div>
         <motion.span animate={{ opacity: [1, 0.5, 1] }} transition={{ repeat: Infinity, duration: 1.8 }}
@@ -910,7 +939,7 @@ function OutageView() {
 }
 
 function AgentView() {
-  const t = useT();
+  const { t, fmtPara } = useI18n();
   const decisions = [
     ["03:00", t("show.agent.store"), "#22c55e", t("show.agent.d1")],
     ["13:00", t("show.agent.wait"), "#8b95a7", t("show.agent.d2")],
@@ -932,7 +961,7 @@ function AgentView() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}
         style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "linear-gradient(90deg,#22c55e18,#8b5cf618)", border: "1px solid #ffffff14", borderRadius: 12, padding: "13px 16px", marginTop: 4 }}>
         <span style={{ fontSize: 13, color: "#c3cad6" }}>{t("show.agent.net")}</span>
-        <span style={{ fontSize: 21, fontWeight: 800, color: "#4ade80" }}>+14.4 ₺</span>
+        <span style={{ fontSize: 21, fontWeight: 800, color: "#4ade80" }}>+{fmtPara(14.4)}</span>
       </motion.div>
     </div>
   );
@@ -977,11 +1006,12 @@ function ProductPanel({ active }) {
   );
 }
 
-/* ── Sticky Showcase — scroll-linked bina animasyonu ─────────── */
+/* ── Showcase — otomatik dönen etkileşimli özellik listesi ────── */
+const CYCLE_MS = 4200;
 function StickyShowcase() {
   const t = useT();
   const [active, setActive] = useState(0);
-  const refs = useRef([]);
+  const [paused, setPaused] = useState(false);
 
   const features = [
     { Icon: Sun, color: "#f59e0b", title: t("lp.feat.solar.t"), desc: t("lp.feat.solar.d") },
@@ -991,62 +1021,79 @@ function StickyShowcase() {
     { Icon: Brain, color: "#8b5cf6", title: t("lp.feat.agent.t"), desc: t("lp.feat.agent.d") },
   ];
 
+  // Otomatik ilerleme — her adımda sıfırlanır, hover'da durur.
   useEffect(() => {
-    const observers = refs.current.map((el, i) => {
-      if (!el) return null;
-      const obs = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) setActive(i); },
-        { threshold: 0.55 }
-      );
-      obs.observe(el);
-      return obs;
-    });
-    return () => observers.forEach(obs => obs && obs.disconnect());
-  }, []);
+    if (paused) return;
+    const id = setTimeout(() => setActive((a) => (a + 1) % features.length), CYCLE_MS);
+    return () => clearTimeout(id);
+  }, [active, paused, features.length]);
 
   return (
     <section id="features" style={{ padding: "100px 0", background: "#08080a" }}>
       <div className="container">
-        <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 72 }}>
+        <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 56 }}>
           <span className="eyebrow">{t("lp.feat.eyebrow")}</span>
           <h2>{t("lp.feat.title")}</h2>
           <p className="sub" style={{ maxWidth: 480, margin: "12px auto 0" }}>{t("lp.feat.sub")}</p>
         </motion.div>
 
-        <div className="showcase-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "start" }}>
-          {/* Sol — yapışık ürün paneli */}
-          <div className="showcase-sticky" style={{ position: "sticky", top: "16vh" }}>
+        <motion.div {...fadeUp}
+          className="showcase-grid"
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          {/* Sol — canlı ürün paneli */}
+          <div className="showcase-sticky">
             <ProductPanel active={active} />
           </div>
 
-          {/* Sağ — kaydırmalı özellik kartları */}
-          <div>
-            {features.map((f, i) => (
-              <div
-                key={i}
-                ref={el => refs.current[i] = el}
-                style={{ minHeight: "68vh", display: "flex", alignItems: "center" }}
-              >
-                <div style={{
-                  background: active === i ? f.color + "14" : "rgba(255,255,255,0.03)",
-                  border: `1px solid ${active === i ? f.color : "rgba(255,255,255,0.10)"}`,
-                  borderRadius: 20, padding: "36px 32px", width: "100%",
-                  transition: "background 0.45s, border-color 0.45s, box-shadow 0.45s",
-                  boxShadow: active === i ? `0 16px 50px -12px ${f.color}55` : "none",
-                }}>
-                  <div style={{
-                    width: 54, height: 54, borderRadius: 14,
-                    background: f.color + "20", color: f.color,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    marginBottom: 22,
-                  }}><f.Icon size={26} /></div>
-                  <h3 style={{ fontSize: 22, marginBottom: 12 }}>{f.title}</h3>
-                  <p style={{ color: "#a1a1aa", fontSize: 15.5, lineHeight: 1.75 }}>{f.desc}</p>
-                </div>
-              </div>
-            ))}
+          {/* Sağ — tıklanabilir özellik adımları */}
+          <div className="feat-list">
+            {features.map((f, i) => {
+              const on = active === i;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  className="feat-step"
+                  data-on={on}
+                  onClick={() => setActive(i)}
+                  aria-pressed={on}
+                  style={{ "--c": f.color, "--c-soft": f.color + "1e" }}
+                >
+                  <span className="feat-ic"><f.Icon size={22} /></span>
+                  <div style={{ flex: 1 }}>
+                    <div className="feat-t">{f.title}</div>
+                    <AnimatePresence initial={false}>
+                      {on && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.32, ease: EASE }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <p className="feat-d" style={{ marginTop: 8 }}>{f.desc}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  {/* otomatik ilerleme çubuğu */}
+                  {on && (
+                    <motion.span
+                      key={active + (paused ? "-p" : "")}
+                      className="feat-bar"
+                      initial={{ width: "0%" }}
+                      animate={{ width: paused ? "0%" : "100%" }}
+                      transition={{ duration: paused ? 0 : CYCLE_MS / 1000, ease: "linear" }}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
@@ -1054,33 +1101,35 @@ function StickyShowcase() {
 
 /* ── İstatistikler ───────────────────────────────────────────── */
 function Stats() {
-  const t = useT();
+  const { t, fmtPara } = useI18n();
   const rows = [
-    [t("lp.stats.1l"), "~14 TL", t("lp.stats.1d"), "rgba(255,255,255,0.05)", "#fff"],
-    [t("lp.stats.2l"), "5.000+ TL", t("lp.stats.2d"), "#10b981", "#04120c"],
-    [t("lp.stats.3l"), t("lp.stats.mins"), t("lp.stats.3d"), "rgba(255,255,255,0.05)", "#f4f4f5"],
-    [t("lp.stats.4l"), t("lp.stats.hrs"), t("lp.stats.4d"), "#3b82f6", "#fff"],
-    [t("lp.stats.5l"), t("lp.stats.nothing"), t("lp.stats.5d"), "#f59e0b", "#1b1b1b"],
+    [t("lp.stats.1l"), "~" + fmtPara(14), t("lp.stats.1d"), "#60a5fa", Brain],
+    [t("lp.stats.2l"), fmtPara(5000) + "+", t("lp.stats.2d"), "#34d399", Bolt],
+    [t("lp.stats.3l"), t("lp.stats.mins"), t("lp.stats.3d"), "#a78bfa", Chart],
+    [t("lp.stats.4l"), t("lp.stats.hrs"), t("lp.stats.4d"), "#38bdf8", Gauge],
+    [t("lp.stats.5l"), t("lp.stats.nothing"), t("lp.stats.5d"), "#f59e0b", Cube],
   ];
   return (
     <section id="stats">
       <div className="container">
-        <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 34 }}>
+        <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 44 }}>
           <span className="eyebrow">{t("lp.stats.eyebrow")}</span>
           <h2>{t("lp.stats.title")}</h2>
           <p className="sub" style={{ margin: "12px auto 0", maxWidth: 520 }}>{t("lp.stats.sub")}</p>
         </motion.div>
-        {rows.map(([l, n, d, bg, fg], i) => (
-          <motion.div key={l} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.05 }}
-            className="stat-row" style={{ background: bg, color: fg }}>
-            <div style={{ fontSize: 14.5, fontWeight: 600, opacity: 0.85 }}>{l}</div>
-            <div className="num">{n}</div>
-            <div style={{ fontSize: 14.5, opacity: 0.75 }}>{d}</div>
-            <span className="stat-icon" style={{ background: (fg === "#1b1b1b" || fg === "#04120c") ? "#00000018" : "rgba(255,255,255,0.14)", color: fg }}>
-              {[<Brain key="br" />, <Bolt key="bo" />, <Chart key="ch" />, <Gauge key="ga" />, <Cube key="cu" />][i]}
-            </span>
-          </motion.div>
-        ))}
+        <div className="stat-grid">
+          {rows.map(([l, n, d, renk, Icon], i) => (
+            <motion.div key={l} {...reveal(i, 36)}
+              className="stat-tile" style={{ "--c": renk, "--c-soft": renk + "22" }}>
+              <span className="stat-badge" style={{ background: `linear-gradient(135deg, ${renk}, ${renk}bb)` }}>
+                <Icon size={22} />
+              </span>
+              <div className="num">{n}</div>
+              <div className="stat-label">{l}</div>
+              <div className="stat-desc">{d}</div>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1088,9 +1137,9 @@ function Stats() {
 
 /* ── Kullanım senaryoları ─────────────────────────────────────── */
 function UseCases() {
-  const t = useT();
+  const { t, fmtPara } = useI18n();
   const cases = [
-    [Home, "#3b82f6", t("lp.use.1t"), t("lp.use.1d"), "+5.200 TL/" + t("unit.year"), t("lp.use.1m")],
+    [Home, "#3b82f6", t("lp.use.1t"), t("lp.use.1d"), "+" + fmtPara(5200) + "/" + t("unit.year"), t("lp.use.1m")],
     [Cube, "#22c55e", t("lp.use.2t"), t("lp.use.2d"), "%40", t("lp.use.2m")],
     [Chart, "#f97316", t("lp.use.3t"), t("lp.use.3d"), "3–6 " + t("unit.year"), t("lp.use.3m")],
     [Brain, "#f59e0b", t("lp.use.4t"), t("lp.use.4d"), "", t("lp.use.4m")],
@@ -1098,29 +1147,43 @@ function UseCases() {
   return (
     <section id="use-cases">
       <div className="container">
-        <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 34 }}>
+        <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 44 }}>
           <span className="eyebrow">{t("lp.use.eyebrow")}</span>
           <h2>{t("lp.use.title")}</h2>
         </motion.div>
-        {cases.map(([Icon, renk, t, d, m, md], i) => (
-          <motion.div key={t} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.05 }}
-            className="photo-card"
-            style={{ background: i % 2 === 0 ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.05)", padding: "34px 32px", marginBottom: 16, border: "1px solid var(--line)", borderRadius: 20 }}>
-            <div style={{ display: "flex", gap: 18, alignItems: "flex-start", flexWrap: "wrap" }}>
-              <span style={{
-                width: 54, height: 54, borderRadius: 14, flexShrink: 0,
-                background: renk + "18", color: renk,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}><Icon size={26} /></span>
-              <div style={{ flex: 1 }}>
-                <h3>{t}</h3>
-                <p className="sub" style={{ maxWidth: 500, margin: "6px 0 16px", fontSize: 15.5 }}>{d}</p>
-                <div style={{ fontSize: 26, fontWeight: 800 }}>{m}</div>
-                <div className="sub" style={{ fontSize: 14 }}>{md}</div>
+        <div className="use-grid">
+          {cases.map(([Icon, renk, baslik, d, m, md], i) => (
+            <motion.article
+              key={baslik}
+              {...reveal(i, 40)}
+              className="use-card"
+              style={{ "--c": renk, "--c-soft": renk + "22" }}
+            >
+              {/* üst satır: rozet + indeks */}
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+                <span className="use-badge" style={{ background: `linear-gradient(135deg, ${renk}, ${renk}bb)` }}>
+                  <Icon size={25} />
+                </span>
+                <span className="use-index">{String(i + 1).padStart(2, "0")} / {String(cases.length).padStart(2, "0")}</span>
               </div>
-            </div>
-          </motion.div>
-        ))}
+
+              <h3 style={{ marginBottom: 10 }}>{baslik}</h3>
+              <p className="sub" style={{ fontSize: 15.5, lineHeight: 1.65, marginBottom: 22 }}>{d}</p>
+
+              {/* metrik / etiket */}
+              <div className="use-metric">
+                {m ? (
+                  <>
+                    <span className="num">{m}</span>
+                    <span className="lbl">{md}</span>
+                  </>
+                ) : (
+                  <span className="use-tag"><Check size={14} /> {md}</span>
+                )}
+              </div>
+            </motion.article>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1150,10 +1213,10 @@ function TechQuote() {
 
 /* ── SSS ─────────────────────────────────────────────────────── */
 function Faq() {
-  const t = useT();
+  const { t, fmtPara } = useI18n();
   const qs = [
     [t("lp.faq.q1"), t("lp.faq.a1")],
-    [t("lp.faq.q2"), t("lp.faq.a2")],
+    [t("lp.faq.q2"), t("lp.faq.a2").replace("{d}", fmtPara(14)).replace("{y}", fmtPara(5000))],
     [t("lp.faq.q3"), t("lp.faq.a3")],
     [t("lp.faq.q4"), t("lp.faq.a4")],
     [t("lp.faq.q5"), t("lp.faq.a5")],
@@ -1226,6 +1289,7 @@ function Cta() {
 export default function Landing() {
   return (
     <div className="landing">
+      <ScrollProgress />
       <TopNav />
       <main>
         <Hero />
