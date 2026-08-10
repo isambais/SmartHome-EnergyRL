@@ -1,3 +1,7 @@
+// Production'da VITE_API_URL env var'ı backend Render URL'sini gösterir.
+// Development'ta boş bırakılır — vite proxy /api → localhost:8000 yönlendirir.
+const BASE = import.meta.env.VITE_API_URL || "";
+
 const TOKEN_KEY = "she_token";
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY) || "";
@@ -31,24 +35,26 @@ const put = (url, body) =>
     body: JSON.stringify(body),
   }).then(json);
 
+const get = (url) => fetch(BASE + url, { headers: authHeaders() }).then(json);
+
 export const api = {
-  simulate: (body) => post("/api/simulate", body),
-  yatirim: (body) => post("/api/yatirim", body),
+  simulate: (body) => post(BASE + "/api/simulate", body),
+  yatirim: (body) => post(BASE + "/api/yatirim", body),
   buildingHtml: (body) =>
-    fetch("/api/building-html", {
+    fetch(BASE + "/api/building-html", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }).then((r) => r.text()),
-  binaTipleri: () => fetch("/api/bina-tipleri").then(json),
-  karsilastirma: () => fetch("/api/uzman/karsilastirma").then(json),
-  mevsimsel: () => fetch("/api/uzman/mevsimsel").then(json),
+  binaTipleri: () => get("/api/bina-tipleri"),
+  karsilastirma: () => get("/api/uzman/karsilastirma"),
+  mevsimsel: () => get("/api/uzman/mevsimsel"),
 
   // ── Kimlik doğrulama + profil ──
-  register: (ad, email, sifre) => post("/api/register", { ad, email, sifre }),
-  login: (email, sifre) => post("/api/login", { email, sifre }),
-  profile: () => fetch("/api/profile", { headers: authHeaders() }).then(json),
-  binaKaydet: (bina) => put("/api/profile/bina", bina),
-  gecmisEkle: (kayit) => post("/api/profile/gecmis", kayit, true),
-  sifreDegistir: (eski, yeni) => put("/api/profile/sifre", { eski, yeni }),
+  register: (ad, email, sifre) => post(BASE + "/api/register", { ad, email, sifre }),
+  login: (email, sifre) => post(BASE + "/api/login", { email, sifre }),
+  profile: () => get("/api/profile"),
+  binaKaydet: (bina) => put(BASE + "/api/profile/bina", bina),
+  gecmisEkle: (kayit) => post(BASE + "/api/profile/gecmis", kayit, true),
+  sifreDegistir: (eski, yeni) => put(BASE + "/api/profile/sifre", { eski, yeni }),
 };
