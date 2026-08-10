@@ -135,7 +135,7 @@ function Mockup() {
         ))}
 
         <div style={{ marginTop: "auto", borderTop: "1px solid #1e293b", paddingTop: 12 }}>
-          <div style={{ fontSize: 11, color: "#475569", marginBottom: 6, padding: "0 10px" }}>{t("mock.config")}</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 6, padding: "0 10px" }}>{t("mock.config")}</div>
           {[[t("mock.cfgType"), t("mock.cfgTypeVal")], [t("mock.cfgFloor"), "5"], [t("mock.cfgFlats"), "12 / 15"], [t("mock.cfgBatt"), "24.4 kWh"]].map(([k, v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "3px 10px", fontSize: 11, color: "#a1a1aa" }}>
               <span>{k}</span><span style={{ color: "#94a3b8", fontWeight: 600 }}>{v}</span>
@@ -153,7 +153,7 @@ function Mockup() {
             <div style={{ fontSize: 11.5, color: "#a1a1aa" }}>{t("mock.sub")}</div>
           </div>
           <div style={{
-            background: "rgba(52,211,153,0.15)", color: "#15803d", borderRadius: 999,
+            background: "rgba(52,211,153,0.15)", color: "#4ade80", borderRadius: 999,
             padding: "4px 12px", fontSize: 11.5, fontWeight: 700,
             display: "inline-flex", alignItems: "center", gap: 6,
           }}>
@@ -165,10 +165,10 @@ function Mockup() {
         {/* Metrik kartlar */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, margin: "14px 0" }}>
           {[
-            [Coins, t("mock.save"), "+" + fmtPara(312), "#15803d"],
-            [Battery, t("mock.soc"), "%68", "#1d4ed8"],
-            [Sun, t("mock.solar"), "18.4 kWh", "#b45309"],
-            [Bolt, t("mock.now"), t("mock.discharging"), "#b91c1c"],
+            [Coins, t("mock.save"), "+" + fmtPara(312), "#4ade80"],
+            [Battery, t("mock.soc"), "%68", "#60a5fa"],
+            [Sun, t("mock.solar"), "18.4 kWh", "#fbbf24"],
+            [Bolt, t("mock.now"), t("mock.discharging"), "#f87171"],
           ].map(([Icon, label, val, fg]) => (
             <div key={label} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 14px", border: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "#a1a1aa", marginBottom: 4 }}>
@@ -188,7 +188,7 @@ function Mockup() {
             <div style={{ width: "100%", height: 6, background: "rgba(255,255,255,0.10)", borderRadius: 999 }}>
               <div style={{ width: "68%", height: "100%", background: "#22c55e", borderRadius: 999 }}/>
             </div>
-            <div style={{ fontSize: 10, color: "#15803d", fontWeight: 700 }}>{t("mock.batt")} %68</div>
+            <div style={{ fontSize: 10, color: "#4ade80", fontWeight: 700 }}>{t("mock.batt")} %68</div>
           </div>
 
           {/* Fiyat + SOC grafiği */}
@@ -1229,7 +1229,7 @@ function Faq() {
           <h2 style={{ maxWidth: 420 }}>{t("lp.faq.title")}</h2>
           <p className="sub" style={{ margin: "12px 0 26px", maxWidth: 400 }}>{t("expert.sub")}</p>
           <div className="card" style={{ maxWidth: 380 }}>
-            <h3 style={{ fontSize: 19, marginBottom: 8 }}>{t("lp.faq.title")}</h3>
+            <p style={{ fontSize: 19, fontWeight: 700, marginBottom: 8 }}>{t("lp.faq.title")}</p>
             <a className="btn btn-dark" href="https://github.com/isambais/SmartHome-EnergyRL/issues" target="_blank" rel="noreferrer" style={{ padding: "11px 20px", fontSize: 14, marginTop: 10 }}>
               GitHub Issues <span className="arr"><Arrow size={13} /></span>
             </a>

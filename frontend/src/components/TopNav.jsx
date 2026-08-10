@@ -62,7 +62,7 @@ function DilSecici() {
       <button onClick={() => setAc(!ac)} aria-label="Dil"
         style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--surface, rgba(255,255,255,0.06))",
                  border: "1px solid var(--border, rgba(255,255,255,0.12))", color: "var(--fg,#fff)",
-                 borderRadius: 999, padding: "7px 12px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                 borderRadius: 999, padding: "7px 12px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", minHeight: 44 }}>
         <span>{secili.bayrak}</span>
         <span style={{ textTransform: "uppercase" }}>{secili.kod}</span>
       </button>

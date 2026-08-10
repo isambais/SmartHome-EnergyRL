@@ -1,14 +1,21 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import TopNav from "./components/TopNav.jsx";
 import Footer from "./components/Footer.jsx";
-import Auth from "./pages/Auth.jsx";
-import Epias from "./pages/Epias.jsx";
-import Landing from "./pages/Landing.jsx";
-import Profil from "./pages/Profil.jsx";
-import Simulasyon from "./pages/Simulasyon.jsx";
-import Uzman from "./pages/Uzman.jsx";
-import Yatirim from "./pages/Yatirim.jsx";
 import { AppState, useApp } from "./state.jsx";
+
+// Lazy loading — her sayfa ihtiyaç olunca yüklenir
+const Auth = lazy(() => import("./pages/Auth.jsx"));
+const Epias = lazy(() => import("./pages/Epias.jsx"));
+const Landing = lazy(() => import("./pages/Landing.jsx"));
+const Profil = lazy(() => import("./pages/Profil.jsx"));
+const Simulasyon = lazy(() => import("./pages/Simulasyon.jsx"));
+const Uzman = lazy(() => import("./pages/Uzman.jsx"));
+const Yatirim = lazy(() => import("./pages/Yatirim.jsx"));
+
+function PageLoading() {
+  return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh", color: "#64748b" }}>Yükleniyor…</div>;
+}
 
 /* Uygulama sayfaları — landing ile AYNI üst bar, aynı zemin.
    Giriş yapılmadıysa kayıt sayfasına yönlendirir. */
@@ -32,18 +39,20 @@ function AppLayout() {
 export default function App() {
   return (
     <AppState>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/kayit" element={<Auth mode="kayit" />} />
-        <Route path="/giris" element={<Auth mode="giris" />} />
-        <Route element={<AppLayout />}>
-          <Route path="/simulasyon" element={<Simulasyon />} />
-          <Route path="/epias" element={<Epias />} />
-          <Route path="/yatirim" element={<Yatirim />} />
-          <Route path="/uzman" element={<Uzman />} />
-          <Route path="/profil" element={<Profil />} />
-        </Route>
-      </Routes>
+      <Suspense fallback={<PageLoading />}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/kayit" element={<Auth mode="kayit" />} />
+          <Route path="/giris" element={<Auth mode="giris" />} />
+          <Route element={<AppLayout />}>
+            <Route path="/simulasyon" element={<Simulasyon />} />
+            <Route path="/epias" element={<Epias />} />
+            <Route path="/yatirim" element={<Yatirim />} />
+            <Route path="/uzman" element={<Uzman />} />
+            <Route path="/profil" element={<Profil />} />
+          </Route>
+        </Routes>
+      </Suspense>
     </AppState>
   );
 }

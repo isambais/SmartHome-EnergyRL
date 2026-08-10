@@ -230,7 +230,7 @@ a { color: var(--blue); text-decoration: none; }
   background: rgba(255,255,255,0.04); border: 1px solid var(--border);
 }
 .pf-seg button {
-  flex: 1; padding: 11px 0; border: none; cursor: pointer; font-family: inherit;
+  flex: 1; padding: 11px 0; min-height: 48px; border: none; cursor: pointer; font-family: inherit;
   font-weight: 700; font-size: 14px; border-radius: 10px; background: transparent; color: var(--muted);
   transition: color .25s, background .25s, box-shadow .25s;
 }
@@ -407,7 +407,7 @@ a { color: var(--blue); text-decoration: none; }
 .au-field:-webkit-autofill, .au-field:-webkit-autofill:hover, .au-field:-webkit-autofill:focus {
   -webkit-text-fill-color: #f1f5f9; -webkit-box-shadow: 0 0 0 1000px #12161c inset; caret-color: #f1f5f9;
 }
-.au-toggle { position: absolute; inset-inline-end: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; color: #2dd4bf; }
+.au-toggle { position: absolute; inset-inline-end: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; color: #2dd4bf; min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center; }
 .au-toggle:hover { color: #e879f9; }
 
 .au-meter { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
@@ -428,11 +428,12 @@ a { color: var(--blue); text-decoration: none; }
 
 .au-err { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.35); color: #fca5a5; border-radius: 10px; padding: 9px 13px; font-size: 13.5px; }
 .au-foot { text-align: center; margin-top: 18px; font-size: 14px; color: #94a3b8; }
+.au-foot a { display: inline-block; padding: 6px 4px; min-height: 32px; }
 
 /* Trust strip */
 .au-trust { position: relative; z-index: 10; border-top: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.015); }
 .au-trust-inner { max-width: 1120px; margin: 0 auto; padding: 34px 24px; text-align: center; }
-.au-trust-label { font-size: 12px; letter-spacing: .25em; text-transform: uppercase; color: #64748b; }
+.au-trust-label { font-size: 12px; letter-spacing: .25em; text-transform: uppercase; color: #94a3b8; }
 .au-trust-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px 40px; margin-top: 20px; opacity: .7; }
 .au-trust-item { display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: #cbd5e1; font-size: 17px; }
 
@@ -507,9 +508,28 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .toggle-switch input:checked + .track { background: var(--blue); }
 .toggle-switch input:checked + .track .thumb { transform: translateX(18px); }
 
+/* Mobil hamburger — app sayfaları (landing dışı) */
+.nav-burger {
+  display: none;
+  width: 48px; height: 48px; border-radius: 11px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--fg);
+  align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+}
+.nav-burger span, .nav-burger span::before, .nav-burger span::after {
+  content: ""; display: block; width: 17px; height: 2px; background: var(--fg); border-radius: 2px;
+  transition: transform .25s, opacity .2s;
+}
+.nav-burger span { position: relative; }
+.nav-burger span::before { position: absolute; top: -6px; }
+.nav-burger span::after  { position: absolute; top: 6px; }
+.nav-burger.open span { background: transparent; }
+.nav-burger.open span::before { transform: translateY(6px) rotate(45deg); }
+.nav-burger.open span::after  { transform: translateY(-6px) rotate(-45deg); }
+@media (max-width: 900px) { .nav-burger { display: inline-flex; } }
+
 /* Tema değiştirme butonu (TopNav) */
 .theme-toggle {
-  width: 36px; height: 36px; border-radius: 50%;
+  width: 44px; height: 44px; border-radius: 50%;
   border: 1px solid var(--border); background: var(--surface); color: var(--fg);
   display: inline-flex; align-items: center; justify-content: center;
   cursor: pointer; transition: background 0.15s, color 0.15s;

@@ -47,7 +47,7 @@ export default function Footer() {
 
             {COLS.map(([title, links]) => (
               <div key={title}>
-                <h4>{title}</h4>
+                <h3>{title}</h3>
                 {links.map(([ad, href]) => (
                   isDis(href)
                     ? <a key={ad + href} href={href} target="_blank" rel="noreferrer">{ad}</a>
