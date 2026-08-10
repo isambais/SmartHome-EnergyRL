@@ -62,9 +62,15 @@ app = FastAPI(
     title="SmartHome Energy RL API",
     swagger_ui_parameters={"persistAuthorization": True},
 )
+_FRONTEND_URL = os.environ.get("FRONTEND_URL", "")
+_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    *([_FRONTEND_URL] if _FRONTEND_URL else []),
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=_CORS_ORIGINS,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
