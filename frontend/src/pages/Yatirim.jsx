@@ -11,7 +11,7 @@ import { AYLAR_FULL, AYLAR_KISA, useI18n } from "../i18n.jsx";
 const AY_RENK = (m) => ([12, 1, 2].includes(m) ? "#3b82f6" : [3, 4, 5].includes(m) ? "#22c55e" : [6, 7, 8].includes(m) ? "#f59e0b" : "#f97316");
 
 /* Yazdırılabilir PDF — seçili dile göre */
-function raporYazdir(d, cfg, t, aylar, locale) {
+function raporYazdir(d, cfg, t, aylar, locale, fmtPara) {
   const w = window.open("", "_blank");
   if (!w) return;
   const satir = (a, b) => `<tr><td>${a}</td><td style="text-align:right;font-weight:700">${b}</td></tr>`;
@@ -27,15 +27,15 @@ function raporYazdir(d, cfg, t, aylar, locale) {
     <h1>SmartHome Energy — ${t("invest.title")}</h1>
     <div class="muted">${new Date().toLocaleDateString(locale)} · ${t(`btype.${cfg.bina_tipi}`)}, ${cfg.kat} ${t("profile.floors")}, ${cfg.aktif_daire} ${t("profile.activeFlats")}</div>
     <table style="margin-top:18px">
-      ${satir(t("invest.total"), d.toplam_yatirim.toLocaleString(locale) + " TL")}
-      ${satir(t("m.yearlySaving"), d.yillik_tasarruf.toLocaleString(locale) + " TL")}
+      ${satir(t("invest.total"), fmtPara(d.toplam_yatirim))}
+      ${satir(t("m.yearlySaving"), fmtPara(d.yillik_tasarruf))}
       ${satir(t("m.payback"), d.amorti_yil + " " + t("unit.year"))}
       ${satir(t("invest.solarProd"), d.yillik_uretim_kwh.toLocaleString(locale) + " kWh")}
       ${satir(t("m.co2"), d.co2_ton + " " + t("unit.ton"))}
     </table>
     <h2>${t("invest.monthly")}</h2>
     <table>
-      ${(d.aylik || []).map((a) => satir(aylar[a.ay - 1], Math.round(a.tasarruf).toLocaleString(locale) + " TL")).join("")}
+      ${(d.aylik || []).map((a) => satir(aylar[a.ay - 1], fmtPara(a.tasarruf))).join("")}
     </table>
     </body></html>`);
   w.document.close();
@@ -45,7 +45,11 @@ function raporYazdir(d, cfg, t, aylar, locale) {
 
 export default function Yatirim() {
   const { cfg } = useApp();
-  const { t, dil } = useI18n();
+  const { t, dil, parabirimi, paraCevir, fmtPara, paraSuffix, kur } = useI18n();
+  // Giriş kutuları: state TL tutar; USD seçil/görüntülenir, TL'ye çevrilerek saklanır
+  const girisGoster = (tl) => (parabirimi === "USD" ? Math.round(paraCevir(tl)) : tl);
+  const girisSakla = (girilen) => (parabirimi === "USD" ? Math.round((+girilen || 0) * kur) : (+girilen || 0));
+  const girisAdim = parabirimi === "USD" ? 250 : 10000;
   const [bataryaTl, setBataryaTl] = useState(null);
   const [panelTl, setPanelTl] = useState(null);
   const [d, setD] = useState(null);
@@ -70,12 +74,16 @@ export default function Yatirim() {
   const yillar = Array.from({ length: Math.max(Math.ceil(d.amorti_yil) + 6, 10) }, (_, i) => ({ yil: i, kumulatif: i * d.yillik_tasarruf }));
   const kisalma30 = d.amorti_yil - d.toplam_yatirim / (d.yillik_tasarruf * 1.3);
   const aylikChart = (d.aylik || []).map((a) => ({ ...a, ad: aylarKisa[a.ay - 1] }));
+  // Grafik eksen etiketi — TL'de "k" (bin), USD'de düz sayı. Değer TL alanında; sadece etiket çevrilir.
+  const eksenFmt = (v) => (parabirimi === "USD"
+    ? Math.round(paraCevir(v)).toLocaleString(locale)
+    : (v / 1000).toFixed(0) + "k");
 
   return (
     <PageWrap>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
         <h1 style={{ margin: 0 }}>{t("invest.title")}</h1>
-        <button onClick={() => raporYazdir(d, cfg, t, aylar, locale)} className="btn-app ghost" style={{ padding: "11px 20px", fontSize: 14.5 }}>
+        <button onClick={() => raporYazdir(d, cfg, t, aylar, locale, fmtPara)} className="btn-app ghost" style={{ padding: "11px 20px", fontSize: 14.5 }}>
           {t("invest.pdf")}
         </button>
       </div>
@@ -83,19 +91,19 @@ export default function Yatirim() {
       <div className="split cfg" style={{ marginTop: 14 }}>
         <div className="card">
           <b>{t("invest.costs")}</b>
-          <label className="fld">{t("invest.battCost")} — {d.varsayilan_batarya_tl.toLocaleString(locale)}</label>
-          <input type="number" step="10000" min="0" value={bataryaTl ?? d.varsayilan_batarya_tl}
-            onChange={(e) => setBataryaTl(+e.target.value || 0)} />
-          <label className="fld">{t("invest.panelCost")} — {d.varsayilan_panel_tl.toLocaleString(locale)}</label>
-          <input type="number" step="10000" min="0" value={panelTl ?? d.varsayilan_panel_tl}
-            onChange={(e) => setPanelTl(+e.target.value || 0)} />
+          <label className="fld">{t("invest.battCost")} ({paraSuffix.trim()}) — {fmtPara(d.varsayilan_batarya_tl)}</label>
+          <input type="number" step={girisAdim} min="0" value={girisGoster(bataryaTl ?? d.varsayilan_batarya_tl)}
+            onChange={(e) => setBataryaTl(girisSakla(e.target.value))} />
+          <label className="fld">{t("invest.panelCost")} ({paraSuffix.trim()}) — {fmtPara(d.varsayilan_panel_tl)}</label>
+          <input type="number" step={girisAdim} min="0" value={girisGoster(panelTl ?? d.varsayilan_panel_tl)}
+            onChange={(e) => setPanelTl(girisSakla(e.target.value))} />
           <div className="caption" style={{ marginTop: 12 }}>{t("invest.costsNote")}</div>
         </div>
 
         <div>
           <div className="grid grid-4">
-            <Metric i={0} label={t("invest.total")} value={d.toplam_yatirim} suffix=" TL" />
-            <Metric i={1} label={t("m.yearlySaving")} value={d.yillik_tasarruf} suffix=" TL" />
+            <Metric i={0} label={t("invest.total")} value={d.toplam_yatirim} para />
+            <Metric i={1} label={t("m.yearlySaving")} value={d.yillik_tasarruf} para />
             <Metric i={2} label={t("m.payback")} value={d.amorti_yil} decimals={1} suffix={" " + t("unit.year")} />
             <Metric i={3} label={t("m.co2")} value={d.co2_ton} decimals={1} suffix={" " + t("unit.ton")} />
           </div>
@@ -109,9 +117,10 @@ export default function Yatirim() {
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={aylikChart}>
                 <XAxis dataKey="ad" stroke="#8a8a8a" />
-                <YAxis stroke="#8a8a8a" tickFormatter={(v) => (v / 1000).toFixed(0) + "k"} />
+                <YAxis stroke="#8a8a8a" tickFormatter={eksenFmt} />
                 <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }}
-                  formatter={(v) => [Math.round(v).toLocaleString(locale) + " TL", t("m.yearlySaving")]}
+                  itemStyle={{ color: "var(--fg)" }} labelStyle={{ color: "var(--fg)" }}
+                  formatter={(v) => [fmtPara(v), t("m.yearlySaving")]}
                   labelFormatter={(l, p) => { const a = p?.[0]?.payload; return a ? aylar[a.ay - 1] : l; }} />
                 <Bar dataKey="tasarruf" radius={[6, 6, 0, 0]}>
                   {aylikChart.map((a) => <Cell key={a.ay} fill={AY_RENK(a.ay)} />)}
@@ -127,12 +136,13 @@ export default function Yatirim() {
               <ResponsiveContainer width="100%" height={320}>
                 <AreaChart data={yillar}>
                   <XAxis dataKey="yil" stroke="#8a8a8a" label={{ value: t("unit.year"), position: "insideBottom", offset: -2, fill: "#8a8a8a" }} />
-                  <YAxis stroke="#8a8a8a" tickFormatter={(v) => (v / 1000).toFixed(0) + "k"} />
+                  <YAxis stroke="#8a8a8a" tickFormatter={eksenFmt} />
                   <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }}
-                    formatter={(v) => Math.round(v).toLocaleString(locale) + " TL"} />
+                    itemStyle={{ color: "var(--fg)" }} labelStyle={{ color: "var(--fg)" }}
+                    formatter={(v) => fmtPara(v)} />
                   <Area dataKey="kumulatif" name={t("invest.cumSaving")} stroke="#22c55e" strokeWidth={3} fill="#22c55e26" />
                   <ReferenceLine y={d.toplam_yatirim} stroke="#f59e0b" strokeDasharray="6 4"
-                    label={{ value: `${t("invest.investLine")}: ${d.toplam_yatirim.toLocaleString(locale)}`, fill: "#f59e0b", fontSize: 12 }} />
+                    label={{ value: `${t("invest.investLine")}: ${fmtPara(d.toplam_yatirim)}`, fill: "#f59e0b", fontSize: 12 }} />
                   <ReferenceLine x={d.amorti_yil} stroke="#3b82f6" strokeDasharray="2 4"
                     label={{ value: `${t("invest.paybackLine")}: ${d.amorti_yil}`, fill: "#3b82f6", fontSize: 12 }} />
                 </AreaChart>
@@ -146,6 +156,7 @@ export default function Yatirim() {
                   <XAxis dataKey="artis" stroke="#8a8a8a" label={{ value: t("invest.priceRise"), position: "insideBottom", offset: -2, fill: "#8a8a8a" }} />
                   <YAxis stroke="#8a8a8a" label={{ value: t("invest.paybackYr"), angle: -90, position: "insideLeft", fill: "#8a8a8a" }} />
                   <Tooltip contentStyle={{ background: "var(--chart-tip)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--fg)" }}
+                    itemStyle={{ color: "var(--fg)" }} labelStyle={{ color: "var(--fg)" }}
                     formatter={(v) => v + " " + t("unit.year")} labelFormatter={(l) => `+${l}%`} />
                   <Line dataKey="amorti" name={t("m.payback")} stroke="#f97316" strokeWidth={3} />
                 </LineChart>
