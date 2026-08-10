@@ -1,20 +1,7 @@
-<<<<<<< HEAD
 import { lazy, Suspense } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import TopNav from "./components/TopNav.jsx";
 import Footer from "./components/Footer.jsx";
-=======
-import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
-import TopNav from "./components/TopNav.jsx";
-import Footer from "./components/Footer.jsx";
-import Auth from "./pages/Auth.jsx";
-import Epias from "./pages/Epias.jsx";
-import Landing from "./pages/Landing.jsx";
-import Profil from "./pages/Profil.jsx";
-import Simulasyon from "./pages/Simulasyon.jsx";
-import Uzman from "./pages/Uzman.jsx";
-import Yatirim from "./pages/Yatirim.jsx";
->>>>>>> feat/i18n-en-ar
 import { AppState, useApp } from "./state.jsx";
 
 // Lazy loading — her sayfa ihtiyaç olunca yüklenir
