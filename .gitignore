@@ -28,6 +28,9 @@ data/processed/*
 
 # Ortam değişkenleri / API anahtarları
 .env
+.env.local
+.env.*.local
+.env.test
 *.key
 
 # IDE
@@ -45,8 +48,6 @@ logs/
 node_modules/
 dist/
 .vite/
-
-.env
 
 # SQLite veritabanı (geliştirme)
 smarthome.db
