@@ -71,8 +71,11 @@ export default function Yatirim() {
   if (err) return <PageWrap><h1>{t("invest.title")}</h1><div className="kesinti-uyari">{t("common.apidown")} ({err})</div></PageWrap>;
   if (!d) return <PageWrap><h1>{t("invest.title")}</h1><Loading text={t("load.invest")} /></PageWrap>;
 
-  const yillar = Array.from({ length: Math.max(Math.ceil(d.amorti_yil) + 6, 10) }, (_, i) => ({ yil: i, kumulatif: i * d.yillik_tasarruf }));
-  const kisalma30 = d.amorti_yil - d.toplam_yatirim / (d.yillik_tasarruf * 1.3);
+  const amortiGoster = Math.min(isFinite(d.amorti_yil) ? d.amorti_yil : 99, 99);
+  const yillar = Array.from({ length: Math.max(Math.ceil(amortiGoster) + 6, 10) }, (_, i) => ({ yil: i, kumulatif: i * d.yillik_tasarruf }));
+  const kisalma30 = isFinite(d.yillik_tasarruf) && d.yillik_tasarruf > 0
+    ? d.amorti_yil - d.toplam_yatirim / (d.yillik_tasarruf * 1.3)
+    : 0;
   const aylikChart = (d.aylik || []).map((a) => ({ ...a, ad: aylarKisa[a.ay - 1] }));
   // Grafik eksen etiketi — TL'de "k" (bin), USD'de düz sayı. Değer TL alanında; sadece etiket çevrilir.
   const eksenFmt = (v) => (parabirimi === "USD"
@@ -92,10 +95,12 @@ export default function Yatirim() {
         <div className="card">
           <b>{t("invest.costs")}</b>
           <label className="fld">{t("invest.battCost")} ({paraSuffix.trim()}) — {fmtPara(d.varsayilan_batarya_tl)}</label>
-          <input type="number" step={girisAdim} min="0" value={girisGoster(bataryaTl ?? d.varsayilan_batarya_tl)}
+          <input type="number" step={girisAdim} min="0" max={parabirimi === "USD" ? 500000 : 20000000}
+            value={girisGoster(bataryaTl ?? d.varsayilan_batarya_tl)}
             onChange={(e) => setBataryaTl(girisSakla(e.target.value))} />
           <label className="fld">{t("invest.panelCost")} ({paraSuffix.trim()}) — {fmtPara(d.varsayilan_panel_tl)}</label>
-          <input type="number" step={girisAdim} min="0" value={girisGoster(panelTl ?? d.varsayilan_panel_tl)}
+          <input type="number" step={girisAdim} min="0" max={parabirimi === "USD" ? 500000 : 20000000}
+            value={girisGoster(panelTl ?? d.varsayilan_panel_tl)}
             onChange={(e) => setPanelTl(girisSakla(e.target.value))} />
           <div className="caption" style={{ marginTop: 12 }}>{t("invest.costsNote")}</div>
         </div>
@@ -104,7 +109,7 @@ export default function Yatirim() {
           <div className="grid grid-4">
             <Metric i={0} label={t("invest.total")} value={d.toplam_yatirim} para />
             <Metric i={1} label={t("m.yearlySaving")} value={d.yillik_tasarruf} para />
-            <Metric i={2} label={t("m.payback")} value={d.amorti_yil} decimals={1} suffix={" " + t("unit.year")} />
+            <Metric i={2} label={t("m.payback")} value={isFinite(d.amorti_yil) ? d.amorti_yil : 99} decimals={1} suffix={" " + t("unit.year")} />
             <Metric i={3} label={t("m.co2")} value={d.co2_ton} decimals={1} suffix={" " + t("unit.ton")} />
           </div>
 
