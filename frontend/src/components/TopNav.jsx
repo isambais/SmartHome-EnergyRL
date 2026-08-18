@@ -4,36 +4,32 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../state.jsx";
 import { DILLER, useI18n } from "../i18n.jsx";
 
-/* Özel logo markası — camsı yeşil rozet + dolu şimşek (derinlikli, jenerik değil) */
+/* Logo markası — daire içinde şimşek (kullanıcı talebi) */
 export function LogoMark({ size = 34 }) {
   return (
     <svg className="logo-svg" width={size} height={size} viewBox="0 0 34 34" aria-hidden="true">
       <defs>
-        <linearGradient id="lmBadge" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="lmGreen" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#4ade80" />
-          <stop offset="0.55" stopColor="#22c55e" />
           <stop offset="1" stopColor="#059669" />
         </linearGradient>
-        <linearGradient id="lmHi" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.38" />
-          <stop offset="0.5" stopColor="#ffffff" stopOpacity="0" />
-        </linearGradient>
-        <linearGradient id="lmBolt" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffffff" />
-          <stop offset="1" stopColor="#d1fae5" />
+        <linearGradient id="lmGlow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.22" />
+          <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
         </linearGradient>
       </defs>
-      {/* rozet */}
-      <rect x="0" y="0" width="34" height="34" rx="10" fill="url(#lmBadge)" />
-      {/* üst parlama (cam efekti) */}
-      <rect x="0" y="0" width="34" height="34" rx="10" fill="url(#lmHi)" />
-      {/* iç kenarlık */}
-      <rect x="0.7" y="0.7" width="32.6" height="32.6" rx="9.3" fill="none" stroke="#ffffff" strokeOpacity="0.28" strokeWidth="1" />
-      {/* çatı çizgisi — akıllı ev ipucu */}
-      <path d="M9 15 L17 9 L25 15" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      {/* dolu şimşek — enerji */}
-      <path d="M18.4 12 L12.6 20 H16 L15.2 26 L22 17.4 H18.2 L18.4 12 Z"
-        fill="url(#lmBolt)" stroke="#065f46" strokeOpacity="0.15" strokeWidth="0.5" strokeLinejoin="round" />
+      {/* Dış daire dolgu */}
+      <circle cx="17" cy="17" r="17" fill="url(#lmGreen)" />
+      {/* Üst cam parlaması */}
+      <circle cx="17" cy="17" r="17" fill="url(#lmGlow)" />
+      {/* Daire halkası (içi boş — şimşek arkasında) */}
+      <circle cx="17" cy="17" r="13.5" fill="none" stroke="#ffffff" strokeOpacity="0.9" strokeWidth="2.8" />
+      {/* Şimşek — halkayla kesişen noktalarda boşluk efekti için üstte */}
+      <path
+        d="M20.2 5.5 L11.5 18.5 H17.2 L13.8 28.5 L22.5 15.2 H16.8 Z"
+        fill="#ffffff"
+        stroke="url(#lmGreen)" strokeWidth="0.4" strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -112,7 +108,8 @@ export default function TopNav() {
         <div style={{ padding: "0 14px" }}>
           <motion.div className="nav-pill" initial={{ y: -70, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
             <Link to="/" className="logo" onClick={anaSayfa}>
-              <span className="logo-mark"><LogoMark size={34} /></span> SmartHome Energy
+              <span className="logo-mark"><LogoMark size={34} /></span>
+              <span className="logo-text">SmartHome Energy</span>
             </Link>
 
             {/* Masaüstü linkleri */}
@@ -133,7 +130,7 @@ export default function TopNav() {
             )}
 
             {/* Masaüstü sağ blok */}
-            <div className="nav-cta-desktop" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="nav-cta-desktop">
               <DilSecici />
               {user ? (
                 <>
