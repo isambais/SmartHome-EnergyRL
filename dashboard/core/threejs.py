@@ -5,21 +5,52 @@ import json
 from .config import BinaConfig
 
 _TEMPLATE = r"""
-<div id="wrap" style="width:100%;height:__H__px;position:relative;border-radius:12px;overflow:hidden;">
-<div id="hud" style="
-  position:absolute;top:12px;left:14px;z-index:9;
-  display:flex;gap:10px;flex-wrap:wrap;font-family:'Inter',system-ui,sans-serif;font-size:13px;">
+<style>html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:#08101e}</style>
+<div id="wrap" style="width:100%;height:100%;min-height:__H__px;position:relative;overflow:hidden;background:#08101e;">
+<div id="alarm" style="display:none;position:absolute;top:14px;right:14px;z-index:9;
+  background:linear-gradient(135deg,#7f1d1d,#dc2626);color:#fff;font-weight:700;font-size:12px;
+  padding:6px 16px;border-radius:6px;font-family:'Inter',system-ui;letter-spacing:.06em;
+  border:1px solid rgba(239,68,68,.4);box-shadow:0 0 18px rgba(239,68,68,.5);
+  display:flex;align-items:center;gap:7px;">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+  <span id="alarm-text">GRID OUTAGE</span></div>
+<div id="dt-hud" style="
+  position:absolute;bottom:0;left:0;right:0;z-index:9;
+  background:linear-gradient(to top,rgba(4,8,20,0.92) 0%,rgba(4,8,20,0.55) 70%,transparent 100%);
+  padding:14px 20px 14px;
+  display:flex;gap:0;align-items:flex-end;
+  font-family:'Inter','SF Pro Display',system-ui,sans-serif;">
 </div>
-<div id="alarm" style="display:none;position:absolute;top:12px;right:14px;z-index:9;
-  background:#dc2626;color:#fff;font-weight:700;font-size:13px;
-  padding:6px 14px;border-radius:8px;font-family:system-ui;">⚠ KESİNTİ</div>
 <style>
-  @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-  .hud-chip{
-    background:rgba(10,12,20,.72);backdrop-filter:blur(6px);
-    color:#f1f5f9;padding:5px 12px;border-radius:20px;
-    border:1px solid rgba(255,255,255,.12);white-space:nowrap;
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+  @keyframes flowPulse{0%,100%{opacity:.7}50%{opacity:1}}
+  .dt-metric{
+    flex:1;min-width:80px;padding:0 14px;
+    border-right:1px solid rgba(255,255,255,.07);
+  }
+  .dt-metric:last-child{border-right:none}
+  .dt-label{
+    font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    color:rgba(148,163,184,.65);margin-bottom:4px;
+  }
+  .dt-value{
+    font-size:18px;font-weight:700;color:#f1f5f9;line-height:1;letter-spacing:-.01em;
+  }
+  .dt-sub{
+    font-size:10px;color:rgba(148,163,184,.5);margin-top:3px;letter-spacing:.04em;
+  }
+  .dt-bar-wrap{
+    height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:6px;overflow:hidden;
+  }
+  .dt-bar{height:3px;border-radius:2px;transition:width .6s ease;}
+  .dt-status-dot{
+    display:inline-block;width:6px;height:6px;border-radius:50%;
+    margin-right:5px;vertical-align:middle;
+  }
+  .dt-logo{
+    font-size:10px;font-weight:700;letter-spacing:.14em;color:rgba(96,165,250,.7);
+    text-transform:uppercase;margin-bottom:6px;
   }
 </style>
 </div>
@@ -39,17 +70,23 @@ _TEMPLATE = r"""
 (function(){
 const CFG = __CFG__;
 const wrap = document.getElementById('wrap');
-const W = wrap.clientWidth || 640, H = wrap.clientHeight || __H__;
+// Fallback dimensions — iframe may not have laid out yet on first render
+const W = Math.max(wrap.clientWidth  || 0, 320) || 640;
+const H = Math.max(wrap.clientHeight || 0, 200) || __H__;
 
 /* ── Renderer ─────────────────────────────────────────────── */
 const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
 renderer.setSize(W, H);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// Absolute-position canvas so it fills the wrap div at all times
+renderer.domElement.style.cssText = 'position:absolute;inset:0;width:100%!important;height:100%!important;';
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+// Kontrollü exposure — 1.25 gündüz highlight'ları patlatıp sahneyi "yıkanmış"
+// gösteriyordu; 1.02 cephe/panel/gölgeleri net tutar.
+renderer.toneMappingExposure = 1.02;
 wrap.appendChild(renderer.domElement);
 
 /* ── Gerçekçilik eklentileri: model / HDRI / efekt ayarları ─ */
@@ -91,37 +128,79 @@ function swapWithModel(placeholder, url, opts) {
 /* ── Scene ────────────────────────────────────────────────── */
 const scene = new THREE.Scene();
 
-/* ── Zaman & gökyüzü ─────────────────────────────────────── */
-const hour = CFG.hour;
-// Gün faktörü: 0=gece tam, 1=öğlen tam
-const dayF = Math.max(0, Math.min(1,
-  hour >= 6 && hour <= 20
-    ? Math.sin((hour - 6) / 14 * Math.PI)
-    : 0
-));
-const isSunrise = hour >= 5 && hour < 8;
-const isSunset  = hour >= 18 && hour < 21;
+/* ── Zaman & Mevsim — Gaziantep 37.06°N, 37.38°E, UTC+3 ──── */
+const hour  = CFG.hour;
+const month = CFG.month || 7;   // 1=Ocak … 12=Aralık
+
+// Solar declination (Spencer formula)
+(function computeSun(){
+  const dayOfYear = Math.round((month - 1) * 30.44 + 15);
+  const B = (2 * Math.PI * (dayOfYear - 1)) / 365;
+  window._decl = (180 / Math.PI) * (
+    0.006918 - 0.399912*Math.cos(B) + 0.070257*Math.sin(B)
+    - 0.006758*Math.cos(2*B) + 0.000907*Math.sin(2*B)
+    - 0.002697*Math.cos(3*B) + 0.00148 *Math.sin(3*B)
+  );
+  const declRad = window._decl * Math.PI / 180;
+  const latRad  = 37.06 * Math.PI / 180;
+  const cosH0   = -Math.tan(latRad) * Math.tan(declRad);
+  const H0deg   = Math.acos(Math.max(-1, Math.min(1, cosH0))) * 180 / Math.PI;
+  // Solar noon in local clock (UTC+3, lon=37.38°)
+  const solarNoon = 12 + (3 - 37.38 / 15);  // ≈ 12.51h
+  window._sunriseH = solarNoon - H0deg / 15;
+  window._sunsetH  = solarNoon + H0deg / 15;
+  // Max elevation at solar noon
+  window._maxElev  = 90 - 37.06 + window._decl;  // degrees
+})();
+const sunriseH = window._sunriseH;  // e.g. 7.1 in Jan, 5.3 in Jun
+const sunsetH  = window._sunsetH;   // e.g. 17.9 in Jan, 19.7 in Jun
+const maxElev  = window._maxElev;   // e.g. 29° in Jan, 76° in Jun
+
+// Normalised day progress (0 at sunrise, 0.5 at noon, 1 at sunset)
+const isDaytime = hour >= sunriseH && hour <= sunsetH;
+const dayProgress = isDaytime ? (hour - sunriseH) / (sunsetH - sunriseH) : 0;
+// Day factor: 0=night, 1=solar noon  (sine curve over daylight period)
+const dayF = isDaytime ? Math.sin(dayProgress * Math.PI) : 0;
+
+// Golden hour: ±1h around sunrise/sunset
+const isSunrise = Math.abs(hour - sunriseH) < 1.0;
+const isSunset  = Math.abs(hour - sunsetH)  < 1.0;
 const isGolden  = isSunrise || isSunset;
 
-// Gökyüzü paleti — [zirve rengi, ufuk rengi] (degrade için)
+// Gökyüzü paleti — gerçek sunrise/sunset saatine göre
+// dayF ve hour kullanılarak hesaplanır; mevsim farkı sunriseH/sunsetH üzerinden gelir
 function skyPair() {
-  if (hour < 5 || hour >= 22) return [0x01040c, 0x0a1226]; // derin gece
-  if (hour < 6)  return [0x03081a, 0x142344]; // gece sonu
-  if (hour < 7)  return [0x241d4a, 0xc45c1e]; // şafak
-  if (hour < 8)  return [0x39568a, 0xe8955a]; // sabah altını
-  if (hour < 10) return [0x2f7fc4, 0xa6d6f2]; // sabah
-  if (hour < 17) return [0x2170bf, 0x9fcdec]; // gündüz
-  if (hour < 18) return [0x2f7bbc, 0xb2d6ea]; // öğleden sonra
-  if (hour < 19) return [0x281a4d, 0xff7a2e]; // gün batımı
-  if (hour < 20) return [0x180f34, 0x8a2a10]; // alaca karanlık
-  if (hour < 21) return [0x0c0722, 0x2a1330]; // akşam
-  return [0x01050e, 0x0a1020]; // gece
+  // Gecenin tam ortası
+  if (!isDaytime && hour > sunsetH + 1.5) return [0x01040c, 0x0a1226];
+  if (!isDaytime && hour < sunriseH - 1.5) return [0x01040c, 0x0a1226];
+  // Gece sabaha yakın
+  if (!isDaytime && hour < sunriseH) return [0x03081a, 0x142344];
+  // Şafak (sunrise ± 1h)
+  if (isSunrise && dayF < 0.25) return [0x241d4a, 0xc45c1e];
+  // Sabah altını (sunrise + 1-2h)
+  if (isSunrise) return [0x39568a, 0xe8955a];
+  // Gündüz yaz: daha canlı mavi; kış: daha soluk
+  if (dayF > 0.6) {
+    const summerBlue = month >= 5 && month <= 9;
+    return summerBlue ? [0x1a6db8, 0x87ceeb] : [0x2170bf, 0x9fcdec];
+  }
+  // Öğleden sonra
+  if (dayProgress > 0.5 && dayF > 0.3) return [0x2f7bbc, 0xb2d6ea];
+  // Gün batımı (sunset ± 1h)
+  if (isSunset && dayF > 0.08) return [0x281a4d, 0xff7a2e];
+  if (isSunset) return [0x180f34, 0x8a2a10];
+  // Akşam karanlığı
+  if (!isDaytime) return [0x0c0722, 0x2a1330];
+  return [0x2170bf, 0x9fcdec]; // gündüz fallback
 }
 const _sp = skyPair();
 const skyTop = new THREE.Color(_sp[0]);
 const sky    = new THREE.Color(_sp[1]);   // ufuk rengi → fog + hemisphere
 scene.background = sky;                     // kubbe altında yedek
-scene.fog = new THREE.FogExp2(sky, 0.008);  // ufku yumuşatır
+// Fog: parlak gökyüzü rengini doğrudan kullanınca uzak zemin sütlü/yıkanmış
+// bir pusa dönüşüyordu. Rengi ufka + koyu tabana doğru çek, yoğunluğu düşür.
+const fogCol = sky.clone().lerp(skyTop, 0.5).lerp(new THREE.Color(0x0b1524), 0.24);
+scene.fog = new THREE.FogExp2(fogCol, 0.0058);  // ufku yumuşatır, sahneyi yıkamaz
 
 // Degrade gökyüzü kubbesi — vertex renkli (shader gerektirmez, r128 uyumlu)
 {
@@ -148,20 +227,28 @@ scene.fog = new THREE.FogExp2(sky, 0.008);  // ufku yumuşatır
 /* ── Işıklandırma ────────────────────────────────────────── */
 // Hemisphere: gökyüzü rengi yukarıdan, toprak yeşili aşağıdan
 const hemi = new THREE.HemisphereLight(
-  sky, new THREE.Color(0x2d4a1e), 0.5 + 0.4 * dayF
+  sky, new THREE.Color(0x2d4a1e), 0.35 + 0.35 * dayF
 );
 scene.add(hemi);
 
-// Güneş konumu: saat 6→doğu, 12→tepe, 18→batı
-const sunAngle = ((hour - 6) / 12) * Math.PI;
-const sunDist = 80;
-const sunX = Math.cos(sunAngle) * sunDist;
-const sunY = Math.max(2, Math.sin(sunAngle) * sunDist);
-const sunZ = -30;
+// Güneş pozisyonu — gerçek sunriseH/sunsetH ve maxElev kullanılıyor
+// dayProgress: 0=doğuş, 0.5=öğlen, 1=batış → yay boyunca E→W
+const sunArc   = isDaytime ? dayProgress * Math.PI : Math.PI * 0.5; // varsayılan: öğlen pozisyonunda gizli
+const sunDist  = 85;
+// Azimuth: doğudan batıya yay (cos: doğu=+, batı=-)
+const sunX = -Math.cos(sunArc - Math.PI * 0.5) * sunDist;   // doğu=+60, batı=-60
+// Elevation: mevsime göre max yükseklik (kış ~30°, yaz ~76°)
+const elevFactor = Math.max(0.15, Math.min(maxElev / 90, 0.85));  // 0-1 arası
+const sunY = isDaytime
+  ? Math.max(2, Math.sin(sunArc) * sunDist * elevFactor)
+  : -10;  // gece: güneş ufkun altında
+const sunZ = -25;
 
+// Key light — dolgu ışığı azaltıldığı için güneşi biraz güçlendirip cepheye
+// yönlü modelleme/kontrast kazandırıyoruz (düz-soluk görünümü kırar).
 const sunLight = new THREE.DirectionalLight(
   isGolden ? 0xffb347 : 0xfff6e0,
-  dayF > 0.05 ? (isGolden ? 1.4 : 1.2) : 0
+  dayF > 0.05 ? (isGolden ? 1.55 : 1.45) : 0
 );
 sunLight.position.set(sunX, sunY, sunZ);
 sunLight.castShadow = true;
@@ -182,26 +269,40 @@ if (dayF < 0.2) {
   scene.add(moon);
 }
 
-// Arka ambient fill
-scene.add(new THREE.AmbientLight(0xffffff, 0.15 + 0.2 * dayF));
+// Arka ambient fill — düşürüldü (fazla dolgu kontrastı öldürüp sahneyi yıkıyordu)
+scene.add(new THREE.AmbientLight(0xffffff, 0.10 + 0.14 * dayF));
 
-/* ── Güneş diski ─────────────────────────────────────────── */
+/* ── Güneş diski — sky dome yüzeyinde, zemine asla geçmez ─── */
 if (dayF > 0.05) {
-  const sunGeo = new THREE.SphereGeometry(2.8, 24, 24);
+  // Güneş yönünü normalize et, minimum yükseklik garantile, dome yüzeyine yerleştir
+  const _sd = new THREE.Vector3(sunX, Math.max(6, sunY), sunZ).normalize();
+  const SDR = 145;  // sky dome placement radius — ufuğa yakın ama içinde
+  const sPos = _sd.clone().multiplyScalar(SDR);
+
+  const sunGeo = new THREE.SphereGeometry(4.2, 32, 32);
   const sunMat = new THREE.MeshBasicMaterial({
-    color: isGolden ? 0xff8c30 : 0xfff5a0
+    color: isGolden ? 0xff8c20 : 0xfffde0, fog: false
   });
   const sunMesh = new THREE.Mesh(sunGeo, sunMat);
-  sunMesh.position.set(sunX * 0.7, sunY * 0.7, sunZ * 0.7);
+  sunMesh.position.copy(sPos);
+  sunMesh.renderOrder = 1;
   scene.add(sunMesh);
 
-  // Hale (glow) — büyük transparan küre
+  // İç parlak çekirdek (bloom için)
+  const coreGeo = new THREE.SphereGeometry(2.2, 20, 20);
+  const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+  const core = new THREE.Mesh(coreGeo, coreMat);
+  core.position.copy(sPos);
+  core.renderOrder = 2;
+  scene.add(core);
+
+  // Hale (glow) — transparan
   const glowMat = new THREE.MeshBasicMaterial({
-    color: isGolden ? 0xff6010 : 0xffee88,
-    transparent: true, opacity: 0.12, side: THREE.BackSide
+    color: isGolden ? 0xff5500 : 0xffdd66,
+    transparent: true, opacity: isGolden ? 0.14 : 0.09, side: THREE.BackSide, fog: false
   });
-  const glow = new THREE.Mesh(new THREE.SphereGeometry(7, 16, 16), glowMat);
-  glow.position.copy(sunMesh.position);
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(10, 16, 16), glowMat);
+  glow.position.copy(sPos);
   scene.add(glow);
 }
 
@@ -248,24 +349,54 @@ if (dayF > 0.3) {
 
 /* ── Zemin ──────────────────────────────────────────────── */
 // Çimen
-// Gündüz→gece arası yumuşak geçiş (sert eşik yok → çamurlu görünmez)
-const grassCol = new THREE.Color(0x16280d).lerp(new THREE.Color(0x5c9147), dayF);
-const grassMat = new THREE.MeshStandardMaterial({
-  color: grassCol,
-  roughness: 0.95
-});
+const grassCol = new THREE.Color(0x16280d).lerp(new THREE.Color(0x4a7c3f), dayF);
+const grassMat = new THREE.MeshStandardMaterial({ color: grassCol, roughness: 0.95 });
 const grass = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), grassMat);
 grass.rotation.x = -Math.PI / 2;
 grass.receiveShadow = true;
 scene.add(grass);
 
-// Beton kaldırım
-const sidewalkMat = new THREE.MeshStandardMaterial({color: 0xb8bfc9, roughness: 0.8});
-const sidewalk = new THREE.Mesh(new THREE.PlaneGeometry(40, 16), sidewalkMat);
+// Asfalt yol (geniş, gerçekçi)
+const roadMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.92, metalness: 0.04 });
+const road = new THREE.Mesh(new THREE.PlaneGeometry(60, 14), roadMat);
+road.rotation.x = -Math.PI / 2;
+road.position.set(0, 0.005, 14);
+road.receiveShadow = true;
+scene.add(road);
+
+// Yol şeridi — sarı orta çizgi
+const stripeMat = new THREE.MeshStandardMaterial({ color: 0xf5c518, roughness: 0.8 });
+for (let i = -4; i <= 4; i++) {
+  const stripe = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 0.18), stripeMat);
+  stripe.rotation.x = -Math.PI / 2;
+  stripe.position.set(i * 6, 0.012, 14);
+  scene.add(stripe);
+}
+// Yol kenar beyaz çizgisi
+const edgeMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.8 });
+for (const ze of [7.2, 20.8]) {
+  const edge = new THREE.Mesh(new THREE.PlaneGeometry(60, 0.22), edgeMat);
+  edge.rotation.x = -Math.PI / 2;
+  edge.position.set(0, 0.012, ze);
+  scene.add(edge);
+}
+
+// Beton kaldırım (yol ile bina arası)
+const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0xc4c8cc, roughness: 0.85 });
+const sidewalk = new THREE.Mesh(new THREE.PlaneGeometry(40, 8), sidewalkMat);
 sidewalk.rotation.x = -Math.PI / 2;
-sidewalk.position.set(0, 0.01, 5);
+sidewalk.position.set(0, 0.01, 6);
 sidewalk.receiveShadow = true;
 scene.add(sidewalk);
+
+// Kaldırım yatay çizgileri (döşeme taşı efekti)
+const tileEdgeMat = new THREE.MeshStandardMaterial({ color: 0xaeb2b7, roughness: 0.9 });
+for (let ti = -19; ti <= 19; ti++) {
+  const tline = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 8), tileEdgeMat);
+  tline.rotation.x = -Math.PI / 2;
+  tline.position.set(ti * 1, 0.011, 6);
+  scene.add(tline);
+}
 
 /* ── Yardımcı malzemeler ─────────────────────────────────── */
 function concreteMat(hex) {
@@ -288,71 +419,98 @@ const bWidth   = CFG.units_per_floor * UNIT_W;
 const bHeight  = CFG.floors * FLOOR_H;
 const group    = new THREE.Group();
 
-// Ana duvar rengi
-const wallColor = dayF > 0.4 ? 0xd4cfc9 : 0x6a6560;
-const wallMat   = concreteMat(wallColor);
+// Modern mimari renk paleti
+// Çerçeve/kolon: koyu antrasit — cepheye derinlik verir
+const frameColor = dayF > 0.4 ? 0x2d3748 : 0x1a202c;
+const wallMat   = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.65, metalness: 0.12 });
+// Döşeme/panel arası açık sıva rengi
+const plasterMat = new THREE.MeshStandardMaterial({ color: dayF > 0.4 ? 0xddd8d0 : 0x5a5650, roughness: 0.88 });
+// Vurgu bandı: terrakota/tuğla rengi (Türk mimarisine gönderme)
+const accentMat  = new THREE.MeshStandardMaterial({ color: 0x8b3a1e, roughness: 0.75, metalness: 0.05 });
 
-// Temel
+// Temel — granit/koyu taş görünümü
 const baseH = 0.6;
 const base = new THREE.Mesh(
   new THREE.BoxGeometry(bWidth + 0.6, baseH, B_DEPTH + 0.6),
-  concreteMat(0x8a8680)
+  new THREE.MeshStandardMaterial({ color: 0x1c1f26, roughness: 0.55, metalness: 0.15 })
 );
 base.position.y = baseH / 2;
 base.castShadow = true;
 base.receiveShadow = true;
 group.add(base);
 
+// Zemin kat arkası — koyu granit kaplama (ticari/lobi görünümü)
+const lobbyMat = new THREE.MeshStandardMaterial({ color: 0x111520, roughness: 0.4, metalness: 0.25 });
+const lobbyFront = new THREE.Mesh(new THREE.BoxGeometry(bWidth, FLOOR_H * 0.75, 0.18), lobbyMat);
+lobbyFront.position.set(0, baseH + FLOOR_H * 0.375, B_DEPTH / 2 + 0.09);
+group.add(lobbyFront);
+const lobbyBack = new THREE.Mesh(new THREE.BoxGeometry(bWidth, FLOOR_H * 0.75, 0.18), lobbyMat);
+lobbyBack.position.set(0, baseH + FLOOR_H * 0.375, -B_DEPTH / 2 - 0.09);
+group.add(lobbyBack);
+
 // Her kat
 for (let f = 0; f < CFG.floors; f++) {
   const yBase = baseH + f * FLOOR_H;
 
-  // Döşeme levhası
+  // Döşeme levhası — koyu metal/beton bant
+  const isAccentFloor = (f % 2 === 0); // çift katlarda vurgu bandı
+  const slabM = isAccentFloor ? accentMat : new THREE.MeshStandardMaterial({ color: 0x3d4451, roughness: 0.7, metalness: 0.08 });
   const slab = new THREE.Mesh(
-    new THREE.BoxGeometry(bWidth + 0.3, FLOOR_T, B_DEPTH + 0.3),
-    concreteMat(0x9a9590)
+    new THREE.BoxGeometry(bWidth + 0.3, FLOOR_T + (isAccentFloor ? 0.1 : 0), B_DEPTH + 0.3),
+    slabM
   );
   slab.position.y = yBase;
   slab.castShadow = true;
   slab.receiveShadow = true;
   group.add(slab);
 
-  // Duvar: ön ve arka panel (pencereler arasındaki solid kısımlar)
+  // Cephe sıva paneli — pencereler arasındaki arka duvar (açık renk)
   for (const zSign of [1, -1]) {
     const wallZ = zSign * (B_DEPTH / 2 + 0.01);
-    // Sol stütün (solid)
     const colW = 0.35;
     const wallH = FLOOR_H - FLOOR_T - 0.1;
 
-    // Kolonlar (pencereler arası dikey duvar)
+    // Sıva paneli (pencereler arası dolu alan — açık renkli)
+    for (let u = 0; u < CFG.units_per_floor; u++) {
+      const panelX = -bWidth / 2 + (u + 0.5) * UNIT_W;
+      const panelW = UNIT_W - colW - 0.05;
+      const plaster = new THREE.Mesh(
+        new THREE.BoxGeometry(panelW, wallH, 0.14),
+        plasterMat
+      );
+      plaster.position.set(panelX, yBase + FLOOR_T + wallH / 2, wallZ);
+      group.add(plaster);
+    }
+
+    // Kolonlar (koyu çerçeve — antrasit)
     for (let u = 0; u <= CFG.units_per_floor; u++) {
       const colX = -bWidth / 2 + u * UNIT_W;
       const col = new THREE.Mesh(
-        new THREE.BoxGeometry(colW, wallH, 0.28),
+        new THREE.BoxGeometry(colW, wallH, 0.32),
         wallMat
       );
       col.position.set(colX, yBase + FLOOR_T + wallH / 2, wallZ);
       group.add(col);
     }
 
-    // Üst kiriş (pencere üstü)
+    // Üst kiriş (koyu metal profil)
     const beam = new THREE.Mesh(
-      new THREE.BoxGeometry(bWidth, 0.55, 0.28),
+      new THREE.BoxGeometry(bWidth, 0.55, 0.32),
       wallMat
     );
     beam.position.set(0, yBase + FLOOR_H - 0.3, wallZ);
     group.add(beam);
 
-    // Alt parapet / windowsill
+    // Alt pervaz (açık beton)
     const sill = new THREE.Mesh(
-      new THREE.BoxGeometry(bWidth, 0.28, 0.32),
-      concreteMat(0xb8b4ae)
+      new THREE.BoxGeometry(bWidth, 0.22, 0.36),
+      new THREE.MeshStandardMaterial({ color: 0xb0acaa, roughness: 0.8 })
     );
-    sill.position.set(0, yBase + FLOOR_T + 0.28, wallZ);
+    sill.position.set(0, yBase + FLOOR_T + 0.22, wallZ);
     group.add(sill);
   }
 
-  // Yan duvarlar
+  // Yan duvarlar — açık sıva (geniş panel görünümü)
   for (const xSign of [1, -1]) {
     const wall = new THREE.Mesh(
       new THREE.BoxGeometry(0.3, FLOOR_H - FLOOR_T, B_DEPTH),
@@ -361,6 +519,13 @@ for (let f = 0; f < CFG.floors; f++) {
     wall.position.set(xSign * (bWidth / 2 + 0.15), yBase + FLOOR_T + (FLOOR_H - FLOOR_T) / 2, 0);
     wall.castShadow = true;
     group.add(wall);
+    // Yan cephe sıva paneli
+    const sidePanel = new THREE.Mesh(
+      new THREE.BoxGeometry(0.14, FLOOR_H - FLOOR_T - 0.2, B_DEPTH - 0.3),
+      plasterMat
+    );
+    sidePanel.position.set(xSign * (bWidth / 2 + 0.08), yBase + FLOOR_T + (FLOOR_H - FLOOR_T) / 2, 0);
+    group.add(sidePanel);
   }
 
   // Pencereler
@@ -377,29 +542,41 @@ for (let f = 0; f < CFG.floors; f++) {
     const winW = UNIT_W - 0.5;
     const winH = FLOOR_H - FLOOR_T - 0.9;
 
-    // Cam rengi
+    // Cam rengi — PBR gerçekçi cam (yüksek metalness → yansıma)
     let glassColor, emissiveColor, emissiveInt = 0;
+    let glassRoughness = 0.04, glassMetalness = 0.65, glassOpacity = 0.78;
     if (CFG.outage) {
-      glassColor = isActive && isLit && unitGlobal === 0 ? 0xfbbf24 : 0x0a0a0a;
+      glassColor = isActive && isLit && unitGlobal === 0 ? 0xfbbf24 : 0x050810;
+      glassRoughness = 0.08; glassMetalness = 0.3;
     } else if (isLit) {
+      // Gece — sıcak sarı ışık, az yansıma
       glassColor = 0xfef3c7;
       emissiveColor = new THREE.Color(0xfcd34d);
-      emissiveInt = 0.4;
-    } else if (dayF > 0.5) {
-      // gündüz yansıma
-      glassColor = 0x8ec8e8;
+      emissiveInt = 0.55;
+      glassRoughness = 0.06; glassMetalness = 0.12; glassOpacity = 0.92;
+    } else if (dayF > 0.6) {
+      // Tam gündüz — yüksek yansımalı mimari cam, gökyüzü tonu
+      glassColor = 0x5ba8d4;
+      glassRoughness = 0.02; glassMetalness = 0.75; glassOpacity = 0.72;
+    } else if (dayF > 0.2) {
+      // Sabah/akşam — altın tonu yansıma
+      glassColor = 0x7a9cb8;
+      glassRoughness = 0.04; glassMetalness = 0.6; glassOpacity = 0.78;
     } else {
-      glassColor = 0x0d1520;
+      // Gece/alacakaranlık — koyu yansıtıcı
+      glassColor = 0x0a1828;
+      glassRoughness = 0.06; glassMetalness = 0.4; glassOpacity = 0.85;
     }
 
     const glassMat = new THREE.MeshStandardMaterial({
       color: glassColor,
       emissive: emissiveColor || new THREE.Color(0x000000),
       emissiveIntensity: emissiveInt,
-      roughness: 0.05,
-      metalness: 0.15,
+      roughness: glassRoughness,
+      metalness: glassMetalness,
       transparent: true,
-      opacity: 0.88
+      opacity: glassOpacity,
+      envMapIntensity: 1.4   // yansıma yoğunluğu artırıldı
     });
 
     // Ön ve arka cam
@@ -412,8 +589,8 @@ for (let f = 0; f < CFG.floors; f++) {
       if (zOff < 0) win.rotation.y = Math.PI;
       group.add(win);
 
-      // Pencere çerçevesi
-      const frameMat = metalMat(0x6b7280);
+      // Pencere çerçevesi — koyu alüminyum profil
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x1a2235, roughness: 0.3, metalness: 0.7 });
       const frameB = 0.08;
       // yatay çerçeve üst+alt
       for (const dy of [winH / 2, -winH / 2]) {
@@ -471,31 +648,49 @@ for (let f = 0; f < CFG.floors; f++) {
 
 /* ── Çatı ────────────────────────────────────────────────── */
 const roofY = baseH + bHeight;
-// Çatı döşemesi
+// Çatı döşemesi — koyu metal
 const roofSlab = new THREE.Mesh(
   new THREE.BoxGeometry(bWidth + 0.4, 0.3, B_DEPTH + 0.4),
-  concreteMat(0x8a8680)
+  new THREE.MeshStandardMaterial({ color: 0x1e2433, roughness: 0.6, metalness: 0.2 })
 );
 roofSlab.position.y = roofY + 0.15;
 group.add(roofSlab);
 
-// Parapet (çatı kenar duvarı)
+// Parapet (çatı kenar duvarı) — terrakota vurgu
 for (const [axis, sign] of [['x',1],['x',-1],['z',1],['z',-1]]) {
   const isX = axis === 'x';
   const par = new THREE.Mesh(
     new THREE.BoxGeometry(
-      isX ? 0.25 : bWidth + 0.5,
-      0.7,
-      isX ? B_DEPTH + 0.5 : 0.25
+      isX ? 0.28 : bWidth + 0.55,
+      0.9,
+      isX ? B_DEPTH + 0.55 : 0.28
     ),
-    concreteMat(0x9a9590)
+    accentMat
   );
   par.position.set(
-    isX ? sign * (bWidth / 2 + 0.12) : 0,
-    roofY + 0.65,
-    isX ? 0 : sign * (B_DEPTH / 2 + 0.12)
+    isX ? sign * (bWidth / 2 + 0.14) : 0,
+    roofY + 0.75,
+    isX ? 0 : sign * (B_DEPTH / 2 + 0.14)
   );
   group.add(par);
+}
+// Parapet üst metal profil
+for (const [axis, sign] of [['x',1],['x',-1],['z',1],['z',-1]]) {
+  const isX = axis === 'x';
+  const cap = new THREE.Mesh(
+    new THREE.BoxGeometry(
+      isX ? 0.32 : bWidth + 0.62,
+      0.1,
+      isX ? B_DEPTH + 0.62 : 0.32
+    ),
+    new THREE.MeshStandardMaterial({ color: 0x4a5568, roughness: 0.4, metalness: 0.5 })
+  );
+  cap.position.set(
+    isX ? sign * (bWidth / 2 + 0.16) : 0,
+    roofY + 1.25,
+    isX ? 0 : sign * (B_DEPTH / 2 + 0.16)
+  );
+  group.add(cap);
 }
 
 /* ── Güneş panelleri ─────────────────────────────────────── */
@@ -936,40 +1131,96 @@ if (CFG.elevator) {
   group.add(cab);
 }
 
-/* ── Ağaçlar ─────────────────────────────────────────────── */
+/* ── Mimari ağaçlar (düzleştirilmiş küre tacı — low-poly koni yok) ──── */
 function tree(x, z, h) {
   const g = new THREE.Group();
-  const trunkH = h * 0.38;
-  // Gövde
-  const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.14, 0.2, trunkH, 8),
-    new THREE.MeshStandardMaterial({color: 0x5c3d1e, roughness: 0.9})
-  );
-  trunk.position.y = trunkH / 2;
+  // İnce mimari gövde
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x1e140a, roughness: 0.92, metalness: 0.0 });
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.085, h * 0.52, 8), trunkMat);
+  trunk.position.y = h * 0.26;
   g.add(trunk);
-
-  // Yaprak katmanları
-  const leafColor = dayF > 0.3 ? 0x2d7a2d : 0x1a4a1a;
-  for (let i = 0; i < 3; i++) {
-    const cone = new THREE.Mesh(
-      new THREE.ConeGeometry(0.7 - i * 0.15, h * 0.35, 8),
-      new THREE.MeshStandardMaterial({color: leafColor, roughness: 0.8})
-    );
-    cone.position.y = trunkH + i * h * 0.22;
-    g.add(cone);
-  }
+  // Düzleştirilmiş küre taç (elipsoid — çok daha doğal)
+  const leafCol = dayF > 0.35
+    ? new THREE.Color(0x2a5c1a).lerp(new THREE.Color(0x3a7228), dayF * 0.7)
+    : new THREE.Color(0x111e0a);
+  const canopyMat = new THREE.MeshStandardMaterial({ color: leafCol, roughness: 0.88, metalness: 0.0 });
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(h * 0.27, 10, 8), canopyMat);
+  canopy.scale.set(1, 0.62, 1); // elipsoid
+  canopy.position.y = h * 0.52 + h * 0.17;
+  g.add(canopy);
   g.position.set(x, 0, z);
   g.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
-  // Gerçekçi ağaç modeli verilmişse ilkel konileri onunla değiştir (yoksa ilkel kalır)
   swapWithModel(g, ASSETS.tree, { targetHeight: h, rotY: Math.random() * Math.PI * 2 });
   return g;
 }
 
-group.add(tree(-bWidth / 2 - 4,  2.5, 4.5));
-group.add(tree(-bWidth / 2 - 4, -3.0, 5.5));
-group.add(tree( bWidth / 2 + battW + 5.5, 3.0, 4.0));
-group.add(tree( bWidth / 2 + battW + 5.5, -2.5, 5.0));
-group.add(tree(-bWidth / 2 - 7,  0.0, 6.0));
+// 4 ağaç, simetrik düzende — minimal & temiz
+group.add(tree(-bWidth / 2 - 3.5, 1.5, 4.8));
+group.add(tree(-bWidth / 2 - 3.5, -2.5, 5.6));
+group.add(tree( bWidth / 2 + battW + 4.8, 1.5, 4.2));
+group.add(tree( bWidth / 2 + battW + 4.8, -2.2, 5.0));
+
+/* ── Digital Twin zemin grid ────────────────────────────── */
+// Tech estetiği: ince açık çizgiler — "sanal dünya" hissi
+{
+  const gridMat = new THREE.LineBasicMaterial({
+    color: 0x1e3a5c, transparent: true, opacity: 0.45
+  });
+  const gridSize = 80, gridDiv = 40;
+  const step = gridSize / gridDiv;
+  const points = [];
+  for (let i = 0; i <= gridDiv; i++) {
+    const p = -gridSize / 2 + i * step;
+    points.push(-gridSize / 2, 0, p,  gridSize / 2, 0, p);
+    points.push(p, 0, -gridSize / 2,  p, 0, gridSize / 2);
+  }
+  const gridGeo = new THREE.BufferGeometry();
+  gridGeo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+  const gridLines = new THREE.LineSegments(gridGeo, gridMat);
+  gridLines.position.y = 0.018;
+  scene.add(gridLines);
+}
+
+/* ── Enerji akış partikülleri (Digital Twin görselleştirme) ── */
+// Solar panellerden bataryaya, bataryadan binaya akan enerji
+const flowParticles = [];
+const roofCx = group.position.x;
+const roofCy = roofY + 0.5;
+const battCx = battX;
+const battCy = battY0 + battH * 0.5;
+
+function mkFlowParticle(fx, fy, fz, tx, ty, tz, col, spd, phase) {
+  const geo = new THREE.SphereGeometry(0.09, 6, 6);
+  const mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.visible = false;
+  scene.add(mesh);
+  return { mesh, from: new THREE.Vector3(fx, fy, fz), to: new THREE.Vector3(tx, ty, tz),
+           t: phase, spd };
+}
+
+// Solar → Batarya (üretim varsa)
+if (CFG.solar_norm > 0.08) {
+  const flowN = Math.min(5, Math.ceil(CFG.solar_norm * 6));
+  for (let i = 0; i < flowN; i++) {
+    flowParticles.push(mkFlowParticle(
+      0, roofCy, 0,              // çatıdan
+      battCx, battCy, 1.0,       // bataryaya
+      0xfbbf24, 0.38 + Math.random() * 0.18, i / flowN
+    ));
+  }
+}
+// Batarya → Bina girişi (SOC > 0.15 ise)
+if (soc > 0.15) {
+  const flowN2 = 3;
+  for (let i = 0; i < flowN2; i++) {
+    flowParticles.push(mkFlowParticle(
+      battCx, battCy, 1.0,       // bataryadan
+      0, baseH + bHeight * 0.35, B_DEPTH / 2,  // bina cephesine
+      0x60a5fa, 0.28 + Math.random() * 0.14, i / flowN2
+    ));
+  }
+}
 
 /* ── Güvenlik kameraları ─────────────────────────────────── */
 if (CFG.kamera) {
@@ -1020,8 +1271,8 @@ if (CFG.kamera) {
 /* ── Kesinti uyarısı ─────────────────────────────────────── */
 let alarmLight = null;
 if (CFG.outage) {
-  document.getElementById('alarm').style.display = 'block';
-  document.getElementById('alarm').style.animation = 'blink 0.7s infinite';
+  const alarmEl = document.getElementById('alarm');
+  if (alarmEl) { alarmEl.style.display = 'block'; alarmEl.style.animation = 'blink 0.7s infinite'; }
 
   alarmLight = new THREE.PointLight(0xef4444, 2.0, 35);
   alarmLight.position.set(0, roofY + 3, 0);
@@ -1099,22 +1350,63 @@ if (ASSETS.hdri && THREE.RGBELoader) {
   } catch (e) { console.warn('Ortam haritası kurulamadı:', e); }
 }
 
-/* ── HUD ─────────────────────────────────────────────────── */
-const hud = document.getElementById('hud');
+/* ── Digital Twin HUD ───────────────────────────────────── */
+const hud = document.getElementById('dt-hud');
 const socPct = Math.round(soc * 100);
-const socColor = soc > 0.5 ? '#22c55e' : soc > 0.2 ? '#f59e0b' : '#ef4444';
-hud.innerHTML = [
-  `<span class="hud-chip">🕐 ${String(hour).padStart(2,'0')}:00</span>`,
-  `<span class="hud-chip">🔋 <span style="color:${socColor};font-weight:700">%${socPct}</span></span>`,
-  `<span class="hud-chip">☀️ ${CFG.solar_kw.toFixed(1)} kW</span>`,
-  `<span class="hud-chip">🏠 ${CFG.active_units}/${CFG.total_units} ${CFG.unit_label}</span>`,
-].join('');
+const socColor = soc > 0.6 ? '#4ade80' : soc > 0.3 ? '#fbbf24' : '#f87171';
+const socBarColor = soc > 0.6 ? '#22c55e' : soc > 0.3 ? '#f59e0b' : '#ef4444';
+const solarPct = Math.round(CFG.solar_norm * 100);
+const timeStr = String(hour).padStart(2,'0') + ':00';
+const phaseStr = hour >= 6 && hour < 10 ? CFG.t.morning : hour >= 10 && hour < 17 ? CFG.t.daytime : hour >= 17 && hour < 21 ? CFG.t.evening : CFG.t.night;
+const isCharging = CFG.solar_norm > 0.05 && soc < 0.98;
+const isDischarging = soc > 0.15 && CFG.solar_norm < 0.1 && (hour >= 17 || hour < 7);
+const battStatus = isCharging ? CFG.t.charging : isDischarging ? CFG.t.discharging : CFG.t.standby;
+// Alarm badge metnini dile göre güncelle
+const _alarmTxt = document.getElementById('alarm-text');
+if (_alarmTxt) _alarmTxt.textContent = CFG.t.grid_outage;
+const battDotColor = isCharging ? '#4ade80' : isDischarging ? '#60a5fa' : '#94a3b8';
+
+hud.innerHTML = `
+  <div style="flex:0 0 auto;padding-right:18px;border-right:1px solid rgba(255,255,255,.07);">
+    <div class="dt-logo">SmartHome · Digital Twin</div>
+    <div style="font-size:28px;font-weight:800;color:#f8fafc;letter-spacing:-.02em;line-height:1">${timeStr}</div>
+    <div class="dt-sub" style="color:rgba(148,163,184,.6)">${phaseStr} · ${CFG.t.simulation}</div>
+  </div>
+  <div class="dt-metric">
+    <div class="dt-label">${CFG.t.battery}</div>
+    <div class="dt-value" style="color:${socColor}">${socPct}<span style="font-size:12px;font-weight:500;color:rgba(148,163,184,.6)">%</span></div>
+    <div class="dt-bar-wrap"><div class="dt-bar" style="width:${socPct}%;background:${socBarColor}"></div></div>
+    <div class="dt-sub"><span class="dt-status-dot" style="background:${battDotColor};box-shadow:0 0 6px ${battDotColor}"></span>${battStatus}</div>
+  </div>
+  <div class="dt-metric">
+    <div class="dt-label">${CFG.t.solar}</div>
+    <div class="dt-value" style="color:${CFG.solar_norm > 0.1 ? '#fbbf24' : '#94a3b8'}">${CFG.solar_kw.toFixed(1)}<span style="font-size:12px;font-weight:500;color:rgba(148,163,184,.6)"> kW</span></div>
+    <div class="dt-bar-wrap"><div class="dt-bar" style="width:${solarPct}%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div>
+    <div class="dt-sub">${solarPct}% ${CFG.t.capacity}</div>
+  </div>
+  <div class="dt-metric">
+    <div class="dt-label">${CFG.t.active} ${CFG.unit_label}</div>
+    <div class="dt-value">${CFG.active_units}<span style="font-size:14px;font-weight:400;color:rgba(148,163,184,.4)">/${CFG.total_units}</span></div>
+    <div class="dt-bar-wrap"><div class="dt-bar" style="width:${Math.round(CFG.active_units/CFG.total_units*100)}%;background:linear-gradient(90deg,#3b82f6,#60a5fa)"></div></div>
+    <div class="dt-sub">${Math.round(CFG.active_units/CFG.total_units*100)}% ${CFG.t.occupancy}</div>
+  </div>
+  <div class="dt-metric" style="flex:0 0 auto;border-right:none">
+    <div class="dt-label">${CFG.t.grid_status}</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${CFG.outage?'#ef4444':'#4ade80'};box-shadow:0 0 8px ${CFG.outage?'#ef4444':'#22c55e'};flex-shrink:0"></div>
+      <div class="dt-value" style="font-size:14px;color:${CFG.outage?'#f87171':'#4ade80'}">${CFG.outage?CFG.t.outage_status:CFG.t.connected}</div>
+    </div>
+    <div class="dt-sub" style="margin-top:8px">${CFG.t.rl_agent}</div>
+  </div>
+`;
 
 /* ── Kamera ──────────────────────────────────────────────── */
+// FOV 38 → daha dar, daha mimari/profesyonel; az distorsiyon
 const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 500);
-const lookAt = new THREE.Vector3(0, (baseH + bHeight) * 0.45, 0);
-const R0 = Math.max(bHeight * 2.1, bWidth * 2.4, 16);
-let theta = 0.72, phi = 0.38, radius = R0, autoRot = true;
+const lookAt = new THREE.Vector3(0, (baseH + bHeight) * 0.38, 0);
+const R0 = Math.max(bHeight * 2.6, bWidth * 2.8, 20);
+// phi 0.40 → biraz daha geniş açı, bina tam görünsün
+let theta = 0.62, phi = 0.40, radius = R0, autoRot = true;
 
 function updateCam() {
   camera.position.set(
@@ -1164,12 +1456,14 @@ if (USE_BLOOM) {
   try {
     composer = new THREE.EffectComposer(renderer);
     composer.addPass(new THREE.RenderPass(scene, camera));
-    const bloomStrength = 0.55 + 0.45 * (1 - dayF);   // gece daha güçlü, gündüz daha hafif
+    // Gündüz strength düşük (0.25) → parlak sıva/gökyüzü blooming yapıp sahneyi
+    // sütlü göstermesin; gece güçlü (~0.8) → pencere/LED/enerji akışı parlasın.
+    const bloomStrength = 0.25 + 0.55 * (1 - dayF);
     const bloom = new THREE.UnrealBloomPass(
       new THREE.Vector2(W, H),
       bloomStrength,  // strength
       0.5,            // radius
-      0.82            // threshold — yalnızca parlak emissive'ler parlar, taban sahne bozulmaz
+      0.85            // threshold — yalnızca gerçek emissive'ler parlar (sıva/gök değil)
     );
     composer.addPass(bloom);
     composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader)); // lineer → sRGB
@@ -1182,8 +1476,8 @@ function animate(ts) {
   requestAnimationFrame(animate);
   const dt = Math.min((ts - t0) / 1000, 0.1); t0 = ts;
 
-  // Otomatik yavaş döndürme
-  if (autoRot) theta += 0.08 * dt;
+  // Otomatik yavaş döndürme — daha sinematik
+  if (autoRot) theta += 0.045 * dt;
 
   // Asansör
   if (cab) {
@@ -1201,6 +1495,29 @@ function animate(ts) {
     fx.mat.emissiveIntensity = fx.base + fx.amp * (0.5 + 0.5 * Math.sin(tsec * fx.speed + fx.phase));
   }
 
+  // Enerji akış partikülleri — from → to arası lerp, t döngüsel
+  for (const p of flowParticles) {
+    p.t = (p.t + p.spd * dt) % 1.0;
+    // Ease-in-out: parabolik yay (parabolic arc) — gerçekçi hareket
+    const tEased = p.t < 0.5 ? 2 * p.t * p.t : 1 - Math.pow(-2 * p.t + 2, 2) / 2;
+    p.mesh.position.lerpVectors(p.from, p.to, tEased);
+    // Yay — ortada biraz yukarı kalk (arc efekti)
+    p.mesh.position.y += Math.sin(p.t * Math.PI) * 1.8;
+    p.mesh.visible = true;
+    // Tail fade — başta ve sonda şeffaf
+    const fade = Math.sin(p.t * Math.PI);
+    p.mesh.material.opacity = 0.25 + 0.75 * fade;
+    const s = 0.6 + 0.6 * fade;
+    p.mesh.scale.setScalar(s);
+  }
+
+  // Highlight halkası animasyonu — döndür + pulse
+  if (_hlGroup) {
+    _hlGroup.rotation.y += dt * 0.9;
+    if (_hlRingMat) _hlRingMat.opacity = 0.55 + 0.45 * Math.sin(tsec * 2.5);
+    if (_hlGlow) _hlGlow.intensity = 1.5 + 1.0 * Math.sin(tsec * 3.0);
+  }
+
   updateCam();
   if (composer) composer.render(); else renderer.render(scene, camera);
 }
@@ -1208,23 +1525,134 @@ function animate(ts) {
 updateCam();
 requestAnimationFrame(animate);
 
-// Pencere boyutu değişince
-window.addEventListener('resize', () => {
-  const nW = wrap.clientWidth, nH = wrap.clientHeight;
+// Pencere/iframe boyutu değişince — canvas'ı yeniden boyutlandır
+function onResize() {
+  const nW = wrap.clientWidth  || window.innerWidth  || 640;
+  const nH = wrap.clientHeight || window.innerHeight || __H__;
+  if (nW < 10 || nH < 10) return;
+  renderer.setSize(nW, nH);
   camera.aspect = nW / nH;
   camera.updateProjectionMatrix();
-  renderer.setSize(nW, nH);
   if (composer) composer.setSize(nW, nH);
+}
+window.addEventListener('resize', onResize);
+// İframe layout sonrası ilk düzeltme (srcdoc gecikmeli render)
+setTimeout(onResize, 50);
+setTimeout(onResize, 300);
+
+/* ── Highlight sistemi — postMessage API ─────────────────────
+   Simulasyon.jsx → Building.jsx → iframe.contentWindow.postMessage
+   { type: 'HIGHLIGHT', system: 'hvac' | 'battery' | null }
+   Seçili sistem üzerine mavi pulsing halkası + nokta ışık eklenir.
+──────────────────────────────────────────────────────────────── */
+const SYS_POS = {
+  solar_pv:      { x: 0,               y: roofY + 0.5,   z: 0 },
+  battery:       { x: bWidth / 2 + 1,  y: bHeight * 0.5, z: 0 },
+  hvac:          { x: bWidth * 0.38,   y: roofY + 0.7,   z: B_DEPTH * 0.36 },
+  su_pompasi:    { x: -bWidth * 0.3,   y: roofY + 1.1,   z: -B_DEPTH * 0.25 },
+  gunes_isitici: { x: bWidth * 0.2,    y: roofY + 0.5,   z: -B_DEPTH * 0.35 },
+  jenerator:     { x: -bWidth / 2 - 0.8, y: 0.6,         z: -B_DEPTH * 0.3 },
+  asansor:       { x: 0,               y: bHeight * 0.55, z: 0 },
+  ev_sarj:       { x: bWidth / 2 + 1.5, y: 0.35,         z: 0.5 },
+  kamera:        { x: bWidth / 2,      y: bHeight * 0.8,  z: B_DEPTH / 2 },
+};
+
+let _hlGroup = null;
+let _hlRingMat = null;
+let _hlGlow = null;
+
+function clearHighlight() {
+  if (_hlGroup) { scene.remove(_hlGroup); _hlGroup = null; _hlRingMat = null; _hlGlow = null; }
+}
+
+function setHighlight(sysId) {
+  clearHighlight();
+  const pos = SYS_POS[sysId];
+  if (!pos) return;
+
+  const g = new THREE.Group();
+
+  // Outer pulsing ring
+  const ringGeo = new THREE.TorusGeometry(1.4, 0.07, 10, 56);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.9 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 2;
+  g.add(ring);
+  _hlRingMat = ringMat;
+
+  // Inner smaller ring (stacked)
+  const ring2Geo = new THREE.TorusGeometry(0.9, 0.04, 8, 48);
+  const ring2Mat = new THREE.MeshBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.6 });
+  const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+  ring2.rotation.x = Math.PI / 2;
+  g.add(ring2);
+
+  // Glow point light
+  const glow = new THREE.PointLight(0x60a5fa, 2.0, 5);
+  g.add(glow);
+  _hlGlow = glow;
+
+  g.position.set(pos.x, pos.y, pos.z);
+  scene.add(g);
+  _hlGroup = g;
+}
+
+
+window.addEventListener('message', (e) => {
+  try {
+    const d = e.data;
+    if (!d || d.type !== 'HIGHLIGHT') return;
+    if (d.system) setHighlight(d.system);
+    else clearHighlight();
+  } catch(_) {}
 });
 })();
 </script>
 """
 
 
+_T = {
+    "tr": {
+        "grid_outage": "ŞEBEKE KESİNTİSİ",
+        "connected": "BAĞLI", "outage_status": "KESİNTİ",
+        "grid_status": "Şebeke Durumu", "battery": "Batarya (SOC)",
+        "solar": "Güneş Üretim", "active": "Aktif",
+        "capacity": "kapasite", "occupancy": "doluluk",
+        "simulation": "SİMÜLASYON",
+        "charging": "ŞARJ", "discharging": "DEŞARJ", "standby": "BEKLEMEDE",
+        "morning": "SABAH", "daytime": "GÜNDÜZ", "evening": "AKŞAM", "night": "GECE",
+        "rl_agent": "RL Ajan: TD3/SAC",
+    },
+    "en": {
+        "grid_outage": "GRID OUTAGE",
+        "connected": "CONNECTED", "outage_status": "OUTAGE",
+        "grid_status": "Grid Status", "battery": "Battery (SOC)",
+        "solar": "Solar Output", "active": "Active",
+        "capacity": "capacity", "occupancy": "occupancy",
+        "simulation": "SIMULATION",
+        "charging": "CHARGING", "discharging": "DISCHARGING", "standby": "STANDBY",
+        "morning": "MORNING", "daytime": "DAYTIME", "evening": "EVENING", "night": "NIGHT",
+        "rl_agent": "RL Agent: TD3/SAC",
+    },
+    "ar": {
+        "grid_outage": "انقطاع الشبكة",
+        "connected": "متصل", "outage_status": "انقطاع",
+        "grid_status": "حالة الشبكة", "battery": "البطارية",
+        "solar": "الطاقة الشمسية", "active": "نشط",
+        "capacity": "سعة", "occupancy": "إشغال",
+        "simulation": "محاكاة",
+        "charging": "شحن", "discharging": "تفريغ", "standby": "انتظار",
+        "morning": "صباح", "daytime": "نهار", "evening": "مساء", "night": "ليل",
+        "rl_agent": "وكيل RL: TD3/SAC",
+    },
+}
+
+
 def building_html(cfg: BinaConfig, hour: int, soc: float,
                   solar_kw: float, outage: bool = False, height: int = 520,
-                  unit_label: str = "daire",
-                  assets: dict | None = None, bloom: bool = False) -> str:
+                  unit_label: str = "daire", dil: str = "tr",
+                  assets: dict | None = None, bloom: bool = True,
+                  month: int = 7) -> str:
     """assets: {'hdri': url, 'car': url, 'tree': url, 'lamp': url} — verilen .glb / .hdr
     adresleri ilgili ilkel geometrilerin yerine yüklenir. Boş bırakılırsa mevcut
     prosedürel geometri (fallback) kullanılır; hiçbir şey bozulmaz.
@@ -1233,16 +1661,19 @@ def building_html(cfg: BinaConfig, hour: int, soc: float,
     NOT: Streamlit iframe'i srcdoc ile çalışır → model/HDRI adresleri MUTLAK ve
     CORS-açık olmalı (yerel dosya yolu çalışmaz)."""
     solar_max = max(cfg.panel_kw * 0.80, 0.1)
+    labels = _T.get(dil, _T["tr"])
     params = dict(
         assets=dict(assets or {}),
         bloom=bool(bloom),
         unit_label=str(unit_label),
+        t=labels,
         floors=int(cfg.kat),
         units_per_floor=int(cfg.daire_per_kat),
         active_units=int(min(cfg.aktif_daire, cfg.toplam_daire)),
         total_units=int(cfg.toplam_daire),
         panels=int(cfg.panel_sayisi),
         hour=int(hour),
+        month=int(month),   # 1=Jan…12=Dec — season-aware sun position
         soc=float(round(soc, 3)),
         solar_kw=float(round(solar_kw, 2)),
         solar_norm=float(round(min(solar_kw / solar_max, 1.0), 3)),

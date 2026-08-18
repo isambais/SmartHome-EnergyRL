@@ -446,6 +446,70 @@
 .landing .foot-top:hover { background: var(--card-2); border-color: var(--line-strong); }
 @media (max-width: 600px) { .landing .foot-bottom { flex-direction: column; align-items: flex-start; } }
 
+/* ── Responsive fixes ──────────────────────────────────────────── */
+
+/* Nav CTA desktop — only visible on wide screens (media query at line 135 hides it below 900px) */
+@media (min-width: 901px) {
+  .landing .nav-cta-desktop { display: flex; align-items: center; gap: 10px; }
+}
+
+/* Mockup sidebar — display controlled by CSS so the max-width:720px rule can hide it.
+   Specificity: .landing .hero-mock .hero-mock-side (0-3-0) beats this (0-2-0) at mobile → hidden. */
+.landing .hero-mock-side { display: flex; flex-direction: column; gap: 4px; }
+
+/* Mockup KPI cards — collapse to 2 cols on narrow screens */
+.mock-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 560px) { .mock-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* Logo text — hide on very narrow screens */
+@media (max-width: 360px) {
+  .landing .logo-text { display: none; }
+}
+
+/* Hero moon — hide on tablet/phone so it doesn't overlap content */
+@media (max-width: 900px) {
+  .hero-moon-wrap { display: none; }
+}
+
+/* Hero h1 font-size — prevent overflow on small screens */
+@media (max-width: 480px) {
+  .landing h1 { font-size: clamp(32px, 9vw, 46px); }
+  .landing .sub { font-size: 15px; }
+}
+
+/* Hero section — remove minHeight on mobile so it doesn't add empty space */
+@media (max-width: 720px) {
+  #top { min-height: unset !important; }
+}
+
+/* Sections — tighter vertical padding on phones */
+@media (max-width: 600px) {
+  .landing section { padding: 56px 0; }
+}
+
+/* Hero mockup wrapper — horizontal scroll on small screens */
+@media (max-width: 680px) {
+  .hero-mockup-outer {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 4px 8px;
+    /* hide scrollbar but allow scroll */
+    scrollbar-width: none;
+  }
+  .hero-mockup-outer::-webkit-scrollbar { display: none; }
+}
+
+/* Chips row in hero — tighter gap + less bottom margin on mobile */
+@media (max-width: 600px) {
+  .hero-chips { gap: 10px !important; margin-bottom: 24px !important; }
+}
+
+/* Nav pill — tighter on mobile */
+@media (max-width: 480px) {
+  .landing .nav-pill { padding: 7px 10px 7px 12px; gap: 8px; }
+  .landing .logo { font-size: 16px; gap: 8px; }
+}
+
 /* ── Before/After segment toggle ─────────────────────────────── */
 .landing .toggle-pill {
   display: inline-flex; gap: 4px; padding: 4px;

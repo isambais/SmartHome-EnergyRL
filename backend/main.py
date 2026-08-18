@@ -134,6 +134,7 @@ class YatirimIn(BaseModel):
 class BuildingIn(BaseModel):
     config: BinaIn = Field(default_factory=BinaIn)
     saat: int = 12
+    ay: int = 7        # 1=Ocak … 12=Aralık (mevsim/güneş hesabı için)
     soc: float = 0.5
     gunes_kw: float = 0.0
     kesinti: bool = False
@@ -250,7 +251,8 @@ def simulate(inp: SimIn):
 def building(inp: BuildingIn):
     return building_html(inp.config.to_cfg(), inp.saat, inp.soc, inp.gunes_kw,
                          outage=inp.kesinti, height=inp.height,
-                         unit_label=_UNIT_LABEL.get(inp.dil, _UNIT_LABEL["tr"]))
+                         unit_label=_UNIT_LABEL.get(inp.dil, _UNIT_LABEL["tr"]),
+                         dil=inp.dil, month=inp.ay)
 
 
 @app.post("/api/yatirim")

@@ -101,15 +101,32 @@ function Mockup() {
       transition={{ delay: 0.4, duration: 0.75 }}
       style={{
         background: "#0d0d10", borderRadius: 20,
-        boxShadow: "0 40px 80px -24px #00000040, 0 0 0 1px #e2e8f0",
-        overflow: "hidden", display: "flex",
+        boxShadow: "0 40px 80px -24px #00000040, 0 0 0 1px rgba(255,255,255,0.10)",
+        overflow: "hidden", display: "flex", flexDirection: "column",
         maxWidth: 980, margin: "0 auto", textAlign: "left",
       }}>
+
+      {/* ── Pencere chrome — macOS tarzı başlık çubuğu ── */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6,
+        padding: "10px 16px", flexShrink: 0,
+        background: "#0d0d12", borderBottom: "1px solid rgba(255,255,255,0.07)",
+      }}>
+        <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ef4444", opacity: 0.85 }} />
+        <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#f59e0b", opacity: 0.85 }} />
+        <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#22c55e", opacity: 0.85 }} />
+        <span style={{ flex: 1, textAlign: "center", fontSize: 11, color: "#4b5563", letterSpacing: "0.03em" }}>
+          SmartHome BMS — Yapay Zeka Enerji Asistanı
+        </span>
+      </div>
+
+      {/* ── İçerik satırı ──────────────────────────────── */}
+      <div style={{ display: "flex", flex: 1, minWidth: 0 }}>
 
       {/* ── Sol sidebar ──────────────────────────────── */}
       <div className="hero-mock-side" style={{
         background: "#0f172a", width: 200, flexShrink: 0,
-        padding: "20px 14px", display: "flex", flexDirection: "column", gap: 4,
+        padding: "20px 14px",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 8px 18px", borderBottom: "1px solid #1e293b" }}>
           <div style={{
@@ -163,7 +180,7 @@ function Mockup() {
         </div>
 
         {/* Metrik kartlar */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, margin: "14px 0" }}>
+        <div className="mock-kpi-grid" style={{ gap: 10, margin: "14px 0" }}>
           {[
             [Coins, t("mock.save"), "+" + fmtPara(312), "#4ade80"],
             [Battery, t("mock.soc"), "%68", "#60a5fa"],
@@ -174,7 +191,7 @@ function Mockup() {
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "#a1a1aa", marginBottom: 4 }}>
                 <span style={{ color: fg, display: "flex" }}><Icon size={13} /></span>{label}
               </div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: fg }}>{val}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: fg, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{val}</div>
             </div>
           ))}
         </div>
@@ -193,9 +210,9 @@ function Mockup() {
 
           {/* Fiyat + SOC grafiği */}
           <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, border: "1px solid #e2e8f0", padding: "12px 14px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#f4f4f5" }}>{t("mock.chartTitle")}</div>
-              <div style={{ display: "flex", gap: 10, fontSize: 10 }}>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#f4f4f5", marginBottom: 5 }}>{t("mock.chartTitle")}</div>
+              <div style={{ display: "flex", gap: 8, fontSize: 9.5, flexWrap: "wrap" }}>
                 <span style={{ color: "#f59e0b" }}>— {t("mock.legPrice")}</span>
                 <span style={{ color: "#22c55e" }}>— {t("mock.legSoc")}</span>
                 <span style={{ color: "#3b82f6" }}>▲ {t("mock.legCharge")}</span>
@@ -233,6 +250,8 @@ function Mockup() {
           </div>
         </div>
       </div>
+
+      </div>{/* ── İçerik satırı sonu ── */}
     </motion.div>
   );
 }
@@ -317,7 +336,7 @@ function HeroScene() {
       </div>
 
       {/* Ay */}
-      <div ref={moonRef} style={{ position: "absolute", top: "10%", right: "13%", willChange: "transform" }}>
+      <div ref={moonRef} className="hero-moon-wrap" style={{ position: "absolute", top: "10%", right: "13%", willChange: "transform" }}>
         <div style={{ position: "relative", width: 104, height: 104, animation: "moonBob 7s ease-in-out infinite" }}>
           <div style={{
             position: "absolute", inset: -28, borderRadius: "50%",
@@ -431,7 +450,7 @@ function Hero() {
   return (
     <section id="top" style={{
       position: "relative",
-      paddingTop: 160, paddingBottom: 0,
+      paddingTop: "clamp(96px, 12vw, 160px)", paddingBottom: 0,
       textAlign: "center",
       overflow: "hidden",
       minHeight: "100vh",
@@ -469,7 +488,7 @@ function Hero() {
           </Link>
           <a className="btn btn-white" href="#features">{t("lp.hero.how")}</a>
         </motion.div>
-        <motion.div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "26px 0 50px" }}
+        <motion.div className="hero-chips" style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "26px 0 50px" }}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
           <span className="chip" style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 999, padding: "8px 16px", backdropFilter: "blur(8px)" }}>
             <span style={{ color: "var(--amber)", display: "flex" }}><Star size={17} /></span> {t("lp.hero.chip1").replace("{d}", fmtPara(14))}
@@ -484,7 +503,7 @@ function Hero() {
       </div>
 
       {/* Dashboard mockup — sahne içinde yüzer */}
-      <div style={{ position: "relative", zIndex: 1, padding: "0 20px 0" }}>
+      <div className="hero-mockup-outer" style={{ position: "relative", zIndex: 1, padding: "0 20px clamp(40px,6vw,90px)" }}>
         <div style={{ maxWidth: 1020, margin: "0 auto" }}>
           <Mockup />
         </div>

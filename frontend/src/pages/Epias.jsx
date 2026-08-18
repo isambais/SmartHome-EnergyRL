@@ -160,8 +160,10 @@ export default function Epias() {
             </AnimatePresence>
           </div>
 
-          <Building cfg={cfg} saat={saat} soc={r.soc} gunesKw={r.gunes_kw}
-            kesinti={kesintiSaatleri.includes(saat)} height={380} dil={dil} />
+          <div style={{ position: "relative", height: 380, borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)" }}>
+            <Building cfg={cfg} saat={saat} soc={r.soc} gunesKw={r.gunes_kw}
+              kesinti={kesintiSaatleri.includes(saat)} height={380} dil={dil} />
+          </div>
         </motion.div>
       </div>
 

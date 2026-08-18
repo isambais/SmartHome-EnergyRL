@@ -535,3 +535,56 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   cursor: pointer; transition: background 0.15s, color 0.15s;
 }
 .theme-toggle:hover { background: var(--hover); }
+
+/* ── Responsive grid helpers — app pages ─────────────────────────
+   These CSS classes are added alongside (or instead of) inline styles
+   so media queries can override layout at mobile/tablet breakpoints.
+   ─────────────────────────────────────────────────────────────── */
+
+/* 7-column KPI bar (Simulasyon) */
+.kpi-7-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+@media (max-width: 1100px) { .kpi-7-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 640px)  { .kpi-7-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* Simulasyon: 300px left sidebar | 1fr 3D panel */
+.sim-main-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (max-width: 900px) { .sim-main-grid { grid-template-columns: 1fr; } }
+
+/* Simulasyon: 3-column systems grid */
+.sim-sys-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+@media (max-width: 860px) { .sim-sys-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .sim-sys-grid { grid-template-columns: 1fr; } }
+
+/* RL Agent panel: text | stats side-by-side */
+.rl-agent-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+}
+@media (max-width: 680px) {
+  .rl-agent-grid { grid-template-columns: 1fr; gap: 16px; }
+}
+
+/* Simulasyon outer section padding */
+.sim-outer { padding: 0 24px 48px; }
+@media (max-width: 640px) { .sim-outer { padding: 0 8px 32px; } }
+
+/* .main left/right padding — reduce on phones */
+@media (max-width: 640px) {
+  .main { padding: 10px 12px 24px; }
+}
