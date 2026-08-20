@@ -1,0 +1,13 @@
+backend
+dashboard
+data
+logs
+models
+notebooks
+scripts
+src
+tests
+*.db
+requirements.txt
+render.yaml
+.env
