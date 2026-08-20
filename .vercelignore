@@ -1,4 +1,4 @@
-backend
+﻿backend
 dashboard
 data
 logs
@@ -8,6 +8,4 @@ scripts
 src
 tests
 *.db
-requirements.txt
-render.yaml
 .env
