@@ -28,7 +28,13 @@ data/processed/*
 
 # Ortam değişkenleri / API anahtarları
 .env
+.env.local
+.env.*.local
+.env.test
 *.key
+
+# git filter-repo yardımcı dosyası (hassas veri içerebilir)
+replacements.txt
 
 # IDE
 .vscode/
@@ -46,3 +52,8 @@ node_modules/
 dist/
 .vite/
 
+# SQLite veritabanı (geliştirme)
+smarthome.db
+
+# Backend pycache
+backend/__pycache__/

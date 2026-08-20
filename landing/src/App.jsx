@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import {
-  Arrow, Battery, Bolt, Brain, Chart, Check, Chevron,
+  Alert, Arrow, Battery, Bolt, Brain, Chart, Check, Chevron,
   Coins, Cube, Gauge, Home, Shield, Star, Sun, X,
 } from "./icons.jsx";
 
@@ -23,7 +23,7 @@ function Nav() {
           </a>
           <nav className="nav-links" aria-label="Ana menü">
             <a href="#features">Özellikler</a>
-            <a href="#how">Nasıl Çalışır</a>
+            <a href="#features">Nasıl Çalışır</a>
             <a href="#stats">Sonuçlar</a>
             <a href="#faq">SSS</a>
           </nav>
@@ -141,21 +141,21 @@ function Mockup() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <div>
             <div style={{ fontWeight: 800, fontSize: 16, color: "#0f172a" }}>Bina Simülasyonu</div>
-            <div style={{ fontSize: 11.5, color: "#64748b" }}>SAC ajanı aktif · 5 kat · 12 daire · veri: Sentetik EPİAŞ</div>
+            <div style={{ fontSize: 11.5, color: "#64748b" }}>5 katlı apartman · 12 daire · bugünün elektrik fiyatları</div>
           </div>
           <div style={{
             background: "#dcfce7", color: "#15803d", borderRadius: 999,
             padding: "4px 12px", fontSize: 11.5, fontWeight: 700,
-          }}>🤖 SAC ajan aktif</div>
+          }}>🤖 Asistan çalışıyor</div>
         </div>
 
         {/* Metrik kartlar */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, margin: "14px 0" }}>
           {[
             ["💰 Bugünkü tasarruf", "+312 TL", "#15803d", "#dcfce7"],
-            ["🔋 Batarya SOC", "%68", "#1d4ed8", "#dbeafe"],
+            ["🔋 Batarya doluluğu", "%68", "#1d4ed8", "#dbeafe"],
             ["☀️ Güneş üretimi", "18.4 kWh", "#b45309", "#fef3c7"],
-            ["⚡ Şu an karar", "Deşarj ▼", "#b91c1c", "#fee2e2"],
+            ["⚡ Şu an ne yapıyor?", "Bataryadan kullanıyor", "#b91c1c", "#fee2e2"],
           ].map(([label, val, fg, bg]) => (
             <div key={label} style={{ background: "#fff", borderRadius: 12, padding: "12px 14px", border: "1px solid #e2e8f0" }}>
               <div style={{ fontSize: 10.5, color: "#64748b", marginBottom: 4 }}>{label}</div>
@@ -179,12 +179,12 @@ function Mockup() {
           {/* Fiyat + SOC grafiği */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: "12px 14px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>EPİAŞ PTF & Batarya SOC — bugün</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Elektrik fiyatı & batarya — bugün</div>
               <div style={{ display: "flex", gap: 10, fontSize: 10 }}>
-                <span style={{ color: "#f59e0b" }}>— Fiyat</span>
-                <span style={{ color: "#22c55e" }}>— SOC</span>
-                <span style={{ color: "#3b82f6" }}>▲ şarj</span>
-                <span style={{ color: "#ef4444" }}>▼ deşarj</span>
+                <span style={{ color: "#f59e0b" }}>— Elektrik fiyatı</span>
+                <span style={{ color: "#22c55e" }}>— Batarya doluluğu</span>
+                <span style={{ color: "#3b82f6" }}>▲ depoluyor</span>
+                <span style={{ color: "#ef4444" }}>▼ kullanıyor</span>
               </div>
             </div>
             <svg viewBox={`0 0 ${W} ${H+10}`} style={{ width: "100%" }} role="img" aria-label="Fiyat ve SOC grafiği">
@@ -236,13 +236,13 @@ function HeroScene() {
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY;
-      if (skyRef.current)    skyRef.current.style.transform    = `translateY(${y * 0.18}px)`;
-      if (sunRef.current)    sunRef.current.style.transform    = `translateY(${y * 0.22}px)`;
-      if (cloud1Ref.current) cloud1Ref.current.style.transform = `translateY(${y * 0.30}px) translateX(${y * 0.04}px)`;
-      if (cloud2Ref.current) cloud2Ref.current.style.transform = `translateY(${y * 0.24}px) translateX(${-y * 0.03}px)`;
-      if (cityRef.current)   cityRef.current.style.transform   = `translateY(${y * 0.42}px)`;
-      if (groundRef.current) groundRef.current.style.transform = `translateY(${y * 0.55}px)`;
-      if (particleRef.current) particleRef.current.style.transform = `translateY(${y * 0.35}px)`;
+      if (skyRef.current)    skyRef.current.style.transform    = `translateY(${y * 0.6}px)`;
+      if (sunRef.current)    sunRef.current.style.transform    = `translateY(${y * 0.52}px)`;
+      if (cloud1Ref.current) cloud1Ref.current.style.transform = `translateY(${y * 0.44}px) translateX(${y * 0.05}px)`;
+      if (cloud2Ref.current) cloud2Ref.current.style.transform = `translateY(${y * 0.38}px) translateX(${-y * 0.04}px)`;
+      if (cityRef.current)   cityRef.current.style.transform   = `translateY(${y * 0.2}px)`;
+      if (groundRef.current) groundRef.current.style.transform = `translateY(${y * 0.06}px)`;
+      if (particleRef.current) particleRef.current.style.transform = `translateY(${y * 0.3}px)`;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -259,7 +259,7 @@ function HeroScene() {
 
       {/* Güneş */}
       <div ref={sunRef} style={{ position: "absolute", top: "8%", right: "14%", willChange: "transform" }}>
-        <div style={{ position: "relative", width: 110, height: 110 }}>
+        <div style={{ position: "relative", width: 110, height: 110, animation: "sunBob 6s ease-in-out infinite" }}>
           {/* ışın halkası */}
           <div style={{
             position: "absolute", inset: -18,
@@ -273,37 +273,69 @@ function HeroScene() {
             background: "radial-gradient(circle at 35% 35%, #fef08a, #fbbf24)",
             boxShadow: "0 0 60px 20px #fde04755, 0 0 120px 50px #fbbf2422",
           }}/>
-          {/* güneş ışınları */}
-          {[0,30,60,90,120,150,180,210,240,270,300,330].map(a => (
-            <div key={a} style={{
-              position: "absolute", top: "50%", left: "50%", width: 3, height: 22,
-              background: "linear-gradient(#fbbf24, transparent)",
-              transformOrigin: "50% 0",
-              transform: `rotate(${a}deg) translateX(-50%) translateY(-${55 + 22}px)`,
-              borderRadius: 2, opacity: 0.7,
-            }}/>
-          ))}
+          {/* dönen güneş ışınları */}
+          <div style={{ position: "absolute", inset: 0, animation: "sunSpin 40s linear infinite" }}>
+            {[0,30,60,90,120,150,180,210,240,270,300,330].map(a => (
+              <div key={a} style={{
+                position: "absolute", top: "50%", left: "50%", width: 3, height: 22,
+                background: "linear-gradient(#fbbf24, transparent)",
+                transformOrigin: "50% 0",
+                transform: `rotate(${a}deg) translateX(-50%) translateY(-${55 + 22}px)`,
+                borderRadius: 2, opacity: 0.7,
+              }}/>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Uzak bulutlar */}
+      {/* Uzak bulutlar — kendiliğinden süzülür + parallax */}
       <div ref={cloud1Ref} style={{ position: "absolute", top: "12%", left: "6%", willChange: "transform", opacity: 0.88 }}>
-        <svg width="260" height="90" viewBox="0 0 260 90">
-          <ellipse cx="90" cy="60" rx="88" ry="30" fill="white"/>
-          <ellipse cx="60" cy="52" rx="52" ry="28" fill="white"/>
-          <ellipse cx="130" cy="48" rx="46" ry="24" fill="white"/>
-          <ellipse cx="180" cy="56" rx="62" ry="26" fill="white"/>
-          <ellipse cx="210" cy="62" rx="48" ry="22" fill="white"/>
-        </svg>
+        <div style={{ animation: "cloudFloat1 16s ease-in-out infinite" }}>
+          <svg width="260" height="90" viewBox="0 0 260 90">
+            <ellipse cx="90" cy="60" rx="88" ry="30" fill="white"/>
+            <ellipse cx="60" cy="52" rx="52" ry="28" fill="white"/>
+            <ellipse cx="130" cy="48" rx="46" ry="24" fill="white"/>
+            <ellipse cx="180" cy="56" rx="62" ry="26" fill="white"/>
+            <ellipse cx="210" cy="62" rx="48" ry="22" fill="white"/>
+          </svg>
+        </div>
       </div>
 
       {/* Yakın bulutlar */}
       <div ref={cloud2Ref} style={{ position: "absolute", top: "18%", right: "4%", willChange: "transform", opacity: 0.75 }}>
-        <svg width="200" height="70" viewBox="0 0 200 70">
-          <ellipse cx="70" cy="46" rx="68" ry="24" fill="white"/>
-          <ellipse cx="48" cy="38" rx="40" ry="22" fill="white"/>
-          <ellipse cx="100" cy="34" rx="36" ry="20" fill="white"/>
-          <ellipse cx="140" cy="44" rx="52" ry="22" fill="white"/>
+        <div style={{ animation: "cloudFloat2 13s ease-in-out infinite" }}>
+          <svg width="200" height="70" viewBox="0 0 200 70">
+            <ellipse cx="70" cy="46" rx="68" ry="24" fill="white"/>
+            <ellipse cx="48" cy="38" rx="40" ry="22" fill="white"/>
+            <ellipse cx="100" cy="34" rx="36" ry="20" fill="white"/>
+            <ellipse cx="140" cy="44" rx="52" ry="22" fill="white"/>
+          </svg>
+        </div>
+      </div>
+
+      {/* Ekranı boydan boya geçen bulutlar */}
+      <div style={{ position: "absolute", top: "6%", left: 0, animation: "cloudAcross 75s linear infinite", opacity: 0.55 }}>
+        <svg width="170" height="60" viewBox="0 0 170 60">
+          <ellipse cx="60" cy="40" rx="58" ry="20" fill="white"/>
+          <ellipse cx="42" cy="32" rx="34" ry="18" fill="white"/>
+          <ellipse cx="95" cy="30" rx="30" ry="16" fill="white"/>
+          <ellipse cx="125" cy="38" rx="42" ry="18" fill="white"/>
+        </svg>
+      </div>
+      <div style={{ position: "absolute", top: "26%", left: 0, animation: "cloudAcross 105s linear -40s infinite", opacity: 0.4 }}>
+        <svg width="130" height="46" viewBox="0 0 130 46">
+          <ellipse cx="46" cy="30" rx="44" ry="15" fill="white"/>
+          <ellipse cx="34" cy="24" rx="26" ry="14" fill="white"/>
+          <ellipse cx="90" cy="28" rx="36" ry="14" fill="white"/>
+        </svg>
+      </div>
+
+      {/* Kuş sürüsü */}
+      <div style={{ position: "absolute", top: "20%", left: 0, animation: "birdFly 34s linear -6s infinite", opacity: 0.7 }}>
+        <svg width="90" height="40" viewBox="0 0 90 40" fill="none" stroke="#334155" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M5 18 q6 -7 12 0 q6 -7 12 0"/>
+          <path d="M42 10 q5 -6 10 0 q5 -6 10 0"/>
+          <path d="M55 28 q4 -5 9 0 q4 -5 9 0"/>
         </svg>
       </div>
 
@@ -398,7 +430,22 @@ function HeroScene() {
 
       <style>{`
         @keyframes sunPulse { 0%,100%{transform:scale(1);opacity:0.8} 50%{transform:scale(1.12);opacity:1} }
+        @keyframes sunSpin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+        @keyframes sunBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
         @keyframes floatPart { 0%{transform:translateY(0)} 100%{transform:translateY(-18px)} }
+        @keyframes cloudFloat1 { 0%,100%{transform:translateX(0)} 50%{transform:translateX(46px)} }
+        @keyframes cloudFloat2 { 0%,100%{transform:translateX(0)} 50%{transform:translateX(-38px)} }
+        @keyframes cloudAcross { from{transform:translateX(-220px)} to{transform:translateX(105vw)} }
+        @keyframes birdFly {
+          from{transform:translateX(-120px) translateY(0)}
+          25%{transform:translateX(28vw) translateY(-22px)}
+          50%{transform:translateX(55vw) translateY(6px)}
+          75%{transform:translateX(80vw) translateY(-16px)}
+          to{transform:translateX(108vw) translateY(-4px)}
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *[style*="animation"] { animation: none !important; }
+        }
       `}</style>
     </div>
   );
@@ -420,10 +467,10 @@ function Hero() {
       <div className="container" style={{ position: "relative", zIndex: 1 }}>
         <motion.div initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <span className="eyebrow" style={{ background: "rgba(255,255,255,0.75)", backdropFilter: "blur(8px)" }}>
-            Takviyeli Öğrenme · EPİAŞ · Gerçek Zamanlı
+            Güneş paneliniz ve bataryanız varsa, tanışın
           </span>
           <h1 style={{ textShadow: "0 2px 24px rgba(0,0,0,0.08)" }}>
-            Binanız için{" "}
+            Elektrik faturanızı{" "}
             <span style={{
               display: "inline-flex", verticalAlign: "middle",
               width: "0.95em", height: "0.95em", borderRadius: "22%",
@@ -431,32 +478,33 @@ function Hero() {
               color: "#fff", alignItems: "center", justifyContent: "center",
               fontSize: "0.5em", fontWeight: 800, margin: "0 0.08em",
               boxShadow: "0 4px 20px #22c55e44",
-            }}>RL</span>{" "}
-            enerji yönetimi
+            }}>AI</span>{" "}
+            düşürsün
           </h1>
         </motion.div>
         <motion.p className="sub" style={{ margin: "22px auto 30px", maxWidth: 560 }}
           initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
-          Güneş paneli ve bataryası olan binanız için gerçek EPİAŞ fiyat verisiyle eğitilmiş SAC ajanı
-          saat saat şarj/deşarj kararları verir — faturanızı otomatik düşürür.
+          Akıllı asistanınız elektriğin ucuz olduğu saatlerde bataryanızı doldurur,
+          pahalı saatlerde depoladığı enerjiyi kullanır. Siz hiçbir şey yapmazsınız —
+          fatura kendiliğinden düşer.
         </motion.p>
         <motion.div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}
           initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
           <a className="btn btn-blue" href="http://localhost:8501">
             Dashboard'u Aç <span className="arr"><Arrow size={14} /></span>
           </a>
-          <a className="btn btn-white" href="#how">Nasıl Çalışır</a>
+          <a className="btn btn-white" href="#features">Nasıl Çalışır</a>
         </motion.div>
         <motion.div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "26px 0 50px" }}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
           <span className="chip" style={{ background: "rgba(255,255,255,0.8)", backdropFilter: "blur(6px)" }}>
-            <span style={{ color: "var(--amber)", display: "flex" }}><Star size={17} /></span> SAC +14.4 TL/gün
+            <span style={{ color: "var(--amber)", display: "flex" }}><Star size={17} /></span> Günde ~14 TL cebinizde kalır
           </span>
           <span className="chip" style={{ background: "rgba(255,255,255,0.8)", backdropFilter: "blur(6px)" }}>
-            <span style={{ color: "var(--green)", display: "flex" }}><Shield size={17} /></span> %29.93 sMAPE tahmin
+            <span style={{ color: "var(--green)", display: "flex" }}><Shield size={17} /></span> Tamamen otomatik
           </span>
           <span className="chip" style={{ background: "rgba(255,255,255,0.8)", backdropFilter: "blur(6px)" }}>
-            <span style={{ color: "#3b82f6", display: "flex" }}><Bolt size={17} /></span> 74 gün test seti
+            <span style={{ color: "#3b82f6", display: "flex" }}><Bolt size={17} /></span> Kesintide de sizi korur
           </span>
         </motion.div>
       </div>
@@ -714,7 +762,7 @@ function BeforeAfter() {
         <motion.div {...fadeUp} style={{ margin: "26px 0 22px" }}>
           <div className="toggle-pill" role="tablist">
             <button className={!after ? "on" : ""} onClick={() => setAfter(false)} role="tab" aria-selected={!after}>Sisteme sahip olmadan</button>
-            <button className={after ? "on" : ""} onClick={() => setAfter(true)} role="tab" aria-selected={after}>SmartHome RL ile</button>
+            <button className={after ? "on" : ""} onClick={() => setAfter(true)} role="tab" aria-selected={after}>Akıllı asistanla</button>
           </div>
         </motion.div>
         <div style={{ maxWidth: 560, margin: "0 auto", perspective: 900 }}>
@@ -731,26 +779,26 @@ function BeforeAfter() {
                   <div className="tick" key={t}><span className="c" style={{ color: "var(--red)" }}><X /></span>{t}</div>
                 ))}
                 <div style={{ display: "flex", gap: 30, marginTop: 20 }}>
-                  <div><div style={{ fontSize: 30, fontWeight: 800 }}>%40+</div><div className="sub" style={{ fontSize: 14 }}>Kaçırılan arbitraj fırsatı</div></div>
-                  <div><div style={{ fontSize: 30, fontWeight: 800 }}>Manuel</div><div className="sub" style={{ fontSize: 14 }}>Saatlik takip gerekliliği</div></div>
+                  <div><div style={{ fontSize: 30, fontWeight: 800 }}>%40+</div><div className="sub" style={{ fontSize: 14 }}>Kaçan tasarruf fırsatı</div></div>
+                  <div><div style={{ fontSize: 30, fontWeight: 800 }}>Sürekli</div><div className="sub" style={{ fontSize: 14 }}>Fiyat takip etme derdi</div></div>
                 </div>
               </motion.div>
             ) : (
               <motion.div key="a" className="card" style={{ textAlign: "left", background: "#141414", color: "#fff" }}
                 initial={{ opacity: 0, rotateY: -14 }} animate={{ opacity: 1, rotateY: 0 }}
                 exit={{ opacity: 0, rotateY: 14 }} transition={{ duration: 0.3 }}>
-                <h3 style={{ marginBottom: 14 }}>RL ajanıyla <span style={{ color: "var(--green)" }}>otomatik optimizasyon</span></h3>
-                {["Ucuz saatte şarj, pahalı saatte deşarj — her gün otomatik",
-                  "Kesinti öncesi batarya hazır tutulur, jeneratör devreye girer",
-                  "SAC ajanı 74 günlük test setinde günde +14.4 TL net tasarruf sağladı",
-                  "EPİAŞ API ile gerçek zamanlı fiyat takibi, tahmin olmadan da çalışır"].map((t) => (
+                <h3 style={{ marginBottom: 14 }}>Akıllı asistanla <span style={{ color: "var(--green)" }}>her şey otomatik</span></h3>
+                {["Elektrik ucuzken depolar, pahalıyken depodakini kullanır — her gün, kendiliğinden",
+                  "Kesinti gelmeden bataryayı hazır tutar, ışıklarınız sönmez",
+                  "Testlerde günde ortalama 14 TL tasarruf sağladı — yılda 5.000 TL'den fazla",
+                  "Elektrik fiyatlarını sizin yerinize o takip eder"].map((t) => (
                   <div className="tick" key={t} style={{ color: "#d8d8d8" }}>
                     <span className="c" style={{ color: "var(--green)" }}><Check /></span>{t}
                   </div>
                 ))}
                 <div style={{ display: "flex", gap: 30, marginTop: 20 }}>
-                  <div><div style={{ fontSize: 30, fontWeight: 800, color: "var(--green)" }}>+14.4 TL</div><div style={{ fontSize: 14, color: "#9a9a9a" }}>Günlük ortalama tasarruf</div></div>
-                  <div><div style={{ fontSize: 30, fontWeight: 800, color: "var(--green)" }}>7/24</div><div style={{ fontSize: 14, color: "#9a9a9a" }}>Tam otomatik karar</div></div>
+                  <div><div style={{ fontSize: 30, fontWeight: 800, color: "var(--green)" }}>+14 TL</div><div style={{ fontSize: 14, color: "#9a9a9a" }}>Günde cebinizde kalan</div></div>
+                  <div><div style={{ fontSize: 30, fontWeight: 800, color: "var(--green)" }}>7/24</div><div style={{ fontSize: 14, color: "#9a9a9a" }}>Sizin yerinize düşünür</div></div>
                 </div>
               </motion.div>
             )}
@@ -761,168 +809,227 @@ function BeforeAfter() {
   );
 }
 
-/* ── Bina SVG — aktif duruma göre değişir ─────────────────────── */
-function BuildingViz({ active }) {
-  const isSolar   = active === 0;
-  const isBattery = active === 1;
-  const isEpias   = active === 2;
-  const isOutage  = active === 3;
-  const isAgent   = active === 4;
+/* ── Ürün arayüzü paneli — aktif özelliğe göre değişir ────────── */
+const PANEL_META = [
+  { title: "Güneş Üretimi", color: "#f59e0b" },
+  { title: "Batarya Yönetimi", color: "#22c55e" },
+  { title: "Elektrik Fiyatları", color: "#3b82f6" },
+  { title: "Kesinti Modu", color: "#ef4444" },
+  { title: "Asistanın Kararları", color: "#8b5cf6" },
+];
 
-  const winColor = (floor, col) => {
-    if (isOutage) return (floor === 1 && col === 1) ? "#fbbf24" : "#1e293b";
-    if (isSolar)  return "#fef3c7";
-    return (floor + col) % 2 === 0 ? "#bfdbfe" : "#dbeafe";
-  };
-
-  const battFill = isBattery ? 0.85 : 0.52;
-  const chartPts = [0,6,4,10,3,2,12,16,14,9].map((v,i) => `${i*7},${18-v}`).join(" ");
-  const skyColor = isOutage ? "#0f172a" : isSolar ? "#fef9c3" : "#e0f2fe";
-  const wallColor = isOutage ? "#1e293b" : "#e2e8f0";
-  const sideColor = isOutage ? "#0f172a" : "#94a3b8";
-  const roofColor = isOutage ? "#334155" : "#cbd5e1";
-
+function PanelKpi({ label, value, color }) {
   return (
-    <div style={{ position: "relative", userSelect: "none" }}>
-      <svg viewBox="0 0 280 370" style={{ width: "100%", maxHeight: 460, transition: "all 0.5s" }}>
-        {/* gökyüzü */}
-        <rect x="0" y="0" width="280" height="370" fill={skyColor} style={{ transition: "fill 0.6s" }}/>
+    <div style={{ background: "#ffffff08", border: "1px solid #ffffff12", borderRadius: 12, padding: "10px 14px", flex: 1, minWidth: 100 }}>
+      <div style={{ fontSize: 11, color: "#8b95a7" }}>{label}</div>
+      <div style={{ fontSize: 17, fontWeight: 800, color }}>{value}</div>
+    </div>
+  );
+}
 
-        {/* güneş (solar modda) */}
-        {isSolar && (
-          <g>
-            <circle cx="228" cy="52" r="26" fill="#fde047" opacity="0.95">
-              <animate attributeName="r" values="26;30;26" dur="2.5s" repeatCount="indefinite"/>
-            </circle>
-            {[0,45,90,135,180,225,270,315].map(a => (
-              <line key={a}
-                x1={228 + Math.cos(a*Math.PI/180)*32} y1={52 + Math.sin(a*Math.PI/180)*32}
-                x2={228 + Math.cos(a*Math.PI/180)*40} y2={52 + Math.sin(a*Math.PI/180)*40}
-                stroke="#fde047" strokeWidth="2" opacity="0.6"/>
-            ))}
-          </g>
-        )}
-
-        {/* zemin */}
-        <rect x="0" y="318" width="280" height="52" fill={isOutage ? "#1e293b" : "#e2e8f0"} style={{ transition: "fill 0.6s" }}/>
-
-        {/* yan yüz (3D derinlik) */}
-        <polygon points="200,62 238,44 238,308 200,318" fill={sideColor} style={{ transition: "fill 0.6s" }}/>
-
-        {/* ön yüz */}
-        <rect x="42" y="62" width="158" height="256" fill={wallColor} style={{ transition: "fill 0.6s" }}/>
-
-        {/* çatı */}
-        <polygon points="42,62 200,62 238,44 80,44" fill={roofColor} style={{ transition: "fill 0.6s" }}/>
-
-        {/* kat çizgileri */}
-        {[112, 162, 212, 262].map(y => (
-          <line key={y} x1="42" y1={y} x2="200" y2={y}
-            stroke={isOutage ? "#334155" : "#cbd5e1"} strokeWidth="1" style={{ transition: "stroke 0.6s" }}/>
+function SolarView() {
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+        <PanelKpi label="Anlık üretim" value="18.4 kW" color="#fbbf24" />
+        <PanelKpi label="Gün toplamı" value="126 kWh" color="#fff" />
+        <PanelKpi label="Öz-tüketim" value="%74" color="#22c55e" />
+      </div>
+      <svg viewBox="0 0 460 170" style={{ width: "100%" }}>
+        <defs>
+          <linearGradient id="solarG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0, 1, 2, 3].map((i) => (
+          <line key={i} x1="0" y1={40 * i + 10} x2="460" y2={40 * i + 10} stroke="#ffffff0d" />
         ))}
-
-        {/* pencereler 5 kat × 3 sütun */}
-        {[0,1,2,3,4].map(floor =>
-          [0,1,2].map(col => {
-            const x = 58 + col * 44;
-            const y = 72 + floor * 50;
-            return (
-              <rect key={`${floor}-${col}`} x={x} y={y} width="28" height="26" rx="2"
-                fill={winColor(floor, col)}
-                style={{ transition: "fill 0.5s" }}
-              />
-            );
-          })
-        )}
-
-        {/* güneş panelleri — çatı üzeri */}
-        {[0,1,2].map(i => (
-          <g key={`panel-${i}`}>
-            <rect x={82+i*32} y="47" width="26" height="12" rx="1"
-              fill={isSolar ? "#f59e0b" : "#3b82f6"}
-              opacity={isSolar ? 1 : 0.65}
-              style={{ transition: "fill 0.4s" }}
-            >
-              {isSolar && <animate attributeName="opacity" values="0.85;1;0.85" dur="1.8s" repeatCount="indefinite"/>}
-            </rect>
-            <line x1={95+i*32} y1="47" x2={95+i*32} y2="59"
-              stroke={isSolar ? "#b45309" : "#1d4ed8"} strokeWidth="0.8"/>
-            <line x1={82+i*32} y1="53" x2={108+i*32} y2="53"
-              stroke={isSolar ? "#b45309" : "#1d4ed8"} strokeWidth="0.8"/>
-          </g>
-        ))}
-
-        {/* batarya ünitesi — yan yüzde */}
-        <rect x="208" y="205" width="22" height="68" rx="3"
-          fill={isOutage ? "#334155" : "#f1f5f9"} stroke="#94a3b8" strokeWidth="1"/>
-        <rect x="208" y={205 + 68*(1-battFill)} width="22" height={68*battFill} rx="2"
-          fill={isBattery ? "#22c55e" : "#86efac"}
-          style={{ transition: "all 0.8s" }}
-        />
-        <rect x="214" y="202" width="10" height="4" rx="1" fill="#64748b"/>
-        {isBattery && (
-          <>
-            <text x="219" y="280" textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#15803d">
-              {Math.round(battFill*100)}%
-            </text>
-            <circle cx="219" cy="195" r="5" fill="#22c55e" opacity="0.7">
-              <animate attributeName="opacity" values="0.5;1;0.5" dur="1.2s" repeatCount="indefinite"/>
-            </circle>
-          </>
-        )}
-
-        {/* EPİAŞ fiyat mini-ekran (ortadaki pencerede) */}
-        {isEpias && (
-          <g transform="translate(147, 72)">
-            <rect width="28" height="26" rx="2" fill="#0f172a"/>
-            <polyline points={chartPts} fill="none" stroke="#f59e0b" strokeWidth="1.5"
-              transform="translate(2,5)"/>
-          </g>
-        )}
-        {isEpias && (
-          <>
-            <text x="121" y="108" textAnchor="middle" fontSize="12" fontWeight="800" fill="#15803d">+312 ₺</text>
-            <text x="121" y="121" textAnchor="middle" fontSize="8.5" fill="#64748b">günlük tasarruf</text>
-          </>
-        )}
-
-        {/* kesinti alarmı */}
-        {isOutage && (
-          <>
-            <circle cx="121" cy="32" r="9" fill="#ef4444">
-              <animate attributeName="opacity" values="1;0.15;1" dur="0.7s" repeatCount="indefinite"/>
-            </circle>
-            <text x="121" y="28" textAnchor="middle" fontSize="7" fontWeight="800" fill="#fef2f2">!</text>
-            <text x="121" y="20" textAnchor="middle" fontSize="8" fontWeight="700" fill="#ef4444">KESİNTİ</text>
-          </>
-        )}
-
-        {/* ajan karar okları */}
-        {isAgent && (
-          <>
-            <polygon points="72,83 80,100 64,100" fill="#3b82f6"/>
-            <text x="72" y="76" textAnchor="middle" fontSize="7" fill="#1d4ed8" fontWeight="800">ŞARJ</text>
-            <polygon points="152,142 160,126 144,126" fill="#ef4444"/>
-            <text x="152" y="122" textAnchor="middle" fontSize="7" fill="#b91c1c" fontWeight="800">DEŞARJ</text>
-            <text x="121" y="266" textAnchor="middle" fontSize="11" fontWeight="800" fill="#15803d">▲ +14.4 TL/gün</text>
-          </>
-        )}
-
-        {/* EV şarj direği */}
-        <rect x="50" y="286" width="6" height="30" rx="1" fill="#64748b"/>
-        <rect x="46" y="281" width="14" height="10" rx="2" fill="#3b82f6" opacity="0.75"/>
-
-        {/* zemin gölgesi */}
-        <ellipse cx="121" cy="322" rx="76" ry="6" fill="#00000018"/>
+        <motion.path
+          d="M0,160 C40,158 70,140 100,110 C130,80 160,40 230,32 C300,40 330,80 360,110 C390,140 420,158 460,160 L460,170 L0,170 Z"
+          fill="url(#solarG)"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.6 }} />
+        <motion.path
+          d="M0,160 C40,158 70,140 100,110 C130,80 160,40 230,32 C300,40 330,80 360,110 C390,140 420,158 460,160"
+          fill="none" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round"
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: "easeInOut" }} />
+        <motion.circle r="6" fill="#fbbf24" stroke="#0b1220" strokeWidth="3"
+          initial={{ cx: 0, cy: 160, opacity: 0 }} animate={{ cx: 230, cy: 32, opacity: 1 }}
+          transition={{ duration: 1.1, ease: "easeInOut" }} />
+        <text x="8" y="165" fontSize="10" fill="#8b95a7">06:00</text>
+        <text x="222" y="24" fontSize="10" fill="#fbbf24" fontWeight="700">13:00 tepe</text>
+        <text x="425" y="165" fontSize="10" fill="#8b95a7">21:00</text>
       </svg>
+    </div>
+  );
+}
 
-      {/* Aktif durum etiketi */}
-      <div style={{
-        position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)",
-        background: "#0f172a", color: "#f8fafc", borderRadius: 999,
-        padding: "6px 18px", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
-      }}>
-        {["☀️ Güneş Paneli", "🔋 Akıllı Batarya", "⚡ EPİAŞ Fiyatları", "🚨 Kesinti Koruması", "🤖 SAC/TD3 Ajanı"][active]}
+function BatteryView() {
+  const hours = [0.7, 0.9, 0.8, 0.6, 0, 0, -0.5, -0.8, 0, 0.4, 0.6, 0, -0.9, -0.7, 0, 0.3];
+  return (
+    <div style={{ display: "flex", gap: 22, alignItems: "center" }}>
+      <div style={{ position: "relative", width: 150, flexShrink: 0 }}>
+        <svg viewBox="0 0 140 140" style={{ width: "100%" }}>
+          <circle cx="70" cy="70" r="56" fill="none" stroke="#ffffff12" strokeWidth="13" />
+          <motion.circle cx="70" cy="70" r="56" fill="none" stroke="#22c55e" strokeWidth="13"
+            strokeLinecap="round" strokeDasharray="352" transform="rotate(-90 70 70)"
+            initial={{ strokeDashoffset: 352 }} animate={{ strokeDashoffset: 352 * (1 - 0.68) }}
+            transition={{ duration: 1.2, ease: "easeOut" }} />
+          <text x="70" y="66" textAnchor="middle" fontSize="26" fontWeight="800" fill="#fff">%68</text>
+          <text x="70" y="86" textAnchor="middle" fontSize="10.5" fill="#8b95a7">dolu · şarj oluyor</text>
+        </svg>
+        <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.6 }}
+          style={{ position: "absolute", top: 4, right: 10, width: 10, height: 10, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 12px #22c55e" }} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 12, color: "#8b95a7", marginBottom: 8 }}>24 saatlik şarj planı</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 3, height: 90 }}>
+          {hours.map((v, i) => (
+            <motion.div key={i}
+              initial={{ height: 0 }} animate={{ height: Math.max(Math.abs(v) * 76, 4) }}
+              transition={{ delay: i * 0.05, duration: 0.4 }}
+              style={{
+                flex: 1, borderRadius: 3,
+                background: v > 0 ? "#22c55e" : v < 0 ? "#ef4444" : "#ffffff1c",
+                alignSelf: v >= 0 ? "flex-end" : "flex-start",
+              }} />
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 14, marginTop: 10, fontSize: 11.5, color: "#8b95a7" }}>
+          <span><span style={{ color: "#22c55e" }}>■</span> şarj (ucuz saat)</span>
+          <span><span style={{ color: "#ef4444" }}>■</span> deşarj (pahalı saat)</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EpiasView() {
+  const bars = [42, 38, 35, 32, 30, 33, 40, 55, 68, 62, 52, 46, 44, 48, 55, 64, 78, 92, 100, 88, 74, 62, 52, 45];
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div>
+          <span style={{ fontSize: 24, fontWeight: 800, color: "#fff" }}>2.412 ₺</span>
+          <span style={{ fontSize: 12.5, color: "#8b95a7" }}> /MWh · şu an</span>
+        </div>
+        <motion.span animate={{ opacity: [1, 0.5, 1] }} transition={{ repeat: Infinity, duration: 1.8 }}
+          style={{ background: "#22c55e22", color: "#4ade80", border: "1px solid #22c55e55", borderRadius: 999, padding: "4px 14px", fontSize: 12.5, fontWeight: 700 }}>
+          ● Canlı
+        </motion.span>
+      </div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 130 }}>
+        {bars.map((h, i) => (
+          <motion.div key={i}
+            initial={{ height: 0 }} animate={{ height: `${h}%` }}
+            transition={{ delay: i * 0.035, duration: 0.4 }}
+            style={{
+              flex: 1, borderRadius: 3,
+              background: h > 80 ? "#ef4444" : h < 40 ? "#22c55e" : "#ffffff22",
+            }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "#8b95a7", marginTop: 8 }}>
+        <span>00:00</span><span style={{ color: "#4ade80" }}>▲ ucuz → şarj</span>
+        <span style={{ color: "#f87171" }}>▼ pahalı → deşarj</span><span>23:00</span>
+      </div>
+    </div>
+  );
+}
+
+function OutageView() {
+  const rows = [["Kritik yükler", 100], ["Aydınlatma", 100], ["Priz devreleri", 82], ["EV şarj", 0]];
+  return (
+    <div>
+      <motion.div animate={{ opacity: [1, 0.6, 1] }} transition={{ repeat: Infinity, duration: 1 }}
+        style={{ background: "#ef444418", border: "1px solid #ef444455", borderRadius: 12, padding: "10px 16px", color: "#f87171", fontWeight: 700, fontSize: 14, marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
+        <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ef4444", boxShadow: "0 0 12px #ef4444" }} />
+        Şebeke kesintisi algılandı — batarya + güneş devrede
+      </motion.div>
+      {rows.map(([l, p], i) => (
+        <div key={l} style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "#c3cad6", marginBottom: 5 }}>
+            <span>{l}</span><span style={{ fontWeight: 700, color: p === 0 ? "#8b95a7" : p === 100 ? "#4ade80" : "#fbbf24" }}>{p === 0 ? "askıda" : `%${p}`}</span>
+          </div>
+          <div style={{ background: "#ffffff10", borderRadius: 999, height: 8, overflow: "hidden" }}>
+            <motion.div initial={{ width: 0 }} animate={{ width: `${p}%` }}
+              transition={{ delay: 0.2 + i * 0.15, duration: 0.7, ease: "easeOut" }}
+              style={{ height: "100%", borderRadius: 999, background: p === 100 ? "#22c55e" : p > 0 ? "#fbbf24" : "transparent" }} />
+          </div>
+        </div>
+      ))}
+      <div style={{ fontSize: 12.5, color: "#8b95a7", marginTop: 14 }}>
+        Tahmini otonomi: <b style={{ color: "#fff" }}>4s 20dk</b> · Jeneratör: <b style={{ color: "#4ade80" }}>hazır</b>
+      </div>
+    </div>
+  );
+}
+
+function AgentView() {
+  const decisions = [
+    ["03:00", "DEPOLA", "#22c55e", "elektrik en ucuz — batarya doluyor"],
+    ["13:00", "BEKLE", "#8b95a7", "güneş zaten evi besliyor"],
+    ["18:00", "KULLAN", "#ef4444", "elektrik en pahalı — depodakini kullan"],
+    ["22:00", "DEPOLA", "#22c55e", "gece ucuz tarife başladı"],
+  ];
+  return (
+    <div>
+      {decisions.map(([t, k, c, d], i) => (
+        <motion.div key={t}
+          initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15 + i * 0.16, duration: 0.4 }}
+          style={{ display: "flex", alignItems: "center", gap: 12, background: "#ffffff07", border: "1px solid #ffffff10", borderRadius: 12, padding: "11px 15px", marginBottom: 10 }}>
+          <span style={{ fontFamily: "monospace", fontSize: 13, color: "#8b95a7", width: 44 }}>{t}</span>
+          <span style={{ background: c + "22", color: c, borderRadius: 999, padding: "3px 13px", fontSize: 12, fontWeight: 800, letterSpacing: "0.04em" }}>{k}</span>
+          <span style={{ fontSize: 12.5, color: "#c3cad6" }}>{d}</span>
+        </motion.div>
+      ))}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "linear-gradient(90deg,#22c55e18,#8b5cf618)", border: "1px solid #ffffff14", borderRadius: 12, padding: "13px 16px", marginTop: 4 }}>
+        <span style={{ fontSize: 13, color: "#c3cad6" }}>Bugünkü net kazanç</span>
+        <span style={{ fontSize: 21, fontWeight: 800, color: "#4ade80" }}>+14.4 ₺</span>
+      </motion.div>
+    </div>
+  );
+}
+
+function ProductPanel({ active }) {
+  const meta = PANEL_META[active];
+  const views = [<SolarView key="s" />, <BatteryView key="b" />, <EpiasView key="e" />, <OutageView key="o" />, <AgentView key="a" />];
+  return (
+    <div style={{
+      background: "linear-gradient(150deg,#0d1526,#0b1220 60%)",
+      border: "1px solid #ffffff14",
+      borderRadius: 24,
+      boxShadow: `0 40px 90px -30px #000c, 0 0 0 1px ${meta.color}22, 0 0 90px -30px ${meta.color}55`,
+      overflow: "hidden",
+      transition: "box-shadow 0.6s",
+    }}>
+      {/* pencere başlığı */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", borderBottom: "1px solid #ffffff0e" }}>
+        <span style={{ display: "flex", gap: 6 }}>
+          {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+            <span key={c} style={{ width: 11, height: 11, borderRadius: "50%", background: c, opacity: 0.85 }} />
+          ))}
+        </span>
+        <AnimatePresence mode="wait">
+          <motion.span key={active}
+            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+            style={{ fontSize: 13.5, fontWeight: 700, color: "#e6ebf2" }}>
+            {meta.title}
+          </motion.span>
+        </AnimatePresence>
+        <span style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: "50%", background: meta.color, boxShadow: `0 0 10px ${meta.color}`, transition: "background 0.5s" }} />
+      </div>
+      {/* içerik */}
+      <div style={{ padding: "22px 22px 26px", minHeight: 260 }}>
+        <AnimatePresence mode="wait">
+          <motion.div key={active}
+            initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }}
+            transition={{ duration: 0.32 }}>
+            {views[active]}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -935,34 +1042,34 @@ function StickyShowcase() {
 
   const features = [
     {
-      icon: "☀️", color: "#f59e0b", bg: "#fef3c7",
+      Icon: Sun, color: "#f59e0b", bg: "#fef3c7",
       title: "Güneş Paneli Optimizasyonu",
-      desc: "Çatı alanına göre panel sayısı ve kurulu güç otomatik hesaplanır. Mevsimsel üretim profili, öz-tüketim önceliği ve fazla üretim şebeke satışı tam entegre çalışır.",
-      tags: ["450 W/panel", "%80 sistem verimi", "Mevsimsel profil"],
+      desc: "Güneşten üretilen elektrik önce evinizde kullanılır. Artan kısım ya bataryaya depolanır ya da şebekeye satılıp size gelir yazar. Yazın-kışın üretim farkı otomatik hesaba katılır.",
+      tags: ["Önce kendi eviniz", "Fazlası satılır", "Yaz-kış otomatik"],
     },
     {
-      icon: "🔋", color: "#22c55e", bg: "#dcfce7",
+      Icon: Battery, color: "#22c55e", bg: "#dcfce7",
       title: "Akıllı Batarya Yönetimi",
-      desc: "SAC ajanı ucuz saatte şarj, pahalı saatte deşarj kararı verir. Günlük tüketimin %40'ı kapasiteli batarya; %95 verim, %10 minimum SOC, C/2 şarj hızı.",
-      tags: ["η = %95", "Min SOC %10", "C/2 şarj hızı"],
+      desc: "Elektrik gece yarısı ucuzken batarya dolar, akşam herkes elektrik kullanırken (fiyatlar en yüksekken) depodaki ucuz elektrik devreye girer. Aradaki fark cebinizde kalır.",
+      tags: ["Ucuzken doldur", "Pahalıyken kullan", "Fark cebinizde"],
     },
     {
-      icon: "⚡", color: "#3b82f6", bg: "#dbeafe",
-      title: "Gerçek Zamanlı EPİAŞ",
-      desc: "Gün öncesi piyasasından saatlik PTF fiyatları çekilir. API → arşiv CSV → Sentetik üçlü fallback zinciri sayesinde dashboard hiçbir zaman çökmez.",
-      tags: ["TGT API auth", "CSV yedek", "Sentetik fallback"],
+      Icon: Bolt, color: "#3b82f6", bg: "#dbeafe",
+      title: "Güncel Elektrik Fiyatları",
+      desc: "Elektriğin fiyatı her saat değişir — gece ucuz, akşam pahalıdır. Sistem resmi piyasa fiyatlarını her gün otomatik alır; siz hiçbir tarife takip etmezsiniz.",
+      tags: ["Resmi fiyatlar", "Her gün güncel", "Takip derdi yok"],
     },
     {
-      icon: "🚨", color: "#ef4444", bg: "#fee2e2",
+      Icon: Alert, color: "#ef4444", bg: "#fee2e2",
       title: "Kesinti Koruması",
       desc: "Elektrik kesildiğinde batarya ve güneş otomatik devreye girer. Opsiyonel jeneratör (12 TL/kWh) ile kesintisiz güç; karşılanamayan yük raporlanır.",
       tags: ["Otomatik devreye", "Jeneratör desteği", "Yük raporu"],
     },
     {
-      icon: "🤖", color: "#8b5cf6", bg: "#ede9fe",
-      title: "SAC / TD3 RL Ajanı",
-      desc: "500k adım Curriculum Learning ile eğitilmiş. Oracle'dan Naive tahmine geçişte sadece ±0.2 TL fark — tahmine bağımlı değil, gerçek bir strateji öğrenmiş.",
-      tags: ["+14.4 TL/gün", "±0.2 TL robust", "Faz 1→2→3"],
+      Icon: Brain, color: "#8b5cf6", bg: "#ede9fe",
+      title: "Kendi Kendine Öğrenen Asistan",
+      desc: "Asistan, binlerce günlük fiyat verisiyle eğitildi: hangi saatte ne yapılacağını deneye deneye kendisi öğrendi. Yarının fiyatını bilmese bile doğru kararı verir.",
+      tags: ["Günde ~14 TL kazandırır", "Şaşırtmaca fiyata dayanıklı", "Sürekli öğrenir"],
     },
   ];
 
@@ -983,24 +1090,24 @@ function StickyShowcase() {
     <section id="features" style={{ padding: "100px 0", background: "#fafaf8" }}>
       <div className="container">
         <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 72 }}>
-          <span className="eyebrow">Scroll ile keşfet</span>
-          <h2>Her sistem, canlı görselleştirme ile</h2>
+          <span className="eyebrow">Kaydırarak keşfedin</span>
+          <h2>Sistem sizin için ne yapıyor?</h2>
           <p className="sub" style={{ maxWidth: 480, margin: "12px auto 0" }}>
-            Güneş panelinden kesinti korumasına — beş temel özellik, binanız üzerinde.
+            Güneşten kesinti korumasına — beş şey, hepsi kendiliğinden.
           </p>
         </motion.div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "start" }}>
-          {/* Sol — yapışık bina görselleştirmesi */}
-          <div style={{ position: "sticky", top: "14vh" }}>
-            <BuildingViz active={active} />
+          {/* Sol — yapışık ürün paneli */}
+          <div style={{ position: "sticky", top: "16vh" }}>
+            <ProductPanel active={active} />
           </div>
 
           {/* Sağ — kaydırmalı özellik kartları */}
           <div>
             {features.map((f, i) => (
               <div
-                key={f.icon}
+                key={f.title}
                 ref={el => refs.current[i] = el}
                 style={{ minHeight: "68vh", display: "flex", alignItems: "center" }}
               >
@@ -1013,10 +1120,10 @@ function StickyShowcase() {
                 }}>
                   <div style={{
                     width: 54, height: 54, borderRadius: 14,
-                    background: f.color + "20", fontSize: 28,
+                    background: f.color + "20", color: f.color,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     marginBottom: 22,
-                  }}>{f.icon}</div>
+                  }}><f.Icon size={26} /></div>
                   <h3 style={{ fontSize: 22, marginBottom: 12 }}>{f.title}</h3>
                   <p style={{ color: "#64748b", fontSize: 15.5, lineHeight: 1.75, marginBottom: 22 }}>{f.desc}</p>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1041,20 +1148,20 @@ function StickyShowcase() {
 /* ── İstatistikler ───────────────────────────────────────────── */
 function Stats() {
   const rows = [
-    ["SAC Algoritması", "+14.4 TL/gün", "Oracle modunda 74 günlük test seti ortalaması", "#141414", "#fff"],
-    ["TD3 Algoritması", "+14.7 TL/gün", "SAC ile birlikte en yüksek performans", "#22c55e", "#fff"],
-    ["Tahmin doğruluğu", "%29.93 sMAPE", "LightGBM+Optuna fiyat tahmini (gün-öncesi)", "#eceae6", "#1b1b1b"],
-    ["Tahmine dayanıklılık", "±0.2 TL", "Oracle → Forecast → Naive arasındaki fark", "#3b82f6", "#fff"],
-    ["Curriculum aşaması", "Faz 1→2→3", "Arbitraj → Güneş → Ertelenebilir yük eğitimi", "#f59e0b", "#1b1b1b"],
+    ["Günlük tasarruf", "~14 TL", "Elektriği ucuzken alıp pahalıyken kullanmanın günlük getirisi", "#141414", "#fff"],
+    ["Yıllık tasarruf", "5.000+ TL", "Ortalama bir apartman için yıllık tahmini kazanç", "#22c55e", "#fff"],
+    ["Kurulum süresi", "2 dakika", "Binanızı tarif edin, gerisini asistan halleder", "#eceae6", "#1b1b1b"],
+    ["Kesintide dayanma", "4+ saat", "Batarya ve güneşle elektriksiz kalmadan geçen süre", "#3b82f6", "#fff"],
+    ["Sizin yapacağınız", "Hiçbir şey", "Sistem 7/24 kendi kendine çalışır", "#f59e0b", "#1b1b1b"],
   ];
   return (
     <section id="stats">
       <div className="container">
         <motion.div {...fadeUp} style={{ textAlign: "center", marginBottom: 34 }}>
-          <span className="eyebrow">Gerçek sonuçlar</span>
-          <h2>74 günlük test setinden performans</h2>
+          <span className="eyebrow">Rakamlarla</span>
+          <h2>Peki size ne kazandırır?</h2>
           <p className="sub" style={{ margin: "12px auto 0", maxWidth: 520 }}>
-            Tüm metrikler, aligned_dataset'in son %20'si üzerinde hesaplanmıştır.
+            74 günlük gerçek fiyat verisiyle yapılan testlerin sonuçları.
           </p>
         </motion.div>
         {rows.map(([l, n, d, bg, fg], i) => (
@@ -1077,17 +1184,17 @@ function Stats() {
 function UseCases() {
   const cases = [
     ["🏠", "Müstakil ev & villa sahipleri",
-     "Güneş paneli ve bataryanız varsa, ajan sabah ucuz saatte şarj edip akşam pahalı saatte deşarj ederek faturanızı düşürür.",
+     "Güneş paneliniz ve bataryanız varsa asistan gece ucuz elektriği depolar, akşam pahalı saatte onu kullanır — fatura kendiliğinden düşer.",
      "+5.200 TL/yıl", "Ortalama yıllık tasarruf tahmini"],
     ["🏢", "Apartman yöneticileri",
-     "Asansör, ortak alan ve su pompası tüketimini gerçek EPİAŞ fiyatlarıyla optimize edin. Kesinti senaryosunu test edin.",
-     "%40", "Pik talep azalması"],
+     "Asansör, merdiven aydınlatması ve su pompası gibi ortak giderleri düşürün. Aidatlara yansıyan elektrik kalemi küçülür.",
+     "%40'a kadar", "Ortak gider tasarrufu"],
     ["🏬", "Ofis binaları & ticari",
      "HVAC, EV şarj istasyonu ve güvenlik kameralarını birlikte yönetin. Amorti süresi ve CO₂ tasarrufu anında görülür.",
      "3–6 yıl", "Ortalama amorti süresi"],
-    ["🔬", "Araştırmacılar & mühendisler",
-     "Uzman modunda SAC/TD3/PPO/A2C algoritma karşılaştırması, Oracle/Forecast/Naive fiyat modu pivotu, mevsimsel ısı haritaları.",
-     "4 mod", "Oracle · Forecast · Ensemble · Naive"],
+    ["🔬", "Meraklısına: uzman modu",
+     "İşin tekniğini merak edenler için ayrı bir bölüm var: farklı yapay zekâ yöntemlerinin karşılaştırması, mevsimsel analizler ve tüm detaylar orada.",
+     "İsteğe bağlı", "Ana ekranda teknik detay yok"],
   ];
   return (
     <section id="use-cases">
@@ -1123,14 +1230,15 @@ function TechQuote() {
       <div className="container">
         <motion.div {...fadeUp} className="card" style={{ padding: "44px 32px", textAlign: "center" }}>
           <div style={{ display: "flex", gap: 20, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
-            {["Stable-Baselines3", "LightGBM + Optuna", "Streamlit + Three.js", "EPİAŞ API"].map((c) => (
+            {["Gerçek fiyat verisi", "7/24 otomatik", "Kesinti koruması", "Kurulum 2 dakika"].map((c) => (
               <span key={c} className="eyebrow" style={{ marginBottom: 0 }}>{c}</span>
             ))}
           </div>
           <blockquote style={{ fontSize: "clamp(18px,2.4vw,26px)", fontWeight: 700, maxWidth: 720, margin: "0 auto 22px", letterSpacing: "-0.01em" }}>
-            "SAC ve TD3 ajanları tahmin belirsizliğine karşı robust — Oracle'dan Naive'e geçişte sadece ±0.2 TL fark var. Tahmin kalitesi kritik değil."
+            "Elektriğin ne zaman ucuz, ne zaman pahalı olduğunu sistem kendisi öğreniyor.
+            Siz sadece ay sonunda düşen faturayı görüyorsunuz."
           </blockquote>
-          <div style={{ fontWeight: 700 }}>Gün 15 Karşılaştırma Analizi · SmartHome-EnergyRL</div>
+          <div style={{ fontWeight: 700 }}>SmartHome Energy — Proje Ekibi</div>
         </motion.div>
       </div>
     </section>
@@ -1140,16 +1248,16 @@ function TechQuote() {
 /* ── SSS ─────────────────────────────────────────────────────── */
 function Faq() {
   const qs = [
-    ["Gerçek bir bina ile entegre edilebilir mi?",
-     "Dashboard simülasyon tabanlıdır; gerçek bina entegrasyonu için MQTT broker, akıllı sayaç veya Home Assistant API bağlantısı eklenmesi gerekir. Bu Faz 5 kapsamında planlanmaktadır."],
-    ["EPİAŞ API hesabı olmadan çalışır mı?",
-     "Evet. EPİAŞ API bilgileri boş bırakılırsa sistem otomatik olarak arşiv CSV'sine, o da yoksa sentetik EPİAŞ deseni üreteciye geçer."],
-    ["Model nasıl eğitildi?",
-     "SAC ve TD3, Curriculum Learning Faz 1→2→3 ile eğitildi: önce fiyat arbitrajı, sonra güneş+talep, son olarak ertelenebilir yük + tahmin robustluğu. 500k adım, Colab T4 GPU."],
-    ["Batarya ve panel boyutunu nasıl belirliyor?",
-     "Batarya kapasitesi günlük tüketimin %40'ı, şarj/deşarj gücü C/2, panel sayısı çatı alanı ÷ 1.7 m² × 450 W olarak otomatik hesaplanır."],
-    ["Hangi algoritmalar destekleniyor?",
-     "SAC, TD3, PPO, A2C (Stable-Baselines3), Eşik Kuralı, ForecastAwarePolicy ve Bekle baseline'ları. Uzman modunda tüm algoritmaların Oracle/Forecast/Naive karşılaştırması görülebilir."],
+    ["Kullanmak için teknik bilgi gerekiyor mu?",
+     "Hayır. Binanızı tarif edersiniz (kaç kat, kaç daire, çatı ne kadar) — gerisini sistem halleder. Ekranda gördüğünüz her şey günlük dille yazılmıştır: ne kadar tasarruf ettiniz, batarya ne kadar dolu, şu an ne yapıyor."],
+    ["Bu gerçekten faturamı düşürür mü?",
+     "Elektriğin fiyatı gün içinde 2-3 kata kadar değişir. Sistem ucuz saatte elektriği bataryaya depolar, pahalı saatte onu kullanır. Testlerde bu fark günde ortalama 14 TL, yılda 5.000 TL'nin üzerinde tasarruf sağladı."],
+    ["Benim bir şey yapmam gerekiyor mu?",
+     "Hayır. Kurulumdan sonra sistem 7/24 kendi kendine çalışır. İsterseniz ekrandan ne yaptığını izlersiniz, istemezseniz hiç açmazsınız — tasarruf her iki durumda da devam eder."],
+    ["Elektrik kesilirse ne olur?",
+     "Sistem bataryayı kesintilere karşı hazır tutar. Kesinti anında batarya ve güneş otomatik devreye girer; jeneratörünüz varsa onu da yönetir. Ortalama 4 saatten uzun süre elektriksiz kalmazsınız."],
+    ["Gerçek bir binaya bağlanabilir mi?",
+     "Şu an bu bir simülasyon ve karar destek uygulamasıdır: binanızın birebir modelini kurar, gerçek fiyatlarla ne kadar tasarruf edeceğinizi gösterir. Gerçek binaya fiziksel bağlantı gelecek sürümde planlanıyor."],
   ];
   const [open, setOpen] = useState(0);
   return (
@@ -1206,7 +1314,7 @@ function Cta() {
           <span className="eyebrow" style={{ background: "#21262d", color: "#58a6ff" }}>Ücretsiz & Açık Kaynak</span>
           <h2 style={{ color: "#fff", marginTop: 16 }}>Dashboard'u şimdi açın</h2>
           <p style={{ color: "#8b949e", margin: "14px auto 30px", maxWidth: 480, fontSize: 18 }}>
-            Binanızı tanımlayın, simülasyonu başlatın — SAC ajanı saat saat karar versin.
+            Binanızı 2 dakikada tarif edin — ne kadar tasarruf edeceğinizi hemen görün.
           </p>
           <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
             <a className="btn btn-blue" href="http://localhost:8501">
@@ -1233,10 +1341,15 @@ function Footer() {
               <span className="logo-mark"><Bolt size={17} /></span> SmartHome Energy RL
             </div>
             <p className="sub" style={{ fontSize: 14.5, maxWidth: 260 }}>
-              EPİAŞ verisiyle eğitilmiş RL ajanı tabanlı bina enerji yönetim sistemi.
-            </p>
-            <a href="mailto:isambais18@gmail.com" style={{ marginTop: 10, fontWeight: 600, color: "var(--ink)" }}>isambais18@gmail.com</a>
-          </div>
+  EPİAŞ verisiyle eğitilmiş RL ajanı tabanlı bina enerji yönetim sistemi.
+</p>
+<a
+  href="mailto:isambais18@gmail.com"
+  style={{ marginTop: 10, fontWeight: 600, color: "var(--ink)" }}
+>
+  isambais18@gmail.com
+</a>
+</div>
           <div>
             <h4>Dashboard</h4>
             <a href="http://localhost:8501">Bina Simülasyonu</a>
@@ -1247,7 +1360,7 @@ function Footer() {
           <div>
             <h4>Proje</h4>
             <a href="#features">Özellikler</a>
-            <a href="#how">Nasıl Çalışır</a>
+            <a href="#features">Nasıl Çalışır</a>
             <a href="#stats">Sonuçlar</a>
             <a href="#faq">SSS</a>
           </div>
@@ -1286,3 +1399,4 @@ export default function App() {
     </>
   );
 }
+

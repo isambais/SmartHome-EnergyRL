@@ -21,6 +21,10 @@ SATIS_ORANI = 0.60
 MIN_SOC = 0.10
 OZ_DESARJ = 0.0005
 
+# Ay bazlı sıcaklık-verim çarpanı: lityum batarya soğukta verim kaybeder
+# (Oca..Ara — kışın ~%12 kayıp, yazın tam verim)
+SICAKLIK_VERIM = [0.88, 0.90, 0.94, 0.97, 1.00, 1.00, 1.00, 1.00, 0.98, 0.95, 0.91, 0.88]
+
 
 def simulate_day(prices_tl_mwh: np.ndarray,
                  solar_kw: np.ndarray,
@@ -31,8 +35,11 @@ def simulate_day(prices_tl_mwh: np.ndarray,
                  dow: int = 0,
                  initial_soc: float = 0.5,
                  outage_hours: set[int] | None = None,
-                 jenerator: bool = False) -> pd.DataFrame:
+                 jenerator: bool = False,
+                 ay: int | None = None) -> pd.DataFrame:
     outage_hours = outage_hours or set()
+    # Mevsimsel batarya verimi (ay verilmezse standart %95)
+    verim = VERIM * (SICAKLIK_VERIM[ay - 1] if ay else 1.0)
     p_kwh = np.asarray(prices_tl_mwh, dtype=float) / 1000.0  # TL/kWh
     tomorrow = p_kwh.copy()  # gün-öncesi: yarın için bugünkü seri en iyi tahmin
 
@@ -60,13 +67,13 @@ def simulate_day(prices_tl_mwh: np.ndarray,
         istek = a * batt_power_kw
         if istek > 0:
             bosluk = (1.0 - soc) * batt_kwh
-            sarj_kwh = min(istek, bosluk / VERIM)
-            soc = min(1.0, soc + sarj_kwh * VERIM / batt_kwh)
+            sarj_kwh = min(istek, bosluk / verim)
+            soc = min(1.0, soc + sarj_kwh * verim / batt_kwh)
         elif istek < 0:
             mevcut = max(0.0, soc - MIN_SOC) * batt_kwh
             cekilen = min(-istek, mevcut)
             soc = max(0.0, soc - cekilen / batt_kwh)
-            desarj_kwh = cekilen * VERIM
+            desarj_kwh = cekilen * verim
 
         net = demand_kw[h] - solar_kw[h] + sarj_kwh - desarj_kwh
 
@@ -136,4 +143,36 @@ def oneriler(df: pd.DataFrame, saat: int) -> list[str]:
         out.append(f"☀️ Güneş {r['gunes_kw']:.1f} kW üretiyor — yüksek tüketimli işleri şimdi yapın")
     if r["kesinti"]:
         out.append("🚨 Elektrik kesintisi! " + ("Jeneratör devrede." if r["jenerator_kwh"] > 0 or r["karsilanmayan_kwh"] == 0 else f"{r['karsilanmayan_kwh']:.1f} kWh karşılanamıyor!"))
+    return out
+
+
+def oneriler_kodlu(df: pd.DataFrame, saat: int) -> list[dict]:
+    """Öneriler — dile bağımsız yapısal veri (kod + parametre).
+    Frontend her kodu kendi i18n şablonuyla biçimlendirir."""
+    r = df.iloc[saat]
+    out: list[dict] = []
+    p = float(r["fiyat_tl_mwh"])
+    ort = float(df["fiyat_tl_mwh"].mean())
+    if r["karar"] == "şarj":
+        out.append({"code": "charge", "p": round(p), "ort": round(ort)})
+    elif r["karar"] == "deşarj":
+        out.append({"code": "discharge", "soc": round(float(r["soc"]) * 100), "p": round(p)})
+    else:
+        out.append({"code": "idle", "p": round(p)})
+
+    sinyal = df[(df["defer_sinyal"] > 0) & (df["saat"].between(6, 21))]
+    if not sinyal.empty:
+        en_iyi = int(sinyal.iloc[0]["saat"])
+    else:
+        gunduz = df[df["saat"].between(6, 21)]
+        en_iyi = int(gunduz.loc[gunduz["fiyat_tl_mwh"].idxmin(), "saat"])
+    out.append({"code": "defer", "saat": f"{en_iyi:02d}"})
+
+    if r["gunes_kw"] > 0.5:
+        out.append({"code": "solar", "kw": round(float(r["gunes_kw"]), 1)})
+    if r["kesinti"]:
+        if r["jenerator_kwh"] > 0 or r["karsilanmayan_kwh"] == 0:
+            out.append({"code": "outageGen"})
+        else:
+            out.append({"code": "outageUnmet", "kwh": round(float(r["karsilanmayan_kwh"]), 1)})
     return out
