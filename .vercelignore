@@ -5,7 +5,6 @@ logs
 models
 notebooks
 scripts
-src
 tests
 *.db
 .env
