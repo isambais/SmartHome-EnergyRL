@@ -26,6 +26,8 @@ services:
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
+      - key: EPIAS_PASS
+        value: ""
       - key: VITE_API_URL
         value: "https://smarthome-api-sfe9.onrender.com"
     routes:
