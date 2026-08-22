@@ -82,13 +82,10 @@ function DilSecici() {
       {ac && (
         <>
           <div
-            onClick={() => setAc(false)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 60,
-            }}
-          />
+  className="lang-backdrop"
+  onClick={() => setAc(false)}
+  style={{ position: "fixed", inset: 0, zIndex: 60 }}
+/>
 
           <div
             className="lang-dropdown"
