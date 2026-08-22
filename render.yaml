@@ -27,9 +27,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        # Backend deploy edildikten sonra buraya Render URL'sini yaz:
-        # örn: https://smarthome-api.onrender.com
-        value: ""
+        value: "https://smarthome-api-sfe9.onrender.com"
     routes:
       - type: rewrite
         source: /*
