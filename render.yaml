@@ -16,6 +16,8 @@ services:
         value: ""
       - key: EPIAS_PASS
         value: ""
+      - key: FRONTEND_URL
+        value: "https://smarthome-frontend-86xr.onrender.com"
     healthCheckPath: /docs
 
   # ── Frontend: React (Vite) ────────────────────────────────────
@@ -26,8 +28,6 @@ services:
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
-      - key: EPIAS_PASS
-        value: ""
       - key: VITE_API_URL
         value: "https://smarthome-api-sfe9.onrender.com"
     routes:
