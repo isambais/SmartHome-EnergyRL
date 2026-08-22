@@ -131,9 +131,36 @@
 .landing .nav-drawer .drawer-cta { margin-top: 6px; }
 
 @media (max-width: 900px) {
-  .landing .nav-links { display: none; }
-  .landing .nav-cta-desktop { display: none; }
-  .landing .nav-burger { display: inline-flex; }
+  .landing .nav-links {
+    display: none;
+  }
+
+  .landing .nav-cta-desktop {
+    display: none;
+  }
+
+  .landing .nav-burger {
+    display: inline-flex;
+  }
+
+  .landing .nav-drawer {
+    max-height: calc(100vh - 92px);
+    max-height: calc(100dvh - 92px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .landing .nav-drawer .lang-dropdown {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    z-index: 61;
+    width: 100%;
+    min-width: 0 !important;
+    margin-top: 8px;
+  }
 }
 
 /* ── Buttons ──────────────────────────────────────────────────── */
