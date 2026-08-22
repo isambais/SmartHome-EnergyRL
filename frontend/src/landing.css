@@ -144,10 +144,25 @@
   }
 
 @media (max-width: 900px) {
+  .landing .nav-links {
+    display: none;
+  }
+
+  .landing .nav-cta-desktop {
+    display: none;
+  }
+
+  .landing .nav-burger {
+    display: inline-flex;
+  }
+
   .landing .nav-drawer {
+    max-height: calc(100vh - 92px);
     max-height: calc(100dvh - 92px);
     overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .landing .nav-drawer .lang-backdrop {
@@ -164,7 +179,6 @@
     margin-top: 8px;
   }
 }
-
 /* ── Buttons ──────────────────────────────────────────────────── */
 .landing .btn {
   display: inline-flex; align-items: center; gap: 9px;
