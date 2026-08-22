@@ -53,28 +53,87 @@ function DilSecici() {
   const { dil, setDil } = useI18n();
   const [ac, setAc] = useState(false);
   const secili = DILLER.find((d) => d.kod === dil) || DILLER[0];
+
   return (
     <div style={{ position: "relative" }}>
-      <button onClick={() => setAc(!ac)} aria-label="Dil"
-        style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--surface, rgba(255,255,255,0.06))",
-                 border: "1px solid var(--border, rgba(255,255,255,0.12))", color: "var(--fg,#fff)",
-                 borderRadius: 999, padding: "7px 12px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", minHeight: 44 }}>
+      <button
+        onClick={() => setAc(!ac)}
+        aria-label="Dil"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          background: "var(--surface, rgba(255,255,255,0.06))",
+          border: "1px solid var(--border, rgba(255,255,255,0.12))",
+          color: "var(--fg,#fff)",
+          borderRadius: 999,
+          padding: "7px 12px",
+          fontSize: 13.5,
+          fontWeight: 600,
+          cursor: "pointer",
+          fontFamily: "inherit",
+          minHeight: 44,
+        }}
+      >
         <span>{secili.bayrak}</span>
         <span style={{ textTransform: "uppercase" }}>{secili.kod}</span>
       </button>
+
       {ac && (
         <>
-          <div onClick={() => setAc(false)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
-          <div style={{ position: "absolute", top: "115%", right: 0, zIndex: 61,
-                        background: "var(--surface-solid,#111)", border: "1px solid var(--border,rgba(255,255,255,0.14))",
-                        borderRadius: 12, padding: 6, minWidth: 150, boxShadow: "0 12px 30px -10px #000a" }}>
+          <div
+            onClick={() => setAc(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 60,
+            }}
+          />
+
+          <div
+            className="lang-dropdown"
+            style={{
+              position: "absolute",
+              top: "115%",
+              right: 0,
+              zIndex: 61,
+              background: "var(--surface-solid,#111)",
+              border: "1px solid var(--border,rgba(255,255,255,0.14))",
+              borderRadius: 12,
+              padding: 6,
+              minWidth: 150,
+              boxShadow: "0 12px 30px -10px #000a",
+            }}
+          >
             {DILLER.map((d) => (
-              <button key={d.kod} onClick={() => { setDil(d.kod); setAc(false); }}
-                style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", textAlign: "left",
-                         background: d.kod === dil ? "var(--hover,rgba(255,255,255,0.08))" : "none",
-                         border: "none", color: "var(--fg,#fff)", borderRadius: 8, padding: "9px 11px",
-                         fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                <span>{d.bayrak}</span> {d.ad}
+              <button
+                key={d.kod}
+                onClick={() => {
+                  setDil(d.kod);
+                  setAc(false);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 9,
+                  width: "100%",
+                  textAlign: "left",
+                  background:
+                    d.kod === dil
+                      ? "var(--hover,rgba(255,255,255,0.08))"
+                      : "none",
+                  border: "none",
+                  color: "var(--fg,#fff)",
+                  borderRadius: 8,
+                  padding: "9px 11px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                <span>{d.bayrak}</span>
+                {d.ad}
               </button>
             ))}
           </div>

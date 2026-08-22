@@ -546,3 +546,20 @@
 @media (max-width: 720px) { .landing .foot-grid { grid-template-columns: 1fr 1fr !important; gap: 24px !important; } }
 @media (max-width: 460px) { .landing .foot-grid { grid-template-columns: 1fr !important; } }
 @media (max-width: 600px) { .landing section { padding: 64px 0; } }
+
+
+@media (max-width: 900px) {
+  .landing .nav-drawer {
+    max-height: calc(100dvh - 92px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .landing .nav-drawer .lang-dropdown {
+    position: static !important;
+    width: 100%;
+    min-width: 0 !important;
+    margin-top: 8px;
+  }
+}
